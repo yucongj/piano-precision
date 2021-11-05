@@ -26,6 +26,7 @@ class UnitConverter;
 
 class QFileSystemWatcher;
 class QScrollArea;
+class ScoreWidget; // Added Oct 6, 2021
 
 class MainWindow : public MainWindowBase
 {
@@ -124,6 +125,7 @@ protected slots:
     virtual void setupRecentFilesMenu();
     virtual void setupRecentTransformsMenu();
     virtual void setupTemplatesMenu();
+    virtual void chooseScore(); // Added by Yucong Jiang, Oct 5, 2021ß
 
     virtual void playSpeedChanged(int);
     void playSoloToggled() override;
@@ -179,6 +181,7 @@ protected:
     WaveformLayer           *m_panLayer;
     
     QScrollArea             *m_mainScroll;
+    ScoreWidget             *m_scoreWidget; // Added Oct 6, 2021
 
     bool                     m_mainMenusCreated;
     QMenu                   *m_paneMenu;

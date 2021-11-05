@@ -17,6 +17,7 @@
 
 #include "MainWindow.h"
 #include "PreferencesDialog.h"
+#include "ScoreWidget.h" // Added Oct 6, 2021
 
 #include "view/Pane.h"
 #include "view/PaneStack.h"
@@ -214,6 +215,14 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
 
     m_descriptionLabel = new QLabel;
 
+    // Added Oct 6, 2021
+    m_scoreWidget = new ScoreWidget(this);
+    connect(m_scoreWidget, &ScoreWidget::loadFailed, [&](QString scoreName,
+            QString message) {
+        QMessageBox::warning(this, tr("Failed to load score \"%1\"").arg(scoreName),
+                             message, QMessageBox::Ok);
+    }); // added end
+
     m_mainScroll = new QScrollArea(frame);
     m_mainScroll->setWidgetResizable(true);
     m_mainScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -270,11 +279,23 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     m_playControlsSpacer = new QFrame;
 
     layout->setSpacing(m_viewManager->scalePixelSize(4));
+    // Commented out Oct 6, 2021
+    /*
     layout->addWidget(m_mainScroll, 0, 0, 1, 4);
     layout->addWidget(m_overview, 1, 0);
     layout->addWidget(m_playSpeed, 1, 1);
     layout->addWidget(m_playControlsSpacer, 1, 2);
     layout->addWidget(m_mainLevelPan, 1, 3);
+    */
+    // Commented end
+    // Added Oct 6, 2021
+    layout->addWidget(m_scoreWidget, 0, 0, 2, 1);
+    layout->addWidget(m_mainScroll, 0, 1, 1, 4);
+    layout->addWidget(m_overview, 1, 1);
+    layout->addWidget(m_playSpeed, 1, 2);
+    layout->addWidget(m_playControlsSpacer, 1, 3);
+    layout->addWidget(m_mainLevelPan, 1, 4);
+    // Added end
 
     m_playControlsWidth = 
         m_mainLevelPan->width() + m_playSpeed->width() + layout->spacing() * 2;
@@ -283,7 +304,15 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
                                           + 2 + layout->spacing());
     m_playControlsSpacer->setFixedSize(QSize(2, 2));
 
+    // Commented out Oct 6, 2021
+    /*
     layout->setColumnStretch(0, 10);
+    */
+    // Commented end
+    // Added Oct 6, 2021
+    layout->setColumnStretch(0, 4);
+    layout->setColumnStretch(1, 10);
+    // Added end
 
     connect(m_paneStack, SIGNAL(propertyStacksResized(int)),
             this, SLOT(propertyStacksResized(int)));
@@ -356,6 +385,8 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     if (QString(SV_VERSION).contains("-")) {
         QTimer::singleShot(500, this, SLOT(betaReleaseWarning()));
     }
+
+    chooseScore(); // Added by YJ, Oct 5, 2021
     
     SVDEBUG << "MainWindow: Constructor done" << endl;
 }
@@ -506,6 +537,17 @@ MainWindow::setupFileMenu()
     m_keyReference->registerShortcut(action);
     menu->addAction(action);
     toolbar->addAction(action);
+
+    // Added by YJ: Ocs 5, 2021
+    icon = il.load("chooseScore");
+    action = new QAction(icon, tr("&Choose Score"), this);
+    // action->setShortcut(tr("Ctrl+N"));
+    action->setStatusTip(tr("choosing a new score.").arg(QApplication::applicationName()));
+    connect(action, SIGNAL(triggered()), this, SLOT(chooseScore()));
+    // m_keyReference->registerShortcut(action);
+    menu->addAction(action);
+    toolbar->addAction(action);
+    // end of YJ
 
     icon = il.load("fileopen");
     action = new QAction(icon, tr("&Open..."), this);
@@ -2102,6 +2144,39 @@ MainWindow::setupTemplatesMenu()
     connect(setDefaultAction, SIGNAL(triggered()), this, SLOT(preferences()));
 
     m_manageTemplatesAction->setEnabled(havePersonal);
+}
+
+void
+MainWindow::chooseScore() // Added by YJ Oct 5, 2021
+{
+    QStringList templates = ResourceFinder().getResourceFiles("templates", "svt");
+
+    // (ordered by name)
+    std::set<QString> byName;
+    foreach (QString t, templates) {
+        if (t.startsWith(":"))
+            continue;
+        byName.insert(QFileInfo(t).baseName());
+    }
+
+    // QStringList items(byName.begin(), byName.end());
+    QStringList items;
+    for (auto n: byName) items << n;
+
+
+    bool ok = false;
+    QString item = ListInputDialog::getItem
+        (this, tr("Select a score"),
+         tr("Which score do you want to practice?"),
+         items, 0, &ok);
+    // TODO: check the returned item
+
+    m_scoreWidget->loadAScore(item); // Added Oct 6, 2021
+
+    QSettings settings;
+    settings.beginGroup("MainWindow");
+    settings.setValue("sessiontemplate", item);
+    settings.endGroup();
 }
 
 

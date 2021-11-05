@@ -1,6 +1,6 @@
 
 project(
-  'Sonic Visualiser',
+  'SV Piano Precision',
   'c', 'cpp',
   version: '4.4',
   license: 'GPL-2.0-or-later',
@@ -22,7 +22,7 @@ qt = import('qt5')
 qt_dep = dependency(
   'qt5',
   modules: [
-    'Core', 'Gui', 'Widgets', 'Xml', 'Network', 'Svg', 'Test',
+    'Core', 'Gui', 'Widgets', 'Xml', 'Network', 'Svg', 'Test', 'Pdf',
   ],
   main: true
 )
@@ -1039,6 +1039,7 @@ sv_main_files = [
   'main/Surveyer.cpp',
   'main/SVSplash.cpp',
   'main/PreferencesDialog.cpp',
+  'main/ScoreWidget.cpp',
 ]
 
 sv_main_moc_files = qt.preprocess(
@@ -1047,6 +1048,7 @@ sv_main_moc_files = qt.preprocess(
   'main/Surveyer.h',
   'main/SVSplash.h',
   'main/PreferencesDialog.h',
+  'main/ScoreWidget.h',
 ])
 
 checker_lib_files = [
@@ -1094,7 +1096,7 @@ endif
 if system == 'linux'
   sv_main_name = 'sonic-visualiser'
 else
-  sv_main_name = 'Sonic Visualiser'
+  sv_main_name = 'SV Piano Precision'
 endif # system
 
 install_data(
