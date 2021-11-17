@@ -387,6 +387,9 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
         QTimer::singleShot(500, this, SLOT(betaReleaseWarning()));
     }
 
+    connect(m_viewManager, SIGNAL(playbackFrameChanged(sv_frame_t)),
+            this, SLOT(viewManagerPlaybackFrameChanged(sv_frame_t)));
+    
     chooseScore(); // Added by YJ, Oct 5, 2021
     
     SVDEBUG << "MainWindow: Constructor done" << endl;
@@ -2197,6 +2200,20 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     settings.endGroup();
 }
 
+void
+MainWindow::viewManagerPlaybackFrameChanged(sv_frame_t frame)
+{
+    sv_samplerate_t rate = m_viewManager->getMainModelSampleRate();
+    RealTime rt = RealTime::frame2RealTime(frame, rate);
+
+    //!!! ok, for the moment we hardcode:
+    // mscore's spos file position values: 500 = quarter-note
+    // tempo = MM 120 in timesig /4
+    // so 0.5 seconds = 500 (I wonder if this is by design in MuseScore?)
+
+    int position = int(round(rt.toDouble() * 1000));
+    m_scoreWidget->highlightPosition(position);
+}
 
 void
 MainWindow::setupRecentTransformsMenu()

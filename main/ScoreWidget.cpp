@@ -131,23 +131,33 @@ ScoreWidget::paintEvent(QPaintEvent *e)
     }
     
     int dpr = devicePixelRatio();
+
+    int xorigin = (mySize.width() - imageSize.width() / dpr) / 2;
+    int yorigin = (mySize.height() - imageSize.height() / dpr) / 2;
     
     paint.drawImage
-        (QRect((mySize.width() - imageSize.width() / dpr) / 2,
-               (mySize.height() - imageSize.height() / dpr) / 2,
+        (QRect(xorigin, yorigin,
                imageSize.width() / dpr,
                imageSize.height() / dpr),
          m_image,
          QRect(0, 0, imageSize.width(), imageSize.height()));
 
-    if (m_highlight >= 0) {
+    if (m_highlight < 0) {
+        SVDEBUG << "ScoreWidget::paintEvent: No highlight specified" << endl;
+    } else {
         auto itr = m_elementsByPosition.lower_bound(m_highlight);
-        if (itr != m_elementsByPosition.end()) {
+        if (itr == m_elementsByPosition.end()) {
+            SVDEBUG << "ScoreWidget::paintEvent: Highlight position "
+                    << m_highlight << " does not have any corresponding element"
+                    << endl;
+        } else {
+            
             // just highlight the first for now...
 
             // Now, we know the units are a bit mad for these values.
             // I think(?) they are in inches * dpi * constant where
-            // dpi = 360 and constant = 12, so inches * 4320.
+            // dpi = 360 and constant = 12, so inches * 4320 or mm *
+            // 170.08 approx.
 
             // To map these correctly we will need to know the page
             // size at which the pdf was rendered - since the defaults
@@ -155,7 +165,41 @@ ScoreWidget::paintEvent(QPaintEvent *e)
             // in US, A4 everywhere else). This info must be in the
             // PDF one way or another, can QPdfDocument tell us it?
 
+            // Check that later, but for the mo let's hard code A4 and
+            // see what comes out. So 297x210mm which would make the
+            // whole page 50513.4 units tall and 35716.5 wide. Thus
+            // our y ratio will be (pixel_height)/51513.4 and x ratio
+            // (pixel_width)/35716.5. Oh, and that's times the device
+            // pixel ratio.
+
+            ScoreElement elt = itr->second;
+
+            SVDEBUG << "ScoreWidget::paintEvent: Highlight position "
+                    << m_highlight << " has corresponding element id="
+                    << elt.id << " on page=" << elt.page << " with x="
+                    << elt.x << ", y=" << elt.y << ", sy=" << elt.sy << endl;
             
+            double xratio = double(imageSize.width()) / (35716.5 * dpr);
+            double yratio = double(imageSize.height()) / (51513.4 * dpr);
+
+            // We don't get a valid element width - hardcode &
+            // reconsider this later
+            double fakeWidth = 500.0;
+            
+            QRectF rect(xorigin + elt.x * xratio,
+                        yorigin + elt.y * yratio,
+                        fakeWidth * xratio,
+                        elt.sy * yratio);
+            QColor colour("#59c4df");
+            colour.setAlpha(160);
+            paint.setPen(Qt::NoPen);
+            paint.setBrush(colour);
+
+            SVDEBUG << "ScoreWidget::paint: highlighting rect with origin "
+                    << rect.x() << "," << rect.y() << " and size "
+                    << rect.width() << "x" << rect.height() << endl;
+            
+            paint.drawRect(rect);
         }
     }
 }

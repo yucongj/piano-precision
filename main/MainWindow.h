@@ -127,6 +127,8 @@ protected slots:
     virtual void setupTemplatesMenu();
     virtual void chooseScore(); // Added by Yucong Jiang, Oct 5, 2021ß
 
+    void viewManagerPlaybackFrameChanged(sv_frame_t);
+
     virtual void playSpeedChanged(int);
     void playSoloToggled() override;
     virtual void alignToggled();
