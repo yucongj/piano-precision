@@ -542,7 +542,7 @@ MainWindow::setupFileMenu()
     icon = il.load("chooseScore");
     action = new QAction(icon, tr("&Choose Score"), this);
     // action->setShortcut(tr("Ctrl+N"));
-    action->setStatusTip(tr("choosing a new score.").arg(QApplication::applicationName()));
+    action->setStatusTip(tr("Choose a new score"));
     connect(action, SIGNAL(triggered()), this, SLOT(chooseScore()));
     // m_keyReference->registerShortcut(action);
     menu->addAction(action);
