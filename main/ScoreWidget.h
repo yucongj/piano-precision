@@ -13,12 +13,12 @@
 #ifndef SV_SCORE_WIDGET_H
 #define SV_SCORE_WIDGET_H
 
-#include <QLabel>
+#include <QFrame>
 #include <QString>
 
 class QPdfDocument;
 
-class ScoreWidget : public QLabel
+class ScoreWidget : public QFrame
 {
     Q_OBJECT
 
@@ -38,12 +38,14 @@ signals:
 
 protected:
     void resizeEvent(QResizeEvent *);
+    void paintEvent(QPaintEvent *);
     
 private:
     QString m_scoreName;
     QString m_scoreFilename;
     QPdfDocument *m_document;
     int m_page;
+    QImage m_image;
 };
 
 #endif

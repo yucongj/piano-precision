@@ -13,17 +13,17 @@
 #include "ScoreWidget.h"
 
 #include <QPdfDocument>
+#include <QPainter>
 
 #include "base/Debug.h"
 #include "base/ResourceFinder.h"
 
 ScoreWidget::ScoreWidget(QWidget *parent) :
-    QLabel(parent),
+    QFrame(parent),
     m_document(new QPdfDocument(this)),
     m_page(-1)
 {
     setFrameStyle(Panel | Plain);
-    setAlignment(Qt::AlignCenter);
     setMinimumSize(QSize(100, 100));
 }
 
@@ -104,6 +104,31 @@ ScoreWidget::resizeEvent(QResizeEvent *)
 }
 
 void
+ScoreWidget::paintEvent(QPaintEvent *e)
+{
+    QFrame::paintEvent(e);
+    
+    QPainter paint(this);
+    QSize mySize = size();
+    QSize imageSize = m_image.size();
+
+    if (!mySize.width() || !mySize.height() ||
+        !imageSize.width() || !imageSize.height()) {
+        return;
+    }
+    
+    int dpr = devicePixelRatio();
+    
+    paint.drawImage
+        (QRect((mySize.width() - imageSize.width() / dpr) / 2,
+               (mySize.height() - imageSize.height() / dpr) / 2,
+               imageSize.width() / dpr,
+               imageSize.height() / dpr),
+         m_image,
+         QRect(0, 0, imageSize.width(), imageSize.height()));
+}
+
+void
 ScoreWidget::showPage(int page)
 {
     int pages = m_document->pageCount();
@@ -131,12 +156,13 @@ ScoreWidget::showPage(int page)
 
     float scale = std::min(mySize.width() / pageSize.width(),
                            mySize.height() / pageSize.height());
-    QSize scaled(pageSize.width() * scale, pageSize.height() * scale);
+    QSize scaled(pageSize.width() * scale * devicePixelRatio(),
+                 pageSize.height() * scale * devicePixelRatio());
 
     SVDEBUG << "ScoreWidget::showPage: Using scaled size "
             << scaled.width() << " x " << scaled.height() << endl;
 
-    setPixmap(QPixmap::fromImage(m_document->render(page, scaled)));
+    m_image = m_document->render(page, scaled);
     m_page = page;
 }
 
