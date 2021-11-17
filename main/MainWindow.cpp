@@ -2163,6 +2163,13 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     QStringList items;
     for (auto n: byName) items << n;
 
+    if (items.empty()) {
+        QMessageBox::warning(this,
+                             tr("No score files found"),
+                             tr("No score files were found in the template directory!"),
+                             QMessageBox::Ok);
+        return;
+    }
 
     bool ok = false;
     QString item = ListInputDialog::getItem
