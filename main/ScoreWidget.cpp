@@ -21,7 +21,8 @@
 ScoreWidget::ScoreWidget(QWidget *parent) :
     QFrame(parent),
     m_document(new QPdfDocument(this)),
-    m_page(-1)
+    m_page(-1),
+    m_highlight(-1)
 {
     setFrameStyle(Panel | Plain);
     setMinimumSize(QSize(100, 100));
@@ -45,25 +46,27 @@ ScoreWidget::getCurrentPage() const
 }
 
 void
-ScoreWidget::loadAScore(QString name)
+ScoreWidget::loadAScore(QString scoreName)
 {
-    SVDEBUG << "ScoreWidget::loadAScore: Score \"" << name << "\" requested"
-            << endl;
+    SVDEBUG << "ScoreWidget::loadAScore: Score \"" << scoreName
+            << "\" requested" << endl;
 
-    QString filename = ResourceFinder().getResourcePath("scores", name + ".pdf");
+    QString filebase = scoreName + ".pdf";
+    QString filename = ResourceFinder().getResourcePath("scores", filebase);
     if (filename == "") {
         SVDEBUG << "ScoreWidget::loadAScore: Unable to find a suitable "
-                << "resource location for score file" << endl;
+                << "resource location for score file " << filebase << endl;
         SVDEBUG << "ScoreWidget::loadAScore: Expected directory location is: \""
-                << ResourceFinder().getResourceSaveDir("scores") << "\"" << endl;
-        emit loadFailed(name, tr("Failed to load score %1: Score file or resource path not found").arg(name));
+                << ResourceFinder().getResourceSaveDir("scores")
+                << "\"" << endl;
+        emit loadFailed(scoreName, tr("Failed to load score %1: Score file or resource path not found").arg(scoreName));
         return;
     }
         
     auto result = m_document->load(filename);
     
     SVDEBUG << "ScoreWidget::loadAScore: Asked to load pdf file \""
-            << filename << "\" for score \"" << name
+            << filename << "\" for score \"" << scoreName
             << "\", result is " << result << endl;
 
     QString error;
@@ -84,14 +87,24 @@ ScoreWidget::loadAScore(QString name)
     }
 
     if (error == "") {
-        m_scoreName = name;
+        m_scoreName = scoreName;
         m_scoreFilename = filename;
         SVDEBUG << "ScoreWidget::loadAScore: Load successful, showing first page"
                 << endl;
         showPage(0);
     } else {
-        emit loadFailed(name, tr("Failed to load score %1: %2")
-                        .arg(name).arg(error));
+        emit loadFailed(scoreName, tr("Failed to load score %1: %2")
+                        .arg(scoreName).arg(error));
+    }
+}
+
+void
+ScoreWidget::setElements(ScoreElements elements)
+{
+    m_elements = elements;
+
+    for (auto e: elements) {
+        m_elementsByPosition.insert({ e.position, e });
     }
 }
 
@@ -126,6 +139,25 @@ ScoreWidget::paintEvent(QPaintEvent *e)
                imageSize.height() / dpr),
          m_image,
          QRect(0, 0, imageSize.width(), imageSize.height()));
+
+    if (m_highlight >= 0) {
+        auto itr = m_elementsByPosition.lower_bound(m_highlight);
+        if (itr != m_elementsByPosition.end()) {
+            // just highlight the first for now...
+
+            // Now, we know the units are a bit mad for these values.
+            // I think(?) they are in inches * dpi * constant where
+            // dpi = 360 and constant = 12, so inches * 4320.
+
+            // To map these correctly we will need to know the page
+            // size at which the pdf was rendered - since the defaults
+            // are presumably locale dependent (I'm guessing US Letter
+            // in US, A4 everywhere else). This info must be in the
+            // PDF one way or another, can QPdfDocument tell us it?
+
+            
+        }
+    }
 }
 
 void
@@ -164,5 +196,20 @@ ScoreWidget::showPage(int page)
 
     m_image = m_document->render(page, scaled);
     m_page = page;
+    update();
+}
+
+void
+ScoreWidget::highlightPosition(int position)
+{
+    m_highlight = position;
+    update();
+}
+
+void
+ScoreWidget::removeHighlight()
+{
+    m_highlight = -1;
+    update();
 }
 

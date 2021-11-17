@@ -18,6 +18,7 @@
 #include "MainWindow.h"
 #include "PreferencesDialog.h"
 #include "ScoreWidget.h" // Added Oct 6, 2021
+#include "ScorePositionReader.h" // Added Oct 6, 2021
 
 #include "view/Pane.h"
 #include "view/PaneStack.h"
@@ -2179,6 +2180,16 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     // TODO: check the returned item
 
     m_scoreWidget->loadAScore(item); // Added Oct 6, 2021
+
+    ScorePositionReader posReader;
+    if (!posReader.loadAScore(item)) {
+        QMessageBox::warning(this,
+                             tr("Unable to load score positions"),
+                             tr("Unable to load score position data: score tracking will not be enabled. See log file for more information."),
+                             QMessageBox::Ok);
+    } else {
+        m_scoreWidget->setElements(posReader.getElements());
+    }
 
     QSettings settings;
     settings.beginGroup("MainWindow");
