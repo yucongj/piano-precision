@@ -1039,6 +1039,7 @@ sv_main_files = [
   'main/Surveyer.cpp',
   'main/SVSplash.cpp',
   'main/PreferencesDialog.cpp',
+  'main/ScorePositionReader.cpp',
   'main/ScoreWidget.cpp',
 ]
 

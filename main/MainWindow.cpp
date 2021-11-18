@@ -18,6 +18,7 @@
 #include "MainWindow.h"
 #include "PreferencesDialog.h"
 #include "ScoreWidget.h" // Added Oct 6, 2021
+#include "ScorePositionReader.h" // Added Oct 6, 2021
 
 #include "view/Pane.h"
 #include "view/PaneStack.h"
@@ -386,6 +387,9 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
         QTimer::singleShot(500, this, SLOT(betaReleaseWarning()));
     }
 
+    connect(m_viewManager, SIGNAL(playbackFrameChanged(sv_frame_t)),
+            this, SLOT(viewManagerPlaybackFrameChanged(sv_frame_t)));
+    
     chooseScore(); // Added by YJ, Oct 5, 2021
     
     SVDEBUG << "MainWindow: Constructor done" << endl;
@@ -542,7 +546,7 @@ MainWindow::setupFileMenu()
     icon = il.load("chooseScore");
     action = new QAction(icon, tr("&Choose Score"), this);
     // action->setShortcut(tr("Ctrl+N"));
-    action->setStatusTip(tr("choosing a new score.").arg(QApplication::applicationName()));
+    action->setStatusTip(tr("Choose a new score"));
     connect(action, SIGNAL(triggered()), this, SLOT(chooseScore()));
     // m_keyReference->registerShortcut(action);
     menu->addAction(action);
@@ -2163,6 +2167,13 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     QStringList items;
     for (auto n: byName) items << n;
 
+    if (items.empty()) {
+        QMessageBox::warning(this,
+                             tr("No score files found"),
+                             tr("No score files were found in the template directory!"),
+                             QMessageBox::Ok);
+        return;
+    }
 
     bool ok = false;
     QString item = ListInputDialog::getItem
@@ -2173,12 +2184,36 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
 
     m_scoreWidget->loadAScore(item); // Added Oct 6, 2021
 
+    ScorePositionReader posReader;
+    if (!posReader.loadAScore(item)) {
+        QMessageBox::warning(this,
+                             tr("Unable to load score positions"),
+                             tr("Unable to load score position data: score tracking will not be enabled. See log file for more information."),
+                             QMessageBox::Ok);
+    } else {
+        m_scoreWidget->setElements(posReader.getElements());
+    }
+
     QSettings settings;
     settings.beginGroup("MainWindow");
     settings.setValue("sessiontemplate", item);
     settings.endGroup();
 }
 
+void
+MainWindow::viewManagerPlaybackFrameChanged(sv_frame_t frame)
+{
+    sv_samplerate_t rate = m_viewManager->getMainModelSampleRate();
+    RealTime rt = RealTime::frame2RealTime(frame, rate);
+
+    //!!! ok, for the moment we hardcode:
+    // mscore's spos file position values: 500 = quarter-note
+    // tempo = MM 120 in timesig /4
+    // so 0.5 seconds = 500 (I wonder if this is by design in MuseScore?)
+
+    int position = int(round(rt.toDouble() * 1000));
+    m_scoreWidget->highlightPosition(position);
+}
 
 void
 MainWindow::setupRecentTransformsMenu()

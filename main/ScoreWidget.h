@@ -13,12 +13,16 @@
 #ifndef SV_SCORE_WIDGET_H
 #define SV_SCORE_WIDGET_H
 
-#include <QLabel>
+#include "ScoreElement.h"
+
+#include <QFrame>
 #include <QString>
+
+#include <map>
 
 class QPdfDocument;
 
-class ScoreWidget : public QLabel
+class ScoreWidget : public QFrame
 {
     Q_OBJECT
 
@@ -28,22 +32,32 @@ public:
 
     QString getCurrentScore() const;
     int getCurrentPage() const;
+
+    void setElements(ScoreElements elements);
                   
 public slots:
     void loadAScore(QString name);
     void showPage(int page);
+    void highlightPosition(int scorePosition);
+    void removeHighlight();
 
 signals:
     void loadFailed(QString scoreName, QString errorMessage);
 
 protected:
     void resizeEvent(QResizeEvent *);
+    void paintEvent(QPaintEvent *);
     
 private:
     QString m_scoreName;
     QString m_scoreFilename;
     QPdfDocument *m_document;
     int m_page;
+    QImage m_image;
+    int m_highlight;
+
+    ScoreElements m_elements;
+    std::multimap<int, ScoreElement> m_elementsByPosition;
 };
 
 #endif
