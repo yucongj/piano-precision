@@ -367,6 +367,9 @@ main(int argc, char **argv)
     }
     settings.endGroup();
 
+    //!!! For SV Piano Precision, until it has its own splash image
+    showSplash = false;
+    
     if (showSplash) {
         splash = new SVSplash();
         splash->show();

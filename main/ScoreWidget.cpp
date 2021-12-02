@@ -103,6 +103,7 @@ ScoreWidget::setElements(ScoreElements elements)
 {
     m_elements = elements;
 
+    m_elementsByPosition.clear();
     for (auto e: elements) {
         m_elementsByPosition.insert({ e.position, e });
     }
