@@ -2203,15 +2203,61 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
 void
 MainWindow::viewManagerPlaybackFrameChanged(sv_frame_t frame)
 {
-    sv_samplerate_t rate = m_viewManager->getMainModelSampleRate();
-    RealTime rt = RealTime::frame2RealTime(frame, rate);
+    // sv_samplerate_t rate = m_viewManager->getMainModelSampleRate();
+    // RealTime rt = RealTime::frame2RealTime(frame, rate);
 
-    //!!! ok, for the moment we hardcode:
-    // mscore's spos file position values: 500 = quarter-note
-    // tempo = MM 120 in timesig /4
-    // so 0.5 seconds = 500 (I wonder if this is by design in MuseScore?)
+    // In MuseScore's spos file, 0.5 second = position value of 500.
+    // The default tempo is quarter note = 120 bpm.
 
-    int position = int(round(rt.toDouble() * 1000));
+    TimeValueLayer *targetLayer = nullptr;
+    ModelId targetId;
+    if (m_paneStack) {
+        bool found = false;
+        for (int i = 0; i < m_paneStack->getPaneCount(); ++i) {
+            Pane *pane = m_paneStack->getPane(i);
+            if (!pane) continue;
+            for (int j = 0; j < pane->getLayerCount(); ++j) {
+                Layer *layer = pane->getLayer(j);
+                if (!layer) continue;
+                targetId = layer->getModel();
+                if (ModelById::isa<SparseTimeValueModel>(targetId)) {
+                    const auto m = ModelById::getAs<SparseTimeValueModel>(targetId);
+                    targetLayer = dynamic_cast<TimeValueLayer *>(layer);
+                    if (targetLayer->getPlotStyle() == TimeValueLayer::PlotStyle::PlotSegmentation) {
+                        // cerr << "Found a sparse time-value model with the plot style of PlotSegmentation : " << targetLayer->getLayerPresentationName() << endl;
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if (found)  break;
+        }
+    }
+
+    // cerr << "current frame = " << frame << endl;
+    int position = 0;
+    if (targetLayer) {
+        const auto targetModel = ModelById::getAs<SparseTimeValueModel>(targetId);
+        position = targetModel->getAllEvents()[0].getValue();
+        bool found = false;
+        int eventCount = targetModel->getEventCount();
+        for (int i = 1; i < eventCount; ++i) {
+            int eventFrame = targetModel->getAllEvents()[i].getFrame();
+            // cerr << "event index = " << i << ": " << "Frame = " << eventFrame << ", Value = " << targetModel->getAllEvents()[i].getValue() << endl;
+            if (frame < eventFrame) {
+                position = targetModel->getAllEvents()[i-1].getValue();
+                found = true;
+                break;
+            } else if (frame == eventFrame) {
+                position = targetModel->getAllEvents()[i].getValue();
+                found = true;
+                break;
+            }
+        }
+        if (!found && eventCount > 0)
+            position = targetModel->getAllEvents()[eventCount-1].getValue(); // last event
+    }
+
     m_scoreWidget->highlightPosition(position);
 }
 
