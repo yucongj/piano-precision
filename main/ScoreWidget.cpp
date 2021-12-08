@@ -135,13 +135,6 @@ ScoreWidget::paintEvent(QPaintEvent *e)
 
     int xorigin = (mySize.width() - imageSize.width() / dpr) / 2;
     int yorigin = (mySize.height() - imageSize.height() / dpr) / 2;
-    
-    paint.drawImage
-        (QRect(xorigin, yorigin,
-               imageSize.width() / dpr,
-               imageSize.height() / dpr),
-         m_image,
-         QRect(0, 0, imageSize.width(), imageSize.height()));
 
     if (m_highlight < 0) {
         SVDEBUG << "ScoreWidget::paintEvent: No highlight specified" << endl;
@@ -152,7 +145,7 @@ ScoreWidget::paintEvent(QPaintEvent *e)
                     << m_highlight << " does not have any corresponding element"
                     << endl;
         } else {
-            
+
             // just highlight the first for now...
 
             // Now, we know the units are a bit mad for these values.
@@ -203,6 +196,12 @@ ScoreWidget::paintEvent(QPaintEvent *e)
             paint.drawRect(rect);
         }
     }
+    paint.drawImage
+        (QRect(xorigin, yorigin,
+               imageSize.width() / dpr,
+               imageSize.height() / dpr),
+         m_image,
+         QRect(0, 0, imageSize.width(), imageSize.height()));
 }
 
 void
