@@ -247,6 +247,23 @@ void
 ScoreWidget::highlightPosition(int position)
 {
     m_highlight = position;
+    
+    if (m_highlight >= 0) {
+        auto itr = m_elementsByPosition.lower_bound(m_highlight);
+        if (itr == m_elementsByPosition.end()) {
+            SVDEBUG << "ScoreWidget::highlightPosition: Highlight position "
+                    << m_highlight << " does not have any corresponding element"
+                    << endl;
+        } else {
+            ScoreElement elt = itr->second;
+            if (elt.page != m_page) {
+                SVDEBUG << "ScoreWidget::highlightPosition: Flipping to page "
+                        << elt.page << endl;
+                showPage(elt.page);
+            }
+        }
+    }
+            
     update();
 }
 
