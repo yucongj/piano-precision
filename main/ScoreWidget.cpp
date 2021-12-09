@@ -162,7 +162,7 @@ ScoreWidget::paintEvent(QPaintEvent *e)
             // Check that later, but for the mo let's hard code A4 and
             // see what comes out. So 297x210mm which would make the
             // whole page 50513.4 units tall and 35716.5 wide. Thus
-            // our y ratio will be (pixel_height)/51513.4 and x ratio
+            // our y ratio will be (pixel_height)/50513.4 and x ratio
             // (pixel_width)/35716.5. Oh, and that's times the device
             // pixel ratio.
 
@@ -174,7 +174,7 @@ ScoreWidget::paintEvent(QPaintEvent *e)
                     << elt.x << ", y=" << elt.y << ", sy=" << elt.sy << endl;
             
             double xratio = double(imageSize.width()) / (35716.5 * dpr);
-            double yratio = double(imageSize.height()) / (51513.4 * dpr);
+            double yratio = double(imageSize.height()) / (50513.4 * dpr);
 
             // We don't get a valid element width - hardcode &
             // reconsider this later
