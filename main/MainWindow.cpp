@@ -2234,28 +2234,29 @@ MainWindow::viewManagerPlaybackFrameChanged(sv_frame_t frame)
         }
     }
 
-    // cerr << "current frame = " << frame << endl;
+    // If the program is slow, might want to consider a different approach that can get rid of the loops.
     int position = 0;
     if (targetLayer) {
         const auto targetModel = ModelById::getAs<SparseTimeValueModel>(targetId);
-        position = targetModel->getAllEvents()[0].getValue();
+        const auto events = targetModel->getAllEvents();
+        position = events[0].getValue();
         bool found = false;
         int eventCount = targetModel->getEventCount();
         for (int i = 1; i < eventCount; ++i) {
-            int eventFrame = targetModel->getAllEvents()[i].getFrame();
+            int eventFrame = events[i].getFrame();
             // cerr << "event index = " << i << ": " << "Frame = " << eventFrame << ", Value = " << targetModel->getAllEvents()[i].getValue() << endl;
             if (frame < eventFrame) {
-                position = targetModel->getAllEvents()[i-1].getValue();
+                position = events[i-1].getValue();
                 found = true;
                 break;
             } else if (frame == eventFrame) {
-                position = targetModel->getAllEvents()[i].getValue();
+                position = events[i].getValue();
                 found = true;
                 break;
             }
         }
         if (!found && eventCount > 0)
-            position = targetModel->getAllEvents()[eventCount-1].getValue(); // last event
+            position = events[eventCount-1].getValue(); // last event
     }
 
     m_scoreWidget->highlightPosition(position);

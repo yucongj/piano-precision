@@ -42,6 +42,32 @@ ScorePositionReader::loadAScore(QString scoreName)
     SVDEBUG << "ScorePositionReader::loadAScore: Score \"" << scoreName
 	    << "\" requested" << endl;
 
+    std::filesystem::path scoreDir = std::string(getenv("HOME")) + "/Documents/SV-PianoPrecision/Scores";
+    if (!std::filesystem::exists(scoreDir)) {
+        std::cerr << "Score directory ($Home/Documents/SV-PianoPrecision/Scores) does not exist!" << '\n';
+        return false;
+    }
+    std::filesystem::path targetPath;
+    for (const auto& entry : std::filesystem::directory_iterator(scoreDir)) {
+        QString folderName = entry.path().filename().c_str();
+        if (folderName == scoreName) {
+            targetPath = entry.path();
+            break;
+        }
+    }
+    if (!std::filesystem::exists(targetPath)) {
+        std::cerr << "Score folder not found!" << '\n';
+        return false;
+    }
+    std::filesystem::path scorePath = std::string(targetPath) + "/" + scoreName.toStdString() + ".spos";
+    if (!std::filesystem::exists(scorePath)) {
+        std::cerr << "Score file (.spos) not found!" << '\n';
+        return false;
+    }
+
+    QString filename = scorePath.c_str();
+
+/*
     QString filebase = scoreName + ".spos";
     QString filename = ResourceFinder().getResourcePath("scores", filebase);
     
@@ -53,10 +79,9 @@ ScorePositionReader::loadAScore(QString scoreName)
                 << ResourceFinder().getResourceSaveDir("scores") << "\"" << endl;
         return false;
     }
-
+*/
     SVDEBUG << "ScorePositionReader::loadAScore: Found file, calling "
 	    << "loadScoreFile with filename \"" << filename << "\"" << endl;
-
     return loadScoreFile(filename);
 }
 

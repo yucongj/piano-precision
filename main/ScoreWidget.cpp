@@ -12,6 +12,8 @@
 
 #include "ScoreWidget.h"
 
+#include <filesystem>
+
 #include <QPdfDocument>
 #include <QPainter>
 
@@ -51,6 +53,37 @@ ScoreWidget::loadAScore(QString scoreName)
     SVDEBUG << "ScoreWidget::loadAScore: Score \"" << scoreName
             << "\" requested" << endl;
 
+    std::filesystem::path scoreDir = std::string(getenv("HOME")) + "/Documents/SV-PianoPrecision/Scores";
+    if (!std::filesystem::exists(scoreDir)) {
+        std::cerr << "Score directory ($Home/Documents/SV-PianoPrecision/Scores) does not exist!" << '\n';
+        return;
+    }
+    std::filesystem::path targetPath;
+    for (const auto& entry : std::filesystem::directory_iterator(scoreDir)) {
+        QString folderName = entry.path().filename().c_str();
+        if (folderName == scoreName) {
+            targetPath = entry.path();
+            break;
+        }
+    }
+    if (!std::filesystem::exists(targetPath)) {
+        std::cerr << "Score folder not found!" << '\n';
+        return;
+    }
+    std::filesystem::path scorePath = std::string(targetPath) + "/" + scoreName.toStdString() + ".pdf";
+    if (!std::filesystem::exists(scorePath)) {
+        std::cerr << "Score file (.pdf) not found!" << '\n';
+        return;
+    }
+
+    QString filename = scorePath.c_str();
+
+
+
+
+
+
+/*
     QString filebase = scoreName + ".pdf";
     QString filename = ResourceFinder().getResourcePath("scores", filebase);
     if (filename == "") {
@@ -62,7 +95,7 @@ ScoreWidget::loadAScore(QString scoreName)
         emit loadFailed(scoreName, tr("Failed to load score %1: Score file or resource path not found").arg(scoreName));
         return;
     }
-        
+*/
     auto result = m_document->load(filename);
     
     SVDEBUG << "ScoreWidget::loadAScore: Asked to load pdf file \""

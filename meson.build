@@ -210,10 +210,10 @@ elif system == 'darwin'
   rc = []
 
   general_defines += [
-    '-mmacosx-version-min=10.12'
+    '-mmacosx-version-min=10.15'
   ]
   general_link_args += [
-    '-mmacosx-version-min=10.12'
+    '-mmacosx-version-min=10.15'
   ]
   
   feature_defines = [
