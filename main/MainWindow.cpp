@@ -2222,9 +2222,10 @@ MainWindow::viewManagerPlaybackFrameChanged(sv_frame_t frame)
                 targetId = layer->getModel();
                 if (ModelById::isa<SparseTimeValueModel>(targetId)) {
                     const auto m = ModelById::getAs<SparseTimeValueModel>(targetId);
-                    targetLayer = dynamic_cast<TimeValueLayer *>(layer);
-                    if (targetLayer->getPlotStyle() == TimeValueLayer::PlotStyle::PlotSegmentation) {
+                    auto tvl = dynamic_cast<TimeValueLayer *>(layer);
+                    if (tvl && tvl->getPlotStyle() == TimeValueLayer::PlotStyle::PlotSegmentation) {
                         // cerr << "Found a sparse time-value model with the plot style of PlotSegmentation : " << targetLayer->getLayerPresentationName() << endl;
+                        targetLayer = tvl;
                         found = true;
                         break;
                     }
@@ -2239,6 +2240,7 @@ MainWindow::viewManagerPlaybackFrameChanged(sv_frame_t frame)
     if (targetLayer) {
         const auto targetModel = ModelById::getAs<SparseTimeValueModel>(targetId);
         const auto events = targetModel->getAllEvents();
+        if (events.empty()) return;
         position = events[0].getValue();
         bool found = false;
         int eventCount = targetModel->getEventCount();
