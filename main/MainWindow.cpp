@@ -19,6 +19,7 @@
 #include "PreferencesDialog.h"
 #include "ScoreWidget.h" // Added Oct 6, 2021
 #include "ScorePositionReader.h" // Added Oct 6, 2021
+#include "ScoreFinder.h"
 
 #include "view/Pane.h"
 #include "view/PaneStack.h"
@@ -218,11 +219,6 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
 
     // Added Oct 6, 2021
     m_scoreWidget = new ScoreWidget(this);
-    connect(m_scoreWidget, &ScoreWidget::loadFailed, [&](QString scoreName,
-            QString message) {
-        QMessageBox::warning(this, tr("Failed to load score \"%1\"").arg(scoreName),
-                             message, QMessageBox::Ok);
-    }); // added end
 
     m_mainScroll = new QScrollArea(frame);
     m_mainScroll->setWidgetResizable(true);
@@ -2153,39 +2149,56 @@ MainWindow::setupTemplatesMenu()
 void
 MainWindow::chooseScore() // Added by YJ Oct 5, 2021
 {
-    QStringList templates = ResourceFinder().getResourceFiles("templates", "svt");
-
-    // (ordered by name)
-    std::set<QString> byName;
-    foreach (QString t, templates) {
-        if (t.startsWith(":"))
-            continue;
-        byName.insert(QFileInfo(t).baseName());
+    auto scores = ScoreFinder::getScoreNames();
+    std::set<std::string> byName;
+    for (auto s: scores) {
+        byName.insert(s);
     }
 
-    // QStringList items(byName.begin(), byName.end());
     QStringList items;
-    for (auto n: byName) items << n;
+    for (auto n: byName) items << QString::fromStdString(n);
 
     if (items.empty()) {
         QMessageBox::warning(this,
                              tr("No score files found"),
-                             tr("No score files were found in the template directory!"),
+                             tr("No score files were found in the scores directory \"%1\"").arg(QString::fromStdString(ScoreFinder::getScoreDirectory())),
                              QMessageBox::Ok);
         return;
     }
 
     bool ok = false;
-    QString item = ListInputDialog::getItem
+    QString scoreName = ListInputDialog::getItem
         (this, tr("Select a score"),
          tr("Which score do you want to practice?"),
          items, 0, &ok);
-    // TODO: check the returned item
 
-    m_scoreWidget->loadAScore(item); // Added Oct 6, 2021
+    QString errorString;
+    if (!m_scoreWidget->loadAScore(scoreName, errorString)) {
+        QMessageBox::warning(this,
+                             tr("Unable to load score"),
+                             tr("Unable to load score \"%1\": %2")
+                             .arg(scoreName).arg(errorString),
+                             QMessageBox::Ok);
+        return;
+    }
+
+    std::string templateFile =
+        ScoreFinder::getScoreFile(scoreName.toStdString(), "svt");
+    if (templateFile == "") {
+        QMessageBox::warning(this,
+                             tr("Unable to load score session template"),
+                             tr("Unable to load score session template: alignment and analysis will not be available. See log file for more information."),
+                             QMessageBox::Ok);
+        return;
+    }
+    
+    QSettings settings;
+    settings.beginGroup("MainWindow");
+    settings.setValue("sessiontemplate", QString::fromStdString(templateFile));
+    settings.endGroup();
 
     ScorePositionReader posReader;
-    if (!posReader.loadAScore(item)) {
+    if (!posReader.loadAScore(scoreName)) {
         QMessageBox::warning(this,
                              tr("Unable to load score positions"),
                              tr("Unable to load score position data: score tracking will not be enabled. See log file for more information."),
@@ -2193,11 +2206,6 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     } else {
         m_scoreWidget->setElements(posReader.getElements());
     }
-
-    QSettings settings;
-    settings.beginGroup("MainWindow");
-    settings.setValue("sessiontemplate", item);
-    settings.endGroup();
 }
 
 void
