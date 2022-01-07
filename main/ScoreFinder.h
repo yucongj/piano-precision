@@ -18,12 +18,11 @@
 class ScoreFinder
 {
 public:
-    
     /** Return the full path of the directory in which all score
-     *  directories are found. Return the path regardless of whether
-     *  the directory actually exists yet or not. If the path cannot
-     *  be determined because of some other error, such as a missing
-     *  environment variable, return the empty string.
+     *  directories are found. If the directory does not exist yet,
+     *  create it before returning its path. If creation fails or the
+     *  path cannot be determined for any reason, return the empty
+     *  string.
      */
     static std::string getScoreDirectory();
 
@@ -55,6 +54,14 @@ public:
      *  all or is entirely absent, use scoreExists().
      */
     static std::string getScoreFile(std::string scoreName, std::string extension);
+
+    /** Return the full path of the directory in which recordings of
+     *  the given score should be saved. If the directory does not
+     *  exist yet, create it before returning its path. If creation
+     *  fails or the path cannot be determined for any reason, return
+     *  the empty string.
+     */
+    static std::string getRecordingDirectory(std::string scoreName);
 };
 
 
