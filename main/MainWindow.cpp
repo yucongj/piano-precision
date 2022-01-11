@@ -2196,7 +2196,7 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     settings.beginGroup("MainWindow");
     settings.setValue("sessiontemplate", QString::fromStdString(templateFile));
     settings.endGroup();
-
+    
     ScorePositionReader posReader;
     if (!posReader.loadAScore(scoreName)) {
         QMessageBox::warning(this,
@@ -2205,6 +2205,18 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
                              QMessageBox::Ok);
     } else {
         m_scoreWidget->setElements(posReader.getElements());
+    }
+
+    auto recordingDirectory =
+        ScoreFinder::getRecordingDirectory(scoreName.toStdString());
+    if (recordingDirectory == "") {
+        QMessageBox::warning(this,
+                             tr("Unable to create recording directory"),
+                             tr("Unable to create recording directory: recordings will not be saved in score-specific locations. See log file for more information."),
+                             QMessageBox::Ok);
+    } else {
+        RecordDirectory::setRecordContainerDirectory
+            (QString::fromStdString(recordingDirectory));
     }
 }
 
