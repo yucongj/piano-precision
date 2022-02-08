@@ -30,15 +30,52 @@ public:
     ScoreWidget(QWidget *parent);
     ~ScoreWidget();
 
-    QString getCurrentScore() const;
-    int getCurrentPage() const;
+    /** 
+     * Load the named score. If loading fails, return false and set
+     * the error string accordingly.
+     */
+    bool loadAScore(QString name, QString &error);
 
+    /** 
+     * Set the page coord/position elements for the current score,
+     * containing correspondences between coordinate and position in
+     * time for the notes etc in the score.
+     */
     void setElements(ScoreElements elements);
+
+    /** 
+     * Return the current score name, or an empty string if none
+     * loaded.
+     */
+    QString getCurrentScore() const;
+
+    /**
+     * Return the current page number.
+     */
+    int getCurrentPage() const;
                   
 public slots:
+    /** 
+     * Load the named score. If loading fails, emit the loadFailed
+     * signal.
+     */
     void loadAScore(QString name);
+
+    /**
+     * Set the current page number and update the widget.
+     */
     void showPage(int page);
+
+    /**
+     * Highlight the element on the score closest to the given
+     * position in time, according to the current set of score
+     * elements.
+     */
     void highlightPosition(int scorePosition);
+
+    /**
+     * Remove any highlight set with highlightPosition.
+     */
     void removeHighlight();
 
 signals:

@@ -28,6 +28,8 @@ class QFileSystemWatcher;
 class QScrollArea;
 class ScoreWidget; // Added Oct 6, 2021
 
+class TimeValueLayer;
+
 class MainWindow : public MainWindowBase
 {
     Q_OBJECT
@@ -141,9 +143,12 @@ protected slots:
 
     void monitoringLevelsChanged(float, float) override;
 
+    void layerAdded(Layer *) override;
     void layerRemoved(Layer *) override;
     void layerInAView(Layer *, bool) override;
 
+    void onsetsLayerCompleted();
+    
     void mainModelChanged(ModelId) override;
     virtual void mainModelGainChanged(float);
     virtual void mainModelPanChanged(float);
@@ -317,6 +322,9 @@ protected:
     bool shouldCreateNewSessionForRDFAudio(bool *cancel) override;
     
     void connectLayerEditDialog(ModelDataTableDialog *) override;
+
+    bool isOnsetsLayer(Layer *) const;
+    TimeValueLayer *findOnsetsLayer() const;
 };
 
 

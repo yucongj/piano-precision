@@ -19,6 +19,7 @@
 #include "PreferencesDialog.h"
 #include "ScoreWidget.h" // Added Oct 6, 2021
 #include "ScorePositionReader.h" // Added Oct 6, 2021
+#include "ScoreFinder.h"
 
 #include "view/Pane.h"
 #include "view/PaneStack.h"
@@ -218,11 +219,6 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
 
     // Added Oct 6, 2021
     m_scoreWidget = new ScoreWidget(this);
-    connect(m_scoreWidget, &ScoreWidget::loadFailed, [&](QString scoreName,
-            QString message) {
-        QMessageBox::warning(this, tr("Failed to load score \"%1\"").arg(scoreName),
-                             message, QMessageBox::Ok);
-    }); // added end
 
     m_mainScroll = new QScrollArea(frame);
     m_mainScroll->setWidgetResizable(true);
@@ -544,7 +540,7 @@ MainWindow::setupFileMenu()
 
     // Added by YJ: Ocs 5, 2021
     icon = il.load("chooseScore");
-    action = new QAction(icon, tr("&Choose Score"), this);
+    action = new QAction(icon, tr("&Choose Score..."), this);
     // action->setShortcut(tr("Ctrl+N"));
     action->setStatusTip(tr("Choose a new score"));
     connect(action, SIGNAL(triggered()), this, SLOT(chooseScore()));
@@ -2153,39 +2149,56 @@ MainWindow::setupTemplatesMenu()
 void
 MainWindow::chooseScore() // Added by YJ Oct 5, 2021
 {
-    QStringList templates = ResourceFinder().getResourceFiles("templates", "svt");
-
-    // (ordered by name)
-    std::set<QString> byName;
-    foreach (QString t, templates) {
-        if (t.startsWith(":"))
-            continue;
-        byName.insert(QFileInfo(t).baseName());
+    auto scores = ScoreFinder::getScoreNames();
+    std::set<std::string> byName;
+    for (auto s: scores) {
+        byName.insert(s);
     }
 
-    // QStringList items(byName.begin(), byName.end());
     QStringList items;
-    for (auto n: byName) items << n;
+    for (auto n: byName) items << QString::fromStdString(n);
 
     if (items.empty()) {
         QMessageBox::warning(this,
                              tr("No score files found"),
-                             tr("No score files were found in the template directory!"),
+                             tr("No score files were found in the scores directory \"%1\"").arg(QString::fromStdString(ScoreFinder::getScoreDirectory())),
                              QMessageBox::Ok);
         return;
     }
 
     bool ok = false;
-    QString item = ListInputDialog::getItem
+    QString scoreName = ListInputDialog::getItem
         (this, tr("Select a score"),
          tr("Which score do you want to practice?"),
          items, 0, &ok);
-    // TODO: check the returned item
 
-    m_scoreWidget->loadAScore(item); // Added Oct 6, 2021
+    QString errorString;
+    if (!m_scoreWidget->loadAScore(scoreName, errorString)) {
+        QMessageBox::warning(this,
+                             tr("Unable to load score"),
+                             tr("Unable to load score \"%1\": %2")
+                             .arg(scoreName).arg(errorString),
+                             QMessageBox::Ok);
+        return;
+    }
 
+    std::string templateFile =
+        ScoreFinder::getScoreFile(scoreName.toStdString(), "svt");
+    if (templateFile == "") {
+        QMessageBox::warning(this,
+                             tr("Unable to load score session template"),
+                             tr("Unable to load score session template: alignment and analysis will not be available. See log file for more information."),
+                             QMessageBox::Ok);
+        return;
+    }
+    
+    QSettings settings;
+    settings.beginGroup("MainWindow");
+    settings.setValue("sessiontemplate", QString::fromStdString(templateFile));
+    settings.endGroup();
+    
     ScorePositionReader posReader;
-    if (!posReader.loadAScore(item)) {
+    if (!posReader.loadAScore(scoreName)) {
         QMessageBox::warning(this,
                              tr("Unable to load score positions"),
                              tr("Unable to load score position data: score tracking will not be enabled. See log file for more information."),
@@ -2194,10 +2207,54 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
         m_scoreWidget->setElements(posReader.getElements());
     }
 
-    QSettings settings;
-    settings.beginGroup("MainWindow");
-    settings.setValue("sessiontemplate", item);
-    settings.endGroup();
+    auto recordingDirectory =
+        ScoreFinder::getRecordingDirectory(scoreName.toStdString());
+    if (recordingDirectory == "") {
+        QMessageBox::warning(this,
+                             tr("Unable to create recording directory"),
+                             tr("Unable to create recording directory: recordings will not be saved in score-specific locations. See log file for more information."),
+                             QMessageBox::Ok);
+    } else {
+        RecordDirectory::setRecordContainerDirectory
+            (QString::fromStdString(recordingDirectory));
+    }
+}
+
+bool
+MainWindow::isOnsetsLayer(Layer *layer) const
+{
+    auto tvl = qobject_cast<TimeValueLayer *>(layer);
+    if (!tvl) {
+        return false;
+    }
+    auto m = ModelById::getAs<SparseTimeValueModel>(tvl->getModel());
+    if (!m) {
+        return false;
+    }
+    if (tvl->getPlotStyle() != TimeValueLayer::PlotStyle::PlotSegmentation) {
+        return false;
+    }
+    return true;
+}
+
+TimeValueLayer *
+MainWindow::findOnsetsLayer() const
+{
+    if (!m_paneStack) return nullptr;
+
+    for (int i = 0; i < m_paneStack->getPaneCount(); ++i) {
+        Pane *pane = m_paneStack->getPane(i);
+        if (!pane) continue;
+        for (int j = 0; j < pane->getLayerCount(); ++j) {
+            Layer *layer = pane->getLayer(j);
+            if (!layer) continue;
+            if (isOnsetsLayer(layer)) {
+                return qobject_cast<TimeValueLayer *>(layer);
+            }
+        }
+    }
+
+    return nullptr;
 }
 
 void
@@ -2209,35 +2266,12 @@ MainWindow::viewManagerPlaybackFrameChanged(sv_frame_t frame)
     // In MuseScore's spos file, 0.5 second = position value of 500.
     // The default tempo is quarter note = 120 bpm.
 
-    TimeValueLayer *targetLayer = nullptr;
-    ModelId targetId;
-    if (m_paneStack) {
-        bool found = false;
-        for (int i = 0; i < m_paneStack->getPaneCount(); ++i) {
-            Pane *pane = m_paneStack->getPane(i);
-            if (!pane) continue;
-            for (int j = 0; j < pane->getLayerCount(); ++j) {
-                Layer *layer = pane->getLayer(j);
-                if (!layer) continue;
-                targetId = layer->getModel();
-                if (ModelById::isa<SparseTimeValueModel>(targetId)) {
-                    const auto m = ModelById::getAs<SparseTimeValueModel>(targetId);
-                    auto tvl = dynamic_cast<TimeValueLayer *>(layer);
-                    if (tvl && tvl->getPlotStyle() == TimeValueLayer::PlotStyle::PlotSegmentation) {
-                        // cerr << "Found a sparse time-value model with the plot style of PlotSegmentation : " << targetLayer->getLayerPresentationName() << endl;
-                        targetLayer = tvl;
-                        found = true;
-                        break;
-                    }
-                }
-            }
-            if (found)  break;
-        }
-    }
+    TimeValueLayer *targetLayer = findOnsetsLayer();
 
     // If the program is slow, might want to consider a different approach that can get rid of the loops.
     int position = 0;
     if (targetLayer) {
+        ModelId targetId = targetLayer->getModel();
         const auto targetModel = ModelById::getAs<SparseTimeValueModel>(targetId);
         const auto events = targetModel->getAllEvents();
         if (events.empty()) return;
@@ -2265,6 +2299,81 @@ MainWindow::viewManagerPlaybackFrameChanged(sv_frame_t frame)
 }
 
 void
+MainWindow::layerAdded(Layer *layer)
+{
+    SVDEBUG << "MainWindow::layerAdded" << endl;
+    MainWindowBase::layerAdded(layer);
+
+    auto tvl = qobject_cast<TimeValueLayer *>(layer);
+    if (!tvl) return;
+
+    // If this is (going to be) the onsets layer, we want to be
+    // notified when it is complete so that we can export it
+    // automatically. This is surprisingly fiddly - the layer likely
+    // doesn't even have the right model yet, because the layer is
+    // added from the session template before the model is generated,
+    // and even when it gets the right model we still have to wait for
+    // the transform to finish before we can use it. So we attach to
+    // the layer's modelReplaced signal so as to pick up the right
+    // model and, if that model looks ok, we attach to its ready
+    // signal to pick up transform completion.
+    
+    connect(tvl,
+            &Layer::modelReplaced,
+            [=]() {
+                SVDEBUG << "MainWindow::layerAdded: model replaced in layer " << tvl << endl;
+                if (tvl->getPlotStyle() ==
+                    TimeValueLayer::PlotStyle::PlotSegmentation) {
+                    SVDEBUG << "MainWindow::layerAdded: it is the onsets layer" << endl;
+                    auto model = ModelById::getAs<SparseTimeValueModel>
+                        (layer->getModel());
+                    if (model) {
+                        if (model->isReady(nullptr)) {
+                            onsetsLayerCompleted();
+                        } else {
+                            connect(model.get(), SIGNAL(ready(ModelId)),
+                                    this, SLOT(onsetsLayerCompleted()));
+                            SVDEBUG << "MainWindow::layerAdded: connected ready signal" << endl;
+                        }
+                    }
+                }
+            });
+}
+
+void
+MainWindow::onsetsLayerCompleted()
+{
+    SVDEBUG << "MainWindow::onsetsLayerCompleted" << endl;
+
+    // Naturally the chain of signals hasn't actually carried through
+    // the information about which layer it is
+
+    TimeValueLayer *onsetsLayer = findOnsetsLayer();
+    if (!onsetsLayer) {
+        SVDEBUG << "MainWindow::onsetsLayerCompleted: can't find an onsets layer!" << endl;
+        return;
+    }
+
+    QDateTime now = QDateTime::currentDateTime();
+    QString nowString = now.toString("yyyyMMdd-HHmmss-zzz");
+    QString filename = RecordDirectory::getRecordDirectory() +
+        QString("/onsets-%1-unmodified.csv").arg(nowString);
+    
+    QString error;
+    if (!exportLayerToCSV(onsetsLayer, nullptr, nullptr, ",",
+                          DataExportIncludeHeader |
+                          DataExportAlwaysIncludeTimestamp |
+                          DataExportWriteTimeInFrames,
+                          filename,
+                          error)) {
+        QMessageBox::warning(this,
+                             tr("Failed to export onsets"),
+                             tr("Failed to export onsets file automatically. See log file for more information."),
+                             QMessageBox::Ok);
+    }
+}
+
+void
 MainWindow::setupRecentTransformsMenu()
 {
     SVDEBUG << "MainWindow::setupRecentTransformsMenu" << endl;
@@ -2275,9 +2384,9 @@ MainWindow::setupRecentTransformsMenu()
         TransformActionReverseMap::iterator ti =
             m_transformActionsReverse.find(transforms[i]);
         if (ti == m_transformActionsReverse.end()) {
-            cerr << "WARNING: MainWindow::setupRecentTransformsMenu: "
-                      << "Unknown transform \"" << transforms[i]
-                      << "\" in recent transforms list" << endl;
+            SVCERR << "WARNING: MainWindow::setupRecentTransformsMenu: "
+                   << "Unknown transform \"" << transforms[i]
+                   << "\" in recent transforms list" << endl;
             continue;
         }
         if (i == 0) {

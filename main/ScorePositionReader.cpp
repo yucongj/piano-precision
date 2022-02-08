@@ -11,9 +11,9 @@
 */
 
 #include "ScorePositionReader.h"
+#include "ScoreFinder.h"
 
 #include "base/Debug.h"
-#include "base/ResourceFinder.h"
 
 #include <QXmlStreamReader>
 #include <QFile>
@@ -42,44 +42,14 @@ ScorePositionReader::loadAScore(QString scoreName)
     SVDEBUG << "ScorePositionReader::loadAScore: Score \"" << scoreName
 	    << "\" requested" << endl;
 
-    std::filesystem::path scoreDir = std::string(getenv("HOME")) + "/Documents/SV-PianoPrecision/Scores";
-    if (!std::filesystem::exists(scoreDir)) {
-        std::cerr << "Score directory ($Home/Documents/SV-PianoPrecision/Scores) does not exist!" << '\n';
-        return false;
-    }
-    std::filesystem::path targetPath;
-    for (const auto& entry : std::filesystem::directory_iterator(scoreDir)) {
-        QString folderName = entry.path().filename().c_str();
-        if (folderName == scoreName) {
-            targetPath = entry.path();
-            break;
-        }
-    }
-    if (!std::filesystem::exists(targetPath)) {
-        std::cerr << "Score folder not found!" << '\n';
-        return false;
-    }
-    std::filesystem::path scorePath = std::string(targetPath) + "/" + scoreName.toStdString() + ".spos";
-    if (!std::filesystem::exists(scorePath)) {
+    std::string scorePath =
+        ScoreFinder::getScoreFile(scoreName.toStdString(), "spos");
+    if (scorePath == "") {
         std::cerr << "Score file (.spos) not found!" << '\n';
         return false;
     }
-
+        
     QString filename = scorePath.c_str();
-
-/*
-    QString filebase = scoreName + ".spos";
-    QString filename = ResourceFinder().getResourcePath("scores", filebase);
-    
-    if (filename == "") {
-        SVDEBUG << "ScorePositionReader::loadAScore: Unable to find a suitable "
-                << "resource location for score position file " << scoreName
-		<< ".spos" << endl;
-        SVDEBUG << "ScorePositionReader::loadAScore: Expected directory location is: \""
-                << ResourceFinder().getResourceSaveDir("scores") << "\"" << endl;
-        return false;
-    }
-*/
     SVDEBUG << "ScorePositionReader::loadAScore: Found file, calling "
 	    << "loadScoreFile with filename \"" << filename << "\"" << endl;
     return loadScoreFile(filename);
