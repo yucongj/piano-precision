@@ -8,8 +8,8 @@ endian = 'little'
 needs_exe_wrapper = false
 
 [binaries]
-c = 'cc'
-cpp = 'c++'
+c = '/usr/bin/cc'
+cpp = '/usr/bin/c++'
 strip = 'strip'
 pkgconfig = 'pkg-config'
 qmake = 'qmake'
