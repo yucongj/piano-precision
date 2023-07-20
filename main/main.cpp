@@ -4,7 +4,7 @@
     Sonic Visualiser
     An audio file viewer and annotation editor.
     Centre for Digital Music, Queen Mary, University of London.
-    This file copyright 2006 Chris Cannam and QMUL.
+    This file copyright 2006-2023 Chris Cannam and QMUL.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -213,8 +213,17 @@ public:
     }
     ~SVApplication() override { }
 
-    void setMainWindow(MainWindow *mw) { m_mainWindow = mw; }
-    void releaseMainWindow() { m_mainWindow = nullptr; }
+    void setMainWindow(MainWindow *mw) {
+        m_mainWindow = mw;
+        for (auto f: m_pendingFilepaths) {
+            handleFilepathArgument(f, nullptr);
+        }
+        m_pendingFilepaths.clear();
+    }
+    
+    void releaseMainWindow() {
+        m_mainWindow = nullptr;
+    }
 
     virtual void commitData(QSessionManager &manager) {
         if (!m_mainWindow) return;
@@ -228,6 +237,7 @@ public:
 
 protected:
     MainWindow *m_mainWindow;
+    std::vector<QString> m_pendingFilepaths;
     bool event(QEvent *) override;
 };
 
@@ -609,7 +619,7 @@ bool SVApplication::event(QEvent *event){
     case QEvent::FileOpen:
         SVDEBUG << "SVApplication::event: Handling FileOpen event" << endl;
         thePath = static_cast<QFileOpenEvent *>(event)->file();
-                                                                      handleFilepathArgument(thePath, nullptr);
+        handleFilepathArgument(thePath, nullptr);
         return true;
     default:
         return QApplication::event(event);
@@ -621,6 +631,12 @@ void SVApplication::handleFilepathArgument(QString path, SVSplash *splash){
     static bool haveSession = false;
     static bool haveMainModel = false;
     static bool havePriorCommandLineModel = false;
+
+    if (!m_mainWindow) {
+        // Not attached yet
+        m_pendingFilepaths.push_back(path);
+        return;
+    }
     
     MainWindow::FileOpenStatus status = MainWindow::FileOpenFailed;
 

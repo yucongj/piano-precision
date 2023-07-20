@@ -6123,6 +6123,10 @@ ale dostupné jsou %2. Použije se pouze první %3.
         <source>Mix recorded channels to mono</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Use fine-quality time stretcher</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>PreferencesDialog</name>
@@ -7099,6 +7103,10 @@ Koš:	%5
     <message>
         <source>Sampling Mode</source>
         <translation>Režim vzorkování</translation>
+    </message>
+    <message>
+        <source>-160</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -8158,6 +8166,10 @@ Label:	%4</source>
 Hodnota:	%2
 Štítek:	%4</translation>
     </message>
+    <message>
+        <source>Fill Segment Colours</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>TipDialog</name>
@@ -8742,6 +8754,10 @@ Hodnota:	%2
     <message>
         <source>Channels</source>
         <translation>Kanály</translation>
+    </message>
+    <message>
+        <source>Interpolate</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

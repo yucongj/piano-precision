@@ -4,7 +4,7 @@
     Sonic Visualiser
     An audio file viewer and annotation editor.
     Centre for Digital Music, Queen Mary, University of London.
-    This file copyright 2006-2007 Chris Cannam and QMUL.
+    This file copyright 2006-2023 Chris Cannam and QMUL.
     
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License as
@@ -189,6 +189,7 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     setWindowTitle(QApplication::applicationName());
 
     UnitDatabase *udb = UnitDatabase::getInstance();
+    udb->registerUnit("");
     udb->registerUnit("Hz");
     udb->registerUnit("dB");
     udb->registerUnit("s");
@@ -678,9 +679,11 @@ MainWindow::setupFileMenu()
     QString templatesMenuLabel = tr("Apply Session Template");
     m_templatesMenu = menu->addMenu(templatesMenuLabel);
     m_templatesMenu->setTearOffEnabled(true);
-    // We need to have a main model for this option to be useful:
-    // canExportAudio captures that
-    connect(this, SIGNAL(canExportAudio(bool)), m_templatesMenu, SLOT(setEnabled(bool)));
+    // Formerly we enabled or disabled this menu according to whether
+    // we had a main model or not, since applying a template requires
+    // a main model. But the menu also contains the option to set the
+    // default, and that's useful regardless, so we now have the menu
+    // always enabled
 
     // Set up the menu in a moment, after m_manageTemplatesAction constructed
 
@@ -2105,6 +2108,10 @@ MainWindow::setupTemplatesMenu()
 
     QAction *defaultAction = m_templatesMenu->addAction(tr("Standard Waveform"));
     defaultAction->setObjectName("default");
+    // All the apply actions need to have a main model to be useful:
+    // canExportAudio captures that
+    connect(this, SIGNAL(canExportAudio(bool)), defaultAction, SLOT(setEnabled(bool)));
+
     connect(defaultAction, SIGNAL(triggered()), this, SLOT(applyTemplate()));
 
     m_templatesMenu->addSeparator();
@@ -2125,6 +2132,9 @@ MainWindow::setupTemplatesMenu()
     foreach (QString t, byName) {
         if (t.toLower() == "default") continue;
         action = m_templatesMenu->addAction(t);
+        // All the apply actions need to have a main model to be
+        // useful: canExportAudio captures that
+        connect(this, SIGNAL(canExportAudio(bool)), action, SLOT(setEnabled(bool)));
         connect(action, SIGNAL(triggered()), this, SLOT(applyTemplate()));
     }
 
@@ -5016,6 +5026,7 @@ MainWindow::updatePositionStatusDisplays() const
         if (!layer->isLayerEditable()) continue;
         QString label = layer->getLabelPreceding
             (pane->alignFromReference(frame));
+        label = label.split('\n')[0];
         m_currentLabel->setText(label);
         break;
     }
@@ -5785,7 +5796,7 @@ MainWindow::about()
     aboutText += "</small></p>";
 
     aboutText += 
-        "<p><small>Sonic Visualiser is Copyright &copy; 2005&ndash;2007 Chris Cannam; Copyright &copy; 2006&ndash;2020 Queen Mary, University of London; Copyright &copy; 2020-2021 Particular Programs Ltd.</small></p>";
+        "<p><small>Sonic Visualiser is Copyright &copy; 2005&ndash;2007 Chris Cannam; Copyright &copy; 2006&ndash;2020 Queen Mary, University of London; Copyright &copy; 2020-2023 Particular Programs Ltd.</small></p>";
 
     aboutText +=
         "<p><small>This program is free software; you can redistribute it and/or "
