@@ -254,21 +254,25 @@ ScoreWidget::positionForPoint(QPoint point)
     for (auto itr = m_elementsByPosition.begin();
          itr != m_elementsByPosition.end();
          ++itr) {
-        if (y > itr->second.y + itr->second.sy) {
-            break;
-        } else if (y < itr->second.y) {
-            continue;
-        }
-        if (x < itr->second.x) {
+
+        const auto &elt = itr->second;
+        /*
+        SVDEBUG << "comparing point " << point.x() << "," << point.y()
+                << " -> adjusted coords " << x << "," << y
+                << " with x, y, sy " << elt.x << "," << elt.y << ","
+                << elt.sy << endl;
+        */        
+        if (y < elt.y || y > elt.y + elt.sy || x < elt.x) {
             continue;
         }
         auto jtr = itr;
         if (++jtr != m_elementsByPosition.end()) {
-            if (x > jtr->second.x) {
+            if (jtr->second.x > elt.x && x > jtr->second.x) {
                 continue;
             }
         }
         pos = itr->first;
+        break;
     }
 
 #ifdef DEBUG_SCORE_WIDGET
