@@ -14,6 +14,7 @@
 #define SV_SCORE_FINDER_H
 
 #include <string>
+#include <vector>
 
 class ScoreFinder
 {
