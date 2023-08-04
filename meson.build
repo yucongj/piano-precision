@@ -1110,7 +1110,7 @@ else
 endif
 
 if system == 'linux'
-  sv_main_name = 'sonic-visualiser'
+  sv_main_name = 'sv-piano-precision'
 else
   sv_main_name = 'SV Piano Precision'
 endif # system
