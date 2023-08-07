@@ -15,17 +15,32 @@
 
 #include <QPdfDocument>
 #include <QPainter>
+#include <QMouseEvent>
 
 #include "base/Debug.h"
+
+#include <vector>
+
+#define DEBUG_SCORE_WIDGET 1
+
+static QColor positionHighlightColour("#59c4df");
+static QColor mouseTrackingHighlightColour("#ffbd00");
+
+using std::vector;
+using std::pair;
+using std::string;
 
 ScoreWidget::ScoreWidget(QWidget *parent) :
     QFrame(parent),
     m_document(new QPdfDocument(this)),
     m_page(-1),
-    m_highlight(-1)
+    m_highlightPosition(-1),
+    m_mousePosition(-1),
+    m_mouseActive(false)
 {
     setFrameStyle(Panel | Plain);
     setMinimumSize(QSize(100, 100));
+    setMouseTracking(true);
 }
 
 ScoreWidget::~ScoreWidget()
@@ -61,7 +76,7 @@ ScoreWidget::loadAScore(QString scoreName, QString &errorString)
     SVDEBUG << "ScoreWidget::loadAScore: Score \"" << scoreName
             << "\" requested" << endl;
 
-    std::string scorePath =
+    string scorePath =
         ScoreFinder::getScoreFile(scoreName.toStdString(), "pdf");
     if (scorePath == "") {
         errorString = "Score file (.pdf) not found!";
@@ -126,6 +141,167 @@ ScoreWidget::resizeEvent(QResizeEvent *)
 }
 
 void
+ScoreWidget::enterEvent(QEvent *)
+{
+    m_mouseActive = true;
+    m_mousePosition = -1;
+    update();
+}
+
+void
+ScoreWidget::leaveEvent(QEvent *)
+{
+    m_mouseActive = false;
+    update();
+}
+
+void
+ScoreWidget::mouseMoveEvent(QMouseEvent *e)
+{
+    m_mousePosition = positionForPoint(e->pos());
+    update();
+}
+
+void
+ScoreWidget::mousePressEvent(QMouseEvent *e)
+{
+    mouseMoveEvent(e);
+    if (m_mousePosition >= 0) {
+#ifdef DEBUG_SCORE_WIDGET
+        SVDEBUG << "ScoreWidget::mousePressEvent: Emitting scoreClicked at "
+                << m_mousePosition << endl;
+#endif
+        emit scoreClicked(m_mousePosition);
+    } else {
+#ifdef DEBUG_SCORE_WIDGET
+        SVDEBUG << "ScoreWidget::mousePressEvent: No position, "
+                << "not emitting scoreClicked" << endl;
+#endif
+    }
+}
+
+QRectF
+ScoreWidget::rectForPosition(int pos)
+{
+    if (pos < 0) {
+#ifdef DEBUG_SCORE_WIDGET
+        SVDEBUG << "ScoreWidget::rectForPosition: No position" << endl;
+#endif
+        return {};
+    }
+
+    auto itr = m_elementsByPosition.lower_bound(pos);
+    if (itr == m_elementsByPosition.end()) {
+#ifdef DEBUG_SCORE_WIDGET
+        SVDEBUG << "ScoreWidget::rectForPosition: Position " << pos
+                << " does not have any corresponding element" << endl;
+#endif
+        return {};
+    }
+
+    // just use the first element for now...
+
+    // Now, we know the units are a bit mad for these values.  I
+    // think(?) they are in inches * dpi * constant where dpi = 360
+    // and constant = 12, so inches * 4320 or mm * 170.08 approx.
+
+    // To map these correctly we will need to know the page size at
+    // which the pdf was rendered - since the defaults are presumably
+    // locale dependent (I'm guessing US Letter in US, A4 everywhere
+    // else). This info must be in the PDF one way or another, can
+    // QPdfDocument tell us it?
+
+    // Check that later, but for the mo let's hard code A4 and see
+    // what comes out. So 297x210mm which would make the whole page
+    // 50513.4 units tall and 35716.5 wide. Thus our y ratio will be
+    // (pixel_height)/50513.4 and x ratio (pixel_width)/35716.5. Oh,
+    // and that's times the device pixel ratio.
+
+    ScoreElement elt = itr->second;
+
+#ifdef DEBUG_SCORE_WIDGET
+    SVDEBUG << "ScoreWidget::rectForPosition: Position "
+            << pos << " has corresponding element id="
+            << elt.id << " on page=" << elt.page << " with x="
+            << elt.x << ", y=" << elt.y << ", sy=" << elt.sy << endl;
+#endif
+            
+    QSize mySize = size();
+    QSize imageSize = m_image.size();
+
+    int dpr = devicePixelRatio();
+    int xorigin = (mySize.width() - imageSize.width() / dpr) / 2;
+    int yorigin = (mySize.height() - imageSize.height() / dpr) / 2;
+
+    double xratio = double(imageSize.width()) / (35716.5 * dpr);
+    double yratio = double(imageSize.height()) / (50513.4 * dpr);
+
+    // We don't get a valid element width - hardcode & reconsider this
+    // later
+    double fakeWidth = 500.0;
+            
+    return QRectF(xorigin + elt.x * xratio,
+                  yorigin + elt.y * yratio,
+                  fakeWidth * xratio,
+                  elt.sy * yratio);
+}
+
+int
+ScoreWidget::positionForPoint(QPoint point)
+{
+    // See above for discussion of units! But this is all a dupe, we
+    // should pull it out
+
+    QSize mySize = size();
+    QSize imageSize = m_image.size();
+
+    int dpr = devicePixelRatio();
+    int xorigin = (mySize.width() - imageSize.width() / dpr) / 2;
+    int yorigin = (mySize.height() - imageSize.height() / dpr) / 2;
+
+    double xratio = double(imageSize.width()) / (35716.5 * dpr);
+    double yratio = double(imageSize.height()) / (50513.4 * dpr);
+
+    //!!! Slow but ok to start with
+
+    int pos = -1;
+
+    int x = (point.x() - xorigin) / xratio;
+    int y = (point.y() - yorigin) / yratio;
+    
+    for (auto itr = m_elementsByPosition.begin();
+         itr != m_elementsByPosition.end();
+         ++itr) {
+
+        const auto &elt = itr->second;
+        /*
+        SVDEBUG << "comparing point " << point.x() << "," << point.y()
+                << " -> adjusted coords " << x << "," << y
+                << " with x, y, sy " << elt.x << "," << elt.y << ","
+                << elt.sy << endl;
+        */        
+        if (y < elt.y || y > elt.y + elt.sy || x < elt.x) {
+            continue;
+        }
+        auto jtr = itr;
+        if (++jtr != m_elementsByPosition.end()) {
+            if (jtr->second.x > elt.x && x > jtr->second.x) {
+                continue;
+            }
+        }
+        pos = itr->first;
+        break;
+    }
+
+#ifdef DEBUG_SCORE_WIDGET
+    SVDEBUG << "ScoreWidget::positionForPoint: point " << point.x()
+            << "," << point.y() << " -> position " << pos << endl;
+#endif
+    
+    return pos;
+}
+
+void
 ScoreWidget::paintEvent(QPaintEvent *e)
 {
     QFrame::paintEvent(e);
@@ -144,66 +320,27 @@ ScoreWidget::paintEvent(QPaintEvent *e)
     int xorigin = (mySize.width() - imageSize.width() / dpr) / 2;
     int yorigin = (mySize.height() - imageSize.height() / dpr) / 2;
 
-    if (m_highlight < 0) {
-        SVDEBUG << "ScoreWidget::paintEvent: No highlight specified" << endl;
-    } else {
-        auto itr = m_elementsByPosition.lower_bound(m_highlight);
-        if (itr == m_elementsByPosition.end()) {
-            SVDEBUG << "ScoreWidget::paintEvent: Highlight position "
-                    << m_highlight << " does not have any corresponding element"
-                    << endl;
-        } else {
+    const vector<pair<QRectF, QColor>> highlights {
+        { rectForPosition(m_highlightPosition), positionHighlightColour },
+        { rectForPosition(m_mousePosition), mouseTrackingHighlightColour }
+    };
 
-            // just highlight the first for now...
-
-            // Now, we know the units are a bit mad for these values.
-            // I think(?) they are in inches * dpi * constant where
-            // dpi = 360 and constant = 12, so inches * 4320 or mm *
-            // 170.08 approx.
-
-            // To map these correctly we will need to know the page
-            // size at which the pdf was rendered - since the defaults
-            // are presumably locale dependent (I'm guessing US Letter
-            // in US, A4 everywhere else). This info must be in the
-            // PDF one way or another, can QPdfDocument tell us it?
-
-            // Check that later, but for the mo let's hard code A4 and
-            // see what comes out. So 297x210mm which would make the
-            // whole page 50513.4 units tall and 35716.5 wide. Thus
-            // our y ratio will be (pixel_height)/50513.4 and x ratio
-            // (pixel_width)/35716.5. Oh, and that's times the device
-            // pixel ratio.
-
-            ScoreElement elt = itr->second;
-
-            SVDEBUG << "ScoreWidget::paintEvent: Highlight position "
-                    << m_highlight << " has corresponding element id="
-                    << elt.id << " on page=" << elt.page << " with x="
-                    << elt.x << ", y=" << elt.y << ", sy=" << elt.sy << endl;
-            
-            double xratio = double(imageSize.width()) / (35716.5 * dpr);
-            double yratio = double(imageSize.height()) / (50513.4 * dpr);
-
-            // We don't get a valid element width - hardcode &
-            // reconsider this later
-            double fakeWidth = 500.0;
-            
-            QRectF rect(xorigin + elt.x * xratio,
-                        yorigin + elt.y * yratio,
-                        fakeWidth * xratio,
-                        elt.sy * yratio);
-            QColor colour("#59c4df");
-            colour.setAlpha(160);
-            paint.setPen(Qt::NoPen);
-            paint.setBrush(colour);
-
-            SVDEBUG << "ScoreWidget::paint: highlighting rect with origin "
-                    << rect.x() << "," << rect.y() << " and size "
-                    << rect.width() << "x" << rect.height() << endl;
-            
-            paint.drawRect(rect);
-        }
+    for (const auto &h : highlights) {
+        auto rect = h.first;
+        if (rect.isNull()) continue;
+        QColor colour(h.second);
+        colour.setAlpha(160);
+        paint.setPen(Qt::NoPen);
+        paint.setBrush(colour);
+#ifdef DEBUG_SCORE_WIDGET
+        SVDEBUG << "ScoreWidget::paint: highlighting rect with origin "
+                << rect.x() << "," << rect.y() << " and size "
+                << rect.width() << "x" << rect.height()
+                << " using colour " << colour.name() << endl;
+#endif
+        paint.drawRect(rect);
     }
+
     paint.drawImage
         (QRect(xorigin, yorigin,
                imageSize.width() / dpr,
@@ -254,19 +391,24 @@ ScoreWidget::showPage(int page)
 void
 ScoreWidget::highlightPosition(int position)
 {
-    m_highlight = position;
+    m_highlightPosition = position;
     
-    if (m_highlight >= 0) {
-        auto itr = m_elementsByPosition.lower_bound(m_highlight);
+    if (m_highlightPosition >= 0) {
+        auto itr = m_elementsByPosition.lower_bound(m_highlightPosition);
         if (itr == m_elementsByPosition.end()) {
+#ifdef DEBUG_SCORE_WIDGET
             SVDEBUG << "ScoreWidget::highlightPosition: Highlight position "
-                    << m_highlight << " does not have any corresponding element"
+                    << m_highlightPosition
+                    << " does not have any corresponding element"
                     << endl;
+#endif
         } else {
             ScoreElement elt = itr->second;
             if (elt.page != m_page) {
+#ifdef DEBUG_SCORE_WIDGET
                 SVDEBUG << "ScoreWidget::highlightPosition: Flipping to page "
                         << elt.page << endl;
+#endif
                 showPage(elt.page);
             }
         }
@@ -278,7 +420,7 @@ ScoreWidget::highlightPosition(int position)
 void
 ScoreWidget::removeHighlight()
 {
-    m_highlight = -1;
+    m_highlightPosition = -1;
     update();
 }
 

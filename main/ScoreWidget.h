@@ -80,10 +80,15 @@ public slots:
 
 signals:
     void loadFailed(QString scoreName, QString errorMessage);
+    void scoreClicked(int position);
 
 protected:
-    void resizeEvent(QResizeEvent *);
-    void paintEvent(QPaintEvent *);
+    void resizeEvent(QResizeEvent *) override;
+    void enterEvent(QEvent *) override;
+    void leaveEvent(QEvent *) override;
+    void mouseMoveEvent(QMouseEvent *) override;
+    void mousePressEvent(QMouseEvent *) override;
+    void paintEvent(QPaintEvent *) override;
     
 private:
     QString m_scoreName;
@@ -91,8 +96,13 @@ private:
     QPdfDocument *m_document;
     int m_page;
     QImage m_image;
-    int m_highlight;
+    int m_highlightPosition; // -1 for none
+    int m_mousePosition;
+    bool m_mouseActive;
 
+    QRectF rectForPosition(int pos);
+    int positionForPoint(QPoint point);
+    
     ScoreElements m_elements;
     std::multimap<int, ScoreElement> m_elementsByPosition;
 };
