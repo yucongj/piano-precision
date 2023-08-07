@@ -162,6 +162,24 @@ ScoreWidget::mouseMoveEvent(QMouseEvent *e)
     update();
 }
 
+void
+ScoreWidget::mousePressEvent(QMouseEvent *e)
+{
+    mouseMoveEvent(e);
+    if (m_mousePosition >= 0) {
+#ifdef DEBUG_SCORE_WIDGET
+        SVDEBUG << "ScoreWidget::mousePressEvent: Emitting scoreClicked at "
+                << m_mousePosition << endl;
+#endif
+        emit scoreClicked(m_mousePosition);
+    } else {
+#ifdef DEBUG_SCORE_WIDGET
+        SVDEBUG << "ScoreWidget::mousePressEvent: No position, "
+                << "not emitting scoreClicked" << endl;
+#endif
+    }
+}
+
 QRectF
 ScoreWidget::rectForPosition(int pos)
 {

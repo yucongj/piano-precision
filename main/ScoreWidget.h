@@ -80,12 +80,14 @@ public slots:
 
 signals:
     void loadFailed(QString scoreName, QString errorMessage);
+    void scoreClicked(int position);
 
 protected:
     void resizeEvent(QResizeEvent *) override;
     void enterEvent(QEvent *) override;
     void leaveEvent(QEvent *) override;
     void mouseMoveEvent(QMouseEvent *) override;
+    void mousePressEvent(QMouseEvent *) override;
     void paintEvent(QPaintEvent *) override;
     
 private:

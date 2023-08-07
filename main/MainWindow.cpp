@@ -220,6 +220,8 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
 
     // Added Oct 6, 2021
     m_scoreWidget = new ScoreWidget(this);
+    connect(m_scoreWidget, SIGNAL(scoreClicked(int)),
+            this, SLOT(scoreClicked(int)));
 
     m_mainScroll = new QScrollArea(frame);
     m_mainScroll->setWidgetResizable(true);
@@ -2289,7 +2291,7 @@ MainWindow::viewManagerPlaybackFrameChanged(sv_frame_t frame)
         bool found = false;
         int eventCount = targetModel->getEventCount();
         for (int i = 1; i < eventCount; ++i) {
-            int eventFrame = events[i].getFrame();
+            sv_frame_t eventFrame = events[i].getFrame();
             // cerr << "event index = " << i << ": " << "Frame = " << eventFrame << ", Value = " << targetModel->getAllEvents()[i].getValue() << endl;
             if (frame < eventFrame) {
                 position = events[i-1].getValue();
@@ -2301,11 +2303,50 @@ MainWindow::viewManagerPlaybackFrameChanged(sv_frame_t frame)
                 break;
             }
         }
-        if (!found && eventCount > 0)
+        if (!found && eventCount > 0) {
             position = events[eventCount-1].getValue(); // last event
+        }
     }
 
     m_scoreWidget->highlightPosition(position);
+}
+
+void
+MainWindow::scoreClicked(int position)
+{
+    SVDEBUG << "MainWindow::scoreClicked(" << position << ")" << endl;
+    
+    // See comments in viewManagerPlaybackFrameChanged above
+
+    TimeValueLayer *targetLayer = findOnsetsLayer();
+
+    if (!targetLayer || position < 0 || !m_viewManager) {
+        SVDEBUG << "MainWindow::scoreClicked: missing either target layer, position, or view manager" << endl;
+        return;
+    }
+
+    ModelId targetId = targetLayer->getModel();
+    const auto targetModel = ModelById::getAs<SparseTimeValueModel>(targetId);
+    if (!targetModel) {
+        SVDEBUG << "MainWindow::scoreClicked: missing target model" << endl;
+        return;
+    }
+    
+    const auto events = targetModel->getAllEvents();
+    if (events.empty()) return;
+
+    sv_frame_t frame = 0;
+    for (const auto &e : events) {
+        frame = e.getFrame();
+        if (int(e.getValue()) > position) {
+            break;
+        }
+    }
+
+    SVDEBUG << "MainWindow::scoreClicked: mapped position " << position
+            << " to frame " << frame << endl;
+    
+    m_viewManager->setGlobalCentreFrame(frame);
 }
 
 void

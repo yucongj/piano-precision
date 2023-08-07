@@ -130,6 +130,7 @@ protected slots:
     virtual void chooseScore(); // Added by Yucong Jiang, Oct 5, 2021ß
 
     void viewManagerPlaybackFrameChanged(sv_frame_t);
+    void scoreClicked(int);
 
     virtual void playSpeedChanged(int);
     void playSoloToggled() override;
