@@ -2250,7 +2250,7 @@ MainWindow::isOnsetsLayer(Layer *layer) const
 }
 
 TimeValueLayer *
-MainWindow::findOnsetsLayer() const
+MainWindow::findOnsetsLayer(Pane **paneReturn) const
 {
     if (!m_paneStack) return nullptr;
 
@@ -2261,7 +2261,10 @@ MainWindow::findOnsetsLayer() const
             Layer *layer = pane->getLayer(j);
             if (!layer) continue;
             if (isOnsetsLayer(layer)) {
-                return qobject_cast<TimeValueLayer *>(layer);
+                TimeValueLayer *tvl = qobject_cast<TimeValueLayer *>(layer);
+                tvl->setPermitValueEditOfSegmentation(false);
+                if (paneReturn) *paneReturn = pane;
+                return tvl;
             }
         }
     }
@@ -2318,12 +2321,15 @@ MainWindow::scoreClicked(int position)
     
     // See comments in viewManagerPlaybackFrameChanged above
 
-    TimeValueLayer *targetLayer = findOnsetsLayer();
+    Pane *targetPane = nullptr;
+    TimeValueLayer *targetLayer = findOnsetsLayer(&targetPane);
 
-    if (!targetLayer || position < 0 || !m_viewManager) {
+    if (!targetLayer || !targetPane || position < 0 || !m_viewManager) {
         SVDEBUG << "MainWindow::scoreClicked: missing either target layer, position, or view manager" << endl;
         return;
     }
+
+    targetLayer->setPermitValueEditOfSegmentation(false);
 
     ModelId targetId = targetLayer->getModel();
     const auto targetModel = ModelById::getAs<SparseTimeValueModel>(targetId);
@@ -2338,7 +2344,7 @@ MainWindow::scoreClicked(int position)
     sv_frame_t frame = 0;
     for (const auto &e : events) {
         frame = e.getFrame();
-        if (int(e.getValue()) > position) {
+        if (int(e.getValue()) >= position) {
             break;
         }
     }
@@ -2347,6 +2353,14 @@ MainWindow::scoreClicked(int position)
             << " to frame " << frame << endl;
     
     m_viewManager->setGlobalCentreFrame(frame);
+
+    for (auto &p : m_toolActions) {
+        if (p.first == ViewManager::EditMode) {
+            p.second->trigger();
+        }
+    }
+
+    m_paneStack->setCurrentLayer(targetPane, targetLayer);
 }
 
 void

@@ -325,7 +325,7 @@ protected:
     void connectLayerEditDialog(ModelDataTableDialog *) override;
 
     bool isOnsetsLayer(Layer *) const;
-    TimeValueLayer *findOnsetsLayer() const;
+    TimeValueLayer *findOnsetsLayer(Pane ** = nullptr) const;
 };
 
 
