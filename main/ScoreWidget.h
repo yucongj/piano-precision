@@ -29,7 +29,7 @@ class ScoreWidget : public QFrame
 public:
     ScoreWidget(QWidget *parent);
     ~ScoreWidget();
-
+    
     /** 
      * Load the named score. If loading fails, return false and set
      * the error string accordingly.
@@ -53,7 +53,17 @@ public:
      * Return the current page number.
      */
     int getCurrentPage() const;
-                  
+
+    /**
+     * Mode for mouse interaction.
+     */
+    enum class InteractionMode { None, Navigate, Edit };
+
+    /**
+     * Return the current interaction mode.
+     */
+    InteractionMode getInteractionMode() const { return m_mode; }
+                                                 
 public slots:
     /** 
      * Load the named score. If loading fails, emit the loadFailed
@@ -67,20 +77,24 @@ public slots:
     void showPage(int page);
 
     /**
-     * Highlight the element on the score closest to the given
-     * position in time, according to the current set of score
-     * elements.
+     * Set the current position to be highlighted, as the element on
+     * the score closest to the given position in time, according to
+     * the current set of score elements. The type of highlighting
+     * will depend on the current interaction mode.
      */
-    void highlightPosition(int scorePosition);
+    void setScorePosition(int scorePosition);
 
     /**
-     * Remove any highlight set with highlightPosition.
+     * Select an interaction mode.
      */
-    void removeHighlight();
+    void setInteractionMode(InteractionMode mode);
 
 signals:
     void loadFailed(QString scoreName, QString errorMessage);
-    void scoreClicked(int position);
+    void interactionModeChanged(ScoreWidget::InteractionMode newMode);
+    void scorePositionHighlighted(int, ScoreWidget::InteractionMode);
+    void scorePositionActivated(int, ScoreWidget::InteractionMode);
+    void interactionEnded(ScoreWidget::InteractionMode); // e.g. because mouse left widget
 
 protected:
     void resizeEvent(QResizeEvent *) override;
@@ -88,6 +102,7 @@ protected:
     void leaveEvent(QEvent *) override;
     void mouseMoveEvent(QMouseEvent *) override;
     void mousePressEvent(QMouseEvent *) override;
+    void mouseDoubleClickEvent(QMouseEvent *) override;
     void paintEvent(QPaintEvent *) override;
     
 private:
@@ -96,7 +111,9 @@ private:
     QPdfDocument *m_document;
     int m_page;
     QImage m_image;
-    int m_highlightPosition; // -1 for none
+
+    InteractionMode m_mode;
+    int m_scorePosition;
     int m_mousePosition;
     bool m_mouseActive;
 

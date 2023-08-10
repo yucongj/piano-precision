@@ -23,8 +23,8 @@
 
 #define DEBUG_SCORE_WIDGET 1
 
-static QColor positionHighlightColour("#59c4df");
-static QColor mouseTrackingHighlightColour("#ffbd00");
+static QColor navigateHighlightColour("#59c4df");
+static QColor editHighlightColour("#ffbd00");
 
 using std::vector;
 using std::pair;
@@ -34,7 +34,8 @@ ScoreWidget::ScoreWidget(QWidget *parent) :
     QFrame(parent),
     m_document(new QPdfDocument(this)),
     m_page(-1),
-    m_highlightPosition(-1),
+    m_mode(InteractionMode::None),
+    m_scorePosition(-1),
     m_mousePosition(-1),
     m_mouseActive(false)
 {
@@ -144,13 +145,15 @@ void
 ScoreWidget::enterEvent(QEvent *)
 {
     m_mouseActive = true;
-    m_mousePosition = -1;
     update();
 }
 
 void
 ScoreWidget::leaveEvent(QEvent *)
 {
+    if (m_mouseActive) {
+        emit interactionEnded(m_mode);
+    }
     m_mouseActive = false;
     update();
 }
@@ -158,28 +161,54 @@ ScoreWidget::leaveEvent(QEvent *)
 void
 ScoreWidget::mouseMoveEvent(QMouseEvent *e)
 {
+    if (!m_mouseActive) return;
+
     m_mousePosition = positionForPoint(e->pos());
     update();
+
+    if (m_mousePosition >= 0) {
+#ifdef DEBUG_SCORE_WIDGET
+        SVDEBUG << "ScoreWidget::mouseMoveEvent: Emitting scorePositionHighlighted at " << m_mousePosition << endl;
+#endif
+        emit scorePositionHighlighted(m_mousePosition, m_mode);
+    }
 }
 
 void
 ScoreWidget::mousePressEvent(QMouseEvent *e)
 {
+    if (e->button() != Qt::LeftButton) {
+        return;
+    }
+    
     mouseMoveEvent(e);
+    
     if (m_mousePosition >= 0) {
 #ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidget::mousePressEvent: Emitting scoreClicked at "
-                << m_mousePosition << endl;
+        SVDEBUG << "ScoreWidget::mousePressEvent: Emitting scorePositionActivated at " << m_mousePosition << endl;
 #endif
-        emit scoreClicked(m_mousePosition);
-    } else {
-#ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidget::mousePressEvent: No position, "
-                << "not emitting scoreClicked" << endl;
-#endif
+        emit scorePositionActivated(m_mousePosition, m_mode);
     }
 }
 
+void
+ScoreWidget::mouseDoubleClickEvent(QMouseEvent *e)
+{
+    if (e->button() != Qt::LeftButton) {
+        return;
+    }
+
+#ifdef DEBUG_SCORE_WIDGET
+    SVDEBUG << "ScoreWidget::mouseDoubleClickEvent" << endl;
+#endif
+        
+    if (m_mode == InteractionMode::Navigate) {
+        setInteractionMode(InteractionMode::Edit);
+    }
+
+    mousePressEvent(e);
+}
+    
 QRectF
 ScoreWidget::rectForPosition(int pos)
 {
@@ -320,25 +349,29 @@ ScoreWidget::paintEvent(QPaintEvent *e)
     int xorigin = (mySize.width() - imageSize.width() / dpr) / 2;
     int yorigin = (mySize.height() - imageSize.height() / dpr) / 2;
 
-    const vector<pair<QRectF, QColor>> highlights {
-        { rectForPosition(m_highlightPosition), positionHighlightColour },
-        { rectForPosition(m_mousePosition), mouseTrackingHighlightColour }
-    };
+    if (m_mode != InteractionMode::None) {
 
-    for (const auto &h : highlights) {
-        auto rect = h.first;
-        if (rect.isNull()) continue;
-        QColor colour(h.second);
-        colour.setAlpha(160);
-        paint.setPen(Qt::NoPen);
-        paint.setBrush(colour);
+        int position = m_scorePosition;
+        if (m_mouseActive) {
+            position = m_mousePosition;
+        }
+        
+        QRectF rect = rectForPosition(position);
+        if (!rect.isNull()) {
+            QColor colour = (m_mode == InteractionMode::Edit ?
+                             editHighlightColour :
+                             navigateHighlightColour);
+            colour.setAlpha(160);
+            paint.setPen(Qt::NoPen);
+            paint.setBrush(colour);
 #ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidget::paint: highlighting rect with origin "
-                << rect.x() << "," << rect.y() << " and size "
-                << rect.width() << "x" << rect.height()
-                << " using colour " << colour.name() << endl;
+            SVDEBUG << "ScoreWidget::paint: highlighting rect with origin "
+                    << rect.x() << "," << rect.y() << " and size "
+                    << rect.width() << "x" << rect.height()
+                    << " using colour " << colour.name() << endl;
 #endif
-        paint.drawRect(rect);
+            paint.drawRect(rect);
+        }
     }
 
     paint.drawImage
@@ -389,16 +422,16 @@ ScoreWidget::showPage(int page)
 }
 
 void
-ScoreWidget::highlightPosition(int position)
+ScoreWidget::setScorePosition(int position)
 {
-    m_highlightPosition = position;
+    m_scorePosition = position;
     
-    if (m_highlightPosition >= 0) {
-        auto itr = m_elementsByPosition.lower_bound(m_highlightPosition);
+    if (m_scorePosition >= 0) {
+        auto itr = m_elementsByPosition.lower_bound(m_scorePosition);
         if (itr == m_elementsByPosition.end()) {
 #ifdef DEBUG_SCORE_WIDGET
-            SVDEBUG << "ScoreWidget::highlightPosition: Highlight position "
-                    << m_highlightPosition
+            SVDEBUG << "ScoreWidget::setScorePosition: Position "
+                    << m_scorePosition
                     << " does not have any corresponding element"
                     << endl;
 #endif
@@ -406,7 +439,7 @@ ScoreWidget::highlightPosition(int position)
             ScoreElement elt = itr->second;
             if (elt.page != m_page) {
 #ifdef DEBUG_SCORE_WIDGET
-                SVDEBUG << "ScoreWidget::highlightPosition: Flipping to page "
+                SVDEBUG << "ScoreWidget::setScorePosition: Flipping to page "
                         << elt.page << endl;
 #endif
                 showPage(elt.page);
@@ -418,9 +451,18 @@ ScoreWidget::highlightPosition(int position)
 }
 
 void
-ScoreWidget::removeHighlight()
+ScoreWidget::setInteractionMode(InteractionMode mode)
 {
-    m_highlightPosition = -1;
-    update();
-}
+    if (mode == m_mode) {
+        return;
+    }
 
+#ifdef DEBUG_SCORE_WIDGET
+    SVDEBUG << "ScoreWidget::setInteractionMode: switching from " << int(m_mode)
+            << " to " << int(mode) << endl;
+#endif
+    
+    m_mode = mode;
+    update();
+    emit interactionModeChanged(m_mode);
+}
