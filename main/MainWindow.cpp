@@ -2480,11 +2480,15 @@ MainWindow::onsetsLayerCompleted()
     // Naturally the chain of signals hasn't actually carried through
     // the information about which layer it is
 
-    TimeValueLayer *onsetsLayer = findOnsetsLayer();
+    Pane *onsetsPane = nullptr;
+    TimeValueLayer *onsetsLayer = findOnsetsLayer(&onsetsPane);
     if (!onsetsLayer) {
         SVDEBUG << "MainWindow::onsetsLayerCompleted: can't find an onsets layer!" << endl;
         return;
     }
+
+    onsetsLayer->setPermitValueEditOfSegmentation(false);
+    m_paneStack->setCurrentLayer(onsetsPane, onsetsLayer);
 
     QDateTime now = QDateTime::currentDateTime();
     QString nowString = now.toString("yyyyMMdd-HHmmss-zzz");
