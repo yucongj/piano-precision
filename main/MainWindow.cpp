@@ -220,8 +220,15 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
 
     // Added Oct 6, 2021
     m_scoreWidget = new ScoreWidget(this);
-    connect(m_scoreWidget, SIGNAL(scoreClicked(int)),
-            this, SLOT(scoreClicked(int)));
+    m_scoreWidget->setInteractionMode(ScoreWidget::InteractionMode::Navigate);
+    connect(m_scoreWidget, SIGNAL(scorePositionHighlighted(int, ScoreWidget::InteractionMode)),
+            this, SLOT(scorePositionHighlighted(int, ScoreWidget::InteractionMode)));
+    connect(m_scoreWidget, SIGNAL(scorePositionActivated(int, ScoreWidget::InteractionMode)),
+            this, SLOT(scorePositionActivated(int, ScoreWidget::InteractionMode)));
+    connect(m_scoreWidget, SIGNAL(interactionModeChanged(ScoreWidget::InteractionMode)),
+            this, SLOT(scoreInteractionModeChanged(ScoreWidget::InteractionMode)));
+    connect(m_scoreWidget, SIGNAL(interactionEnded(ScoreWidget::InteractionMode)),
+            this, SLOT(scoreInteractionEnded(ScoreWidget::InteractionMode)));
 
     m_mainScroll = new QScrollArea(frame);
     m_mainScroll->setWidgetResizable(true);
@@ -2275,6 +2282,12 @@ MainWindow::findOnsetsLayer(Pane **paneReturn) const
 void
 MainWindow::viewManagerPlaybackFrameChanged(sv_frame_t frame)
 {
+    highlightFrameInScore(frame);
+}
+
+void
+MainWindow::highlightFrameInScore(sv_frame_t frame)
+{
     // sv_samplerate_t rate = m_viewManager->getMainModelSampleRate();
     // RealTime rt = RealTime::frame2RealTime(frame, rate);
 
@@ -2311,30 +2324,63 @@ MainWindow::viewManagerPlaybackFrameChanged(sv_frame_t frame)
         }
     }
 
-    m_scoreWidget->highlightPosition(position);
+    m_scoreWidget->setScorePosition(position);
 }
 
 void
-MainWindow::scoreClicked(int position)
+MainWindow::scoreInteractionModeChanged(ScoreWidget::InteractionMode mode)
 {
-    SVDEBUG << "MainWindow::scoreClicked(" << position << ")" << endl;
+    ViewManager::ToolMode toolMode = ViewManager::NavigateMode;
     
-    // See comments in viewManagerPlaybackFrameChanged above
+    if (mode == ScoreWidget::InteractionMode::Edit) {
+        toolMode = ViewManager::EditMode;
+    }
+    
+    for (auto &p : m_toolActions) {
+        if (p.first == toolMode) {
+            p.second->trigger();
+            break;
+        }
+    }
+}
+
+void
+MainWindow::scorePositionHighlighted(int position,
+                                     ScoreWidget::InteractionMode mode)
+{
+    actOnScorePosition(position, mode, false);
+}
+
+void
+MainWindow::scorePositionActivated(int position,
+                                   ScoreWidget::InteractionMode mode)
+{
+    actOnScorePosition(position, mode, true);
+}
+
+void
+MainWindow::actOnScorePosition(int position, ScoreWidget::InteractionMode mode,
+                               bool activated)
+{
+    SVDEBUG << "MainWindow::actOnScorePosition(" << position << ", " << int(mode) << ", " << activated << ")" << endl;
+    
+    // See comments in highlightFrameInScore above
 
     Pane *targetPane = nullptr;
     TimeValueLayer *targetLayer = findOnsetsLayer(&targetPane);
 
     if (!targetLayer || !targetPane || position < 0 || !m_viewManager) {
-        SVDEBUG << "MainWindow::scoreClicked: missing either target layer, position, or view manager" << endl;
+        SVDEBUG << "MainWindow::actOnScorePosition: missing either target layer, position, or view manager" << endl;
         return;
     }
 
     targetLayer->setPermitValueEditOfSegmentation(false);
+    m_paneStack->setCurrentLayer(targetPane, targetLayer);
 
     ModelId targetId = targetLayer->getModel();
     const auto targetModel = ModelById::getAs<SparseTimeValueModel>(targetId);
     if (!targetModel) {
-        SVDEBUG << "MainWindow::scoreClicked: missing target model" << endl;
+        SVDEBUG << "MainWindow::actOnScorePosition: missing target model" << endl;
         return;
     }
     
@@ -2351,16 +2397,34 @@ MainWindow::scoreClicked(int position)
 
     SVDEBUG << "MainWindow::scoreClicked: mapped position " << position
             << " to frame " << frame << endl;
+
+    targetLayer->overrideHighlightForPointsAt(frame);
     
-    m_viewManager->setGlobalCentreFrame(frame);
-
-    for (auto &p : m_toolActions) {
-        if (p.first == ViewManager::EditMode) {
-            p.second->trigger();
-        }
+    if (activated) {
+        m_viewManager->setGlobalCentreFrame(frame);
+        m_viewManager->setPlaybackFrame(frame);
     }
+}
 
-    m_paneStack->setCurrentLayer(targetPane, targetLayer);
+void
+MainWindow::scoreInteractionEnded(ScoreWidget::InteractionMode mode)
+{
+    TimeValueLayer *targetLayer = findOnsetsLayer();
+    if (targetLayer) {
+        targetLayer->removeOverrideHighlight();
+    }
+}
+
+void
+MainWindow::frameIlluminated(sv_frame_t frame)
+{
+    TimeValueLayer *targetLayer = findOnsetsLayer();
+    if (targetLayer != sender()) return;
+
+    if (m_scoreWidget->getInteractionMode() ==
+        ScoreWidget::InteractionMode::Edit) {
+        highlightFrameInScore(frame);
+    }
 }
 
 void
@@ -2403,6 +2467,9 @@ MainWindow::layerAdded(Layer *layer)
                     }
                 }
             });
+
+    connect(tvl, SIGNAL(frameIlluminated(sv_frame_t)),
+            this, SLOT(frameIlluminated(sv_frame_t)));
 }
 
 void
@@ -2413,11 +2480,15 @@ MainWindow::onsetsLayerCompleted()
     // Naturally the chain of signals hasn't actually carried through
     // the information about which layer it is
 
-    TimeValueLayer *onsetsLayer = findOnsetsLayer();
+    Pane *onsetsPane = nullptr;
+    TimeValueLayer *onsetsLayer = findOnsetsLayer(&onsetsPane);
     if (!onsetsLayer) {
         SVDEBUG << "MainWindow::onsetsLayerCompleted: can't find an onsets layer!" << endl;
         return;
     }
+
+    onsetsLayer->setPermitValueEditOfSegmentation(false);
+    m_paneStack->setCurrentLayer(onsetsPane, onsetsLayer);
 
     QDateTime now = QDateTime::currentDateTime();
     QString nowString = now.toString("yyyyMMdd-HHmmss-zzz");
@@ -3045,6 +3116,7 @@ void
 MainWindow::toolNavigateSelected()
 {
     m_viewManager->setToolMode(ViewManager::NavigateMode);
+    m_scoreWidget->setInteractionMode(ScoreWidget::InteractionMode::Navigate);
 }
 
 void
@@ -3057,6 +3129,7 @@ void
 MainWindow::toolEditSelected()
 {
     m_viewManager->setToolMode(ViewManager::EditMode);
+    m_scoreWidget->setInteractionMode(ScoreWidget::InteractionMode::Edit);
 }
 
 void

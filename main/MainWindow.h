@@ -18,6 +18,8 @@
 
 #include "framework/MainWindowBase.h"
 
+#include "ScoreWidget.h"
+
 class VersionTester;
 class Surveyer;
 class LayerTreeDialog;
@@ -130,7 +132,13 @@ protected slots:
     virtual void chooseScore(); // Added by Yucong Jiang, Oct 5, 2021ß
 
     void viewManagerPlaybackFrameChanged(sv_frame_t);
-    void scoreClicked(int);
+    void scoreInteractionModeChanged(ScoreWidget::InteractionMode);
+    void scorePositionHighlighted(int, ScoreWidget::InteractionMode);
+    void scorePositionActivated(int, ScoreWidget::InteractionMode);
+    void actOnScorePosition(int, ScoreWidget::InteractionMode, bool activated);
+    void scoreInteractionEnded(ScoreWidget::InteractionMode);
+    void frameIlluminated(sv_frame_t);
+    void highlightFrameInScore(sv_frame_t);
 
     virtual void playSpeedChanged(int);
     void playSoloToggled() override;
