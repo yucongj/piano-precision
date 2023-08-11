@@ -137,6 +137,8 @@ protected slots:
     void scorePositionActivated(int, ScoreWidget::InteractionMode);
     void actOnScorePosition(int, ScoreWidget::InteractionMode, bool activated);
     void scoreInteractionEnded(ScoreWidget::InteractionMode);
+    void frameIlluminated(sv_frame_t);
+    void highlightFrameInScore(sv_frame_t);
 
     virtual void playSpeedChanged(int);
     void playSoloToggled() override;

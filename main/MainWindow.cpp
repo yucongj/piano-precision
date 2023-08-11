@@ -2282,6 +2282,12 @@ MainWindow::findOnsetsLayer(Pane **paneReturn) const
 void
 MainWindow::viewManagerPlaybackFrameChanged(sv_frame_t frame)
 {
+    highlightFrameInScore(frame);
+}
+
+void
+MainWindow::highlightFrameInScore(sv_frame_t frame)
+{
     // sv_samplerate_t rate = m_viewManager->getMainModelSampleRate();
     // RealTime rt = RealTime::frame2RealTime(frame, rate);
 
@@ -2358,7 +2364,7 @@ MainWindow::actOnScorePosition(int position, ScoreWidget::InteractionMode mode,
 {
     SVDEBUG << "MainWindow::actOnScorePosition(" << position << ", " << int(mode) << ", " << activated << ")" << endl;
     
-    // See comments in viewManagerPlaybackFrameChanged above
+    // See comments in highlightFrameInScore above
 
     Pane *targetPane = nullptr;
     TimeValueLayer *targetLayer = findOnsetsLayer(&targetPane);
@@ -2410,6 +2416,18 @@ MainWindow::scoreInteractionEnded(ScoreWidget::InteractionMode mode)
 }
 
 void
+MainWindow::frameIlluminated(sv_frame_t frame)
+{
+    TimeValueLayer *targetLayer = findOnsetsLayer();
+    if (targetLayer != sender()) return;
+
+    if (m_scoreWidget->getInteractionMode() ==
+        ScoreWidget::InteractionMode::Edit) {
+        highlightFrameInScore(frame);
+    }
+}
+
+void
 MainWindow::layerAdded(Layer *layer)
 {
     SVDEBUG << "MainWindow::layerAdded" << endl;
@@ -2449,6 +2467,9 @@ MainWindow::layerAdded(Layer *layer)
                     }
                 }
             });
+
+    connect(tvl, SIGNAL(frameIlluminated(sv_frame_t)),
+            this, SLOT(frameIlluminated(sv_frame_t)));
 }
 
 void
