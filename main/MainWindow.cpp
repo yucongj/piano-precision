@@ -218,6 +218,9 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
 
     m_descriptionLabel = new QLabel;
 
+    QWidget *scoreWidgetContainer = new QWidget(this);
+    QGridLayout *scoreWidgetLayout = new QGridLayout;
+    
     // Added Oct 6, 2021
     m_scoreWidget = new ScoreWidget(this);
     m_scoreWidget->setInteractionMode(ScoreWidget::InteractionMode::Navigate);
@@ -229,6 +232,24 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
             this, SLOT(scoreInteractionModeChanged(ScoreWidget::InteractionMode)));
     connect(m_scoreWidget, SIGNAL(interactionEnded(ScoreWidget::InteractionMode)),
             this, SLOT(scoreInteractionEnded(ScoreWidget::InteractionMode)));
+    connect(m_scoreWidget, SIGNAL(pageChanged(int)),
+            this, SLOT(scorePageChanged(int)));
+
+    m_scorePageDownButton = new QPushButton("<<");
+    connect(m_scorePageDownButton, SIGNAL(clicked()),
+            this, SLOT(scorePageDownButtonClicked()));
+    m_scorePageUpButton = new QPushButton(">>");
+    connect(m_scorePageUpButton, SIGNAL(clicked()),
+            this, SLOT(scorePageUpButtonClicked()));
+    m_scorePageLabel = new QLabel(tr("Page"));
+    m_scorePageLabel->setAlignment(Qt::AlignHCenter);
+
+    scoreWidgetLayout->addWidget(m_scoreWidget, 0, 0, 1, 3);
+    scoreWidgetLayout->addWidget(m_scorePageDownButton, 1, 0);
+    scoreWidgetLayout->addWidget(m_scorePageLabel, 1, 1);
+    scoreWidgetLayout->addWidget(m_scorePageUpButton, 1, 2);
+    
+    scoreWidgetContainer->setLayout(scoreWidgetLayout);
 
     m_mainScroll = new QScrollArea(frame);
     m_mainScroll->setWidgetResizable(true);
@@ -296,7 +317,7 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     */
     // Commented end
     // Added Oct 6, 2021
-    layout->addWidget(m_scoreWidget, 0, 0, 2, 1);
+    layout->addWidget(scoreWidgetContainer, 0, 0, 2, 1);
     layout->addWidget(m_mainScroll, 0, 1, 1, 4);
     layout->addWidget(m_overview, 1, 1);
     layout->addWidget(m_playSpeed, 1, 2);
@@ -2168,6 +2189,9 @@ MainWindow::setupTemplatesMenu()
 void
 MainWindow::chooseScore() // Added by YJ Oct 5, 2021
 {
+    m_scorePageDownButton->setEnabled(false);
+    m_scorePageUpButton->setEnabled(false);
+    
     auto scores = ScoreFinder::getScoreNames();
     std::set<std::string> byName;
     for (auto s: scores) {
@@ -2325,6 +2349,35 @@ MainWindow::highlightFrameInScore(sv_frame_t frame)
     }
 
     m_scoreWidget->setScorePosition(position);
+}
+
+void
+MainWindow::scorePageChanged(int page)
+{
+    int n = m_scoreWidget->getPageCount();
+    m_scorePageDownButton->setEnabled(page > 0);
+    m_scorePageUpButton->setEnabled(page + 1 < n);
+    m_scorePageLabel->setText(tr("Page %1 of %2").arg(page + 1).arg(n));
+}
+
+void
+MainWindow::scorePageDownButtonClicked()
+{
+    SVDEBUG << "MainWindow::scorePageDownButtonClicked" << endl;
+    int page = m_scoreWidget->getCurrentPage();
+    if (page > 0) {
+        m_scoreWidget->showPage(page - 1);
+    }
+}
+
+void
+MainWindow::scorePageUpButtonClicked()
+{
+    SVDEBUG << "MainWindow::scorePageUpButtonClicked" << endl;
+    int page = m_scoreWidget->getCurrentPage();
+    if (page + 1 < m_scoreWidget->getPageCount()) {
+        m_scoreWidget->showPage(page + 1);
+    }
 }
 
 void

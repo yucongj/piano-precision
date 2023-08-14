@@ -61,6 +61,12 @@ ScoreWidget::getCurrentPage() const
     return m_page;
 }
 
+int
+ScoreWidget::getPageCount() const
+{
+    return m_document->pageCount();
+}
+
 void
 ScoreWidget::loadAScore(QString scoreName)
 {
@@ -77,6 +83,8 @@ ScoreWidget::loadAScore(QString scoreName, QString &errorString)
     SVDEBUG << "ScoreWidget::loadAScore: Score \"" << scoreName
             << "\" requested" << endl;
 
+    m_page = -1;
+    
     string scorePath =
         ScoreFinder::getScoreFile(scoreName.toStdString(), "pdf");
     if (scorePath == "") {
@@ -436,6 +444,7 @@ ScoreWidget::showPage(int page)
 
     m_image = m_document->render(page, scaled);
     m_page = page;
+    emit pageChanged(m_page);
     update();
 }
 
