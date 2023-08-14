@@ -254,7 +254,16 @@ ScoreWidget::rectForPosition(int pos)
             << elt.id << " on page=" << elt.page << " with x="
             << elt.x << ", y=" << elt.y << ", sy=" << elt.sy << endl;
 #endif
-            
+
+    if (elt.page != m_page) {
+#ifdef DEBUG_SCORE_WIDGET
+        SVDEBUG << "ScoreWidget::rectForPosition: Position " << pos
+                << " is not on the current page (page " << elt.page
+                << ", we are on " << m_page << ")" << endl;
+#endif
+        return {};
+    }
+    
     QSize mySize = size();
     QSize imageSize = m_image.size();
 
@@ -303,12 +312,21 @@ ScoreWidget::positionForPoint(QPoint point)
          ++itr) {
 
         const auto &elt = itr->second;
+
+        if (elt.page < m_page) {
+            continue;
+        }
+        if (elt.page > m_page) {
+            break;
+        }
+            
         /*
         SVDEBUG << "comparing point " << point.x() << "," << point.y()
                 << " -> adjusted coords " << x << "," << y
                 << " with x, y, sy " << elt.x << "," << elt.y << ","
                 << elt.sy << endl;
         */        
+        
         if (y < elt.y || y > elt.y + elt.sy || x < elt.x) {
             continue;
         }
