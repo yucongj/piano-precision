@@ -61,6 +61,12 @@ ScoreWidget::getCurrentPage() const
     return m_page;
 }
 
+int
+ScoreWidget::getPageCount() const
+{
+    return m_document->pageCount();
+}
+
 void
 ScoreWidget::loadAScore(QString scoreName)
 {
@@ -77,6 +83,8 @@ ScoreWidget::loadAScore(QString scoreName, QString &errorString)
     SVDEBUG << "ScoreWidget::loadAScore: Score \"" << scoreName
             << "\" requested" << endl;
 
+    m_page = -1;
+    
     string scorePath =
         ScoreFinder::getScoreFile(scoreName.toStdString(), "pdf");
     if (scorePath == "") {
@@ -254,7 +262,16 @@ ScoreWidget::rectForPosition(int pos)
             << elt.id << " on page=" << elt.page << " with x="
             << elt.x << ", y=" << elt.y << ", sy=" << elt.sy << endl;
 #endif
-            
+
+    if (elt.page != m_page) {
+#ifdef DEBUG_SCORE_WIDGET
+        SVDEBUG << "ScoreWidget::rectForPosition: Position " << pos
+                << " is not on the current page (page " << elt.page
+                << ", we are on " << m_page << ")" << endl;
+#endif
+        return {};
+    }
+    
     QSize mySize = size();
     QSize imageSize = m_image.size();
 
@@ -303,12 +320,21 @@ ScoreWidget::positionForPoint(QPoint point)
          ++itr) {
 
         const auto &elt = itr->second;
+
+        if (elt.page < m_page) {
+            continue;
+        }
+        if (elt.page > m_page) {
+            break;
+        }
+            
         /*
         SVDEBUG << "comparing point " << point.x() << "," << point.y()
                 << " -> adjusted coords " << x << "," << y
                 << " with x, y, sy " << elt.x << "," << elt.y << ","
                 << elt.sy << endl;
         */        
+        
         if (y < elt.y || y > elt.y + elt.sy || x < elt.x) {
             continue;
         }
@@ -418,6 +444,7 @@ ScoreWidget::showPage(int page)
 
     m_image = m_document->render(page, scaled);
     m_page = page;
+    emit pageChanged(m_page);
     update();
 }
 

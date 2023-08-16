@@ -55,6 +55,11 @@ public:
     int getCurrentPage() const;
 
     /**
+     * Return the total number of pages, or 0 if no score is loaded.
+     */
+    int getPageCount() const;
+    
+    /**
      * Mode for mouse interaction.
      */
     enum class InteractionMode { None, Navigate, Edit };
@@ -95,6 +100,7 @@ signals:
     void scorePositionHighlighted(int, ScoreWidget::InteractionMode);
     void scorePositionActivated(int, ScoreWidget::InteractionMode);
     void interactionEnded(ScoreWidget::InteractionMode); // e.g. because mouse left widget
+    void pageChanged(int page);
 
 protected:
     void resizeEvent(QResizeEvent *) override;

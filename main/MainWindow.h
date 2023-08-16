@@ -139,6 +139,9 @@ protected slots:
     void scoreInteractionEnded(ScoreWidget::InteractionMode);
     void frameIlluminated(sv_frame_t);
     void highlightFrameInScore(sv_frame_t);
+    void scorePageChanged(int page);
+    void scorePageDownButtonClicked();
+    void scorePageUpButtonClicked();
 
     virtual void playSpeedChanged(int);
     void playSoloToggled() override;
@@ -198,6 +201,9 @@ protected:
     
     QScrollArea             *m_mainScroll;
     ScoreWidget             *m_scoreWidget; // Added Oct 6, 2021
+    QPushButton             *m_scorePageDownButton;
+    QPushButton             *m_scorePageUpButton;
+    QLabel                  *m_scorePageLabel;
 
     bool                     m_mainMenusCreated;
     QMenu                   *m_paneMenu;
