@@ -2,7 +2,7 @@
 project(
   'SV Piano Precision',
   'c', 'cpp',
-  version: '4.5.2',
+  version: '0.2.0',
   license: 'GPL-2.0-or-later',
   default_options: [
     'cpp_std=c++17',
