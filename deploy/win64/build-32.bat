@@ -20,7 +20,7 @@ call .\repoint install
 if %errorlevel% neq 0 exit /b %errorlevel%
 
 if not exist build_win32\build.ninja (
-  meson build_win32 --buildtype release
+  meson setup build_win32 --buildtype release
   if %errorlevel% neq 0 exit /b %errorlevel%
 )
 
