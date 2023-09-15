@@ -294,26 +294,6 @@
                   Source="C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Redist\MSVC\@REDIST_VER@\x64\Microsoft.VC142.CRT\vcruntime140_1.DLL"/>
 	    </Component>
             <Component Win64="yes"
-                Id="Piper32"
-                Guid="F27A00A8-DD03-45B0-A13C-8CD8CC6F7386">
-	      <File
-		  Id="piper32"
-		  Name="piper-vamp-simple-server-32.exe"
-		  Source="build_win32\piper-vamp-simple-server.exe"/>
-	      <File
-                  Id="libgcc32"
-                  Name="libgcc_s_dw2-1.dll"
-                  Source="build_win32\libgcc_s_dw2-1.dll"/>
-	      <File
-                  Id="libstdcplusplus32"
-                  Name="libstdc++-6.dll"
-                  Source="build_win32\libstdc++-6.dll"/>
-	      <File
-                  Id="libwinpthread32"
-                  Name="libwinpthread-1.dll"
-                  Source="build_win32\libwinpthread-1.dll"/>
-	    </Component>
-            <Component Win64="yes"
                 Id="Checker64"
                 Guid="19A400D9-D5B2-4CB5-AF84-7C1DEA11D7B5">
 	      <File
@@ -321,31 +301,10 @@
 		  Name="vamp-plugin-load-checker.exe"
 		  Source="build_win64\vamp-plugin-load-checker.exe"/>
 	    </Component>
-            <Component Win64="yes"
-                Id="Checker32"
-                Guid="4F3FDFEC-23BD-4F2F-9B8F-9C8387FDEC21">
-	      <File
-		  Id="checker32"
-		  Name="vamp-plugin-load-checker-32.exe"
-		  Source="build_win32\vamp-plugin-load-checker.exe"/>
-	    </Component>
 	    
 	  </Directory> <!-- helpers -->
 	</Directory> <!-- sv -->
       </Directory> <!-- pfiles64 -->
-
-      <Directory Id="ProgramFilesFolder" Name="PFiles">
-        <Directory Id="Vamp32Plugins" Name="Vamp Plugins">
-          <Component
-              Id="Vamp32Plugins"
-              Guid="62d23999-63ed-4937-b904-ec8e47a776d1">
-            <File
-                Id="Vamp32README"
-                Name="README.txt"
-                Source="deploy\win64\README-Vamp32.txt"/>
-          </Component>
-        </Directory>
-      </Directory>
 
       <Directory Id="ProgramMenuFolder" Name="Programs">
         <Directory Id="ProgramMenuDir" Name="@NAME@">
@@ -380,10 +339,7 @@
       <ComponentRef Id="Qt5PlatformPlugins"/>
       <ComponentRef Id="Qt5StylePlugins"/>
       <ComponentRef Id="Piper64"/>
-      <ComponentRef Id="Piper32"/>
       <ComponentRef Id="Checker64"/>
-      <ComponentRef Id="Checker32"/>
-      <ComponentRef Id="Vamp32Plugins"/>
       <ComponentRef Id="ProgramMenuDir"/>
     </Feature>
 
@@ -401,7 +357,7 @@
     <Icon Id="winicon.ico" SourceFile="icons\sv-winicon.ico"/>
     <Property Id="ARPPRODUCTICON" Value="winicon.ico" />
 
-    <WixVariable Id="WixUIBannerBmp" Value="deploy\win32\top.bmp"/>
-    <WixVariable Id="WixUIDialogBmp" Value="deploy\win32\main.bmp"/>
+    <WixVariable Id="WixUIBannerBmp" Value="deploy\win64\top.bmp"/>
+    <WixVariable Id="WixUIDialogBmp" Value="deploy\win64\main.bmp"/>
 
   </Product> </Wix>

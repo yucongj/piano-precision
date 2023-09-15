@@ -19,13 +19,6 @@ set NAME=Christopher Cannam
 set ARG=%1
 shift
 
-@echo Rebuilding 32-bit
-
-cd %STARTPWD%
-del /q /s build_win32
-call .\deploy\win64\build-32.bat
-if %errorlevel% neq 0 exit /b %errorlevel%
-
 @echo Rebuilding 64-bit
 
 cd %STARTPWD%
