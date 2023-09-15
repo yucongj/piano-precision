@@ -147,6 +147,10 @@
                 Id="QtSvg"
                 Name="Qt5Svg.dll"
                 Source="build_win64\Qt5Svg.dll"/>
+            <File
+                Id="QtPdf"
+                Name="Qt5Pdf.dll"
+                Source="build_win64\Qt5Svg.dll"/>
           </Component>
 
           <Component Win64="yes"

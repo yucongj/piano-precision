@@ -43,6 +43,7 @@ copy %QTDIR%\bin\Qt5Network.dll .\build_win64
 copy %QTDIR%\bin\Qt5Xml.dll .\build_win64
 copy %QTDIR%\bin\Qt5Svg.dll .\build_win64
 copy %QTDIR%\bin\Qt5Test.dll .\build_win64
+copy %QTDIR%\bin\Qt5Pdf.dll .\build_win64
 copy %QTDIR%\plugins\platforms\qminimal.dll .\build_win64
 copy %QTDIR%\plugins\platforms\qwindows.dll .\build_win64
 copy %QTDIR%\plugins\styles\qwindowsvistastyle.dll .\build_win64
