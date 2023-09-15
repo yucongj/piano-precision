@@ -44,7 +44,7 @@ ScoreFinder::getScoreDirectory()
                 << endl;
         return {};
     }
-    return dir;
+    return dir.string();
 }
 
 vector<string>
@@ -61,7 +61,7 @@ ScoreFinder::getScoreNames()
         return names;
     }
     for (const auto& entry : std::filesystem::directory_iterator(scoreDir)) {
-        string folderName = string(entry.path().filename());
+        string folderName = entry.path().filename().string();
         if (folderName[0] == '.') continue;
         names.push_back(folderName);
     }
@@ -83,7 +83,7 @@ ScoreFinder::scoreExists(string scoreName)
         return false;
     }
     for (const auto& entry : std::filesystem::directory_iterator(scoreDir)) {
-        string folderName = string(entry.path().filename());
+        string folderName = entry.path().filename().string();
         if (folderName[0] == '.') continue;
         if (folderName == scoreName) return true;
     }
@@ -111,7 +111,7 @@ ScoreFinder::getScoreFile(string scoreName, string extension)
                 << "\" does not exist" << endl;
         return {};
     } else {
-        return scorePath;
+        return scorePath.string();
     }
 }
 
@@ -140,5 +140,5 @@ ScoreFinder::getRecordingDirectory(string scoreName)
                 << endl;
         return {};
     }
-    return dir;
+    return dir.string();
 }
