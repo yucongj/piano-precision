@@ -9,7 +9,6 @@
 @if "%YN%" neq "y" exit /b 3
 
 @echo Proceeding
-call .\repoint install
 call .\deploy\win64\build-and-package.bat sign
 if %errorlevel% neq 0 exit /b %errorlevel%
 
