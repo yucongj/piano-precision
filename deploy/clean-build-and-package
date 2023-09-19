@@ -69,7 +69,7 @@ if [ -d /Applications ]; then
     deploy/macos/deploy-and-package.sh build-x86_64
 #    deploy/macos/deploy-and-package.sh build-x86_64 build-arm64
 
-    mv "$dmg" packages/
+    mv "$full_dmg" packages/
 
 else
 
