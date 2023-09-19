@@ -10,19 +10,13 @@
 # spctl -a -v "/Applications/Application.app"
 
 user="appstore@particularprograms.co.uk"
-bundleid="org.sonicvisualiser.SonicVisualiser"
 
-set -e
+set -eu
 
-dmg="$1"
+. deploy/metadata.sh
 
-if [ ! -f "$dmg" ] || [ -n "$2" ]; then
-    echo "Usage: $0 <dmg>"
-    echo "  e.g. $0 MyApplication-1.0.dmg"
-    exit 2
-fi
-
-set -u
+bundleid="$full_ident"
+dmg="$full_dmg"
 
 echo
 echo "Uploading for notarization..."
