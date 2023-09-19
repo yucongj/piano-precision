@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eu
+set -e
 
 # Execute this from the top-level directory of the project (the one
 # that contains the .app bundle).  Supply the name of the application
@@ -43,6 +43,8 @@ if [ -z "$builddir" ]; then
 elif [ -n "$2" ]; then
     usage
 fi
+
+set -u
 
 if [ ! -f "$builddir/$full_name" ]; then
     echo "File $full_name not found in builddir $builddir"
