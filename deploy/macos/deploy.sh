@@ -68,12 +68,12 @@ cp "icons/sv-macicon.icns" "$source/Contents/Resources"
 echo
 echo "Copying in frameworks and plugins from Qt installation directory."
 
-deploy/macos/copy-qt.sh "$app" || exit 2
+deploy/macos/copy-qt.sh "$full_app" || exit 2
 
 echo
 echo "Fixing up paths."
 
-deploy/macos/paths.sh "$app"
+deploy/macos/paths.sh "$full_app"
 
 echo
 echo "Copying in qt.conf to set local-only plugin paths."
@@ -102,7 +102,7 @@ echo "Writing version $version in to bundle."
 echo "(This should be a three-part number: major.minor.point)"
 
 cat deploy/macos/Info.plist | \
-    perl -p -e "s/@VERSION@/$version/g; s/@NAME@/$full_name/g; s/@IDENT@/$full_ident/g" deploy/macos/Info.plist \
+    perl -p -e "s/[@]VERSION[@]/$version/g; s/[@]NAME[@]/$full_name/g; s/[@]IDENT[@]/$full_ident/g" deploy/macos/Info.plist \
     > "$source"/Contents/Info.plist
 
 echo "Done: check $source/Contents/Info.plist for sanity please"
