@@ -85,7 +85,7 @@ for builddir in $builddirs; do
     echo
     echo "(Re-)running deploy script in $builddir..."
 
-    QTDIR="$qtdir" deploy/macos/deploy.sh "$full_name" "$builddir" || exit 1
+    QTDIR="$qtdir" deploy/macos/deploy.sh "$builddir" || exit 1
 
     if [ ! -f "$target/Contents/Macos/$full_name" ]; then
 	echo "App does not yet exist in target $target, copying verbatim..."
