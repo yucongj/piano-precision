@@ -14,7 +14,9 @@ echo
 
 if [ -d /Applications ]; then
 
-    archs="x86_64 arm64"
+    archs="x86_64"
+#    archs="x86_64 arm64"
+    
     qtdir_x86_64="/Users/cannam/Qt/5.15.2/clang_64"
     qtdir_arm64="/Users/cannam/Qt/5.15.2-arm64"
 
@@ -64,7 +66,8 @@ if [ -d /Applications ]; then
     rm -rf "$full_versioned"
     rm -f "$full_dmg"
 
-    deploy/macos/deploy-and-package.sh build-x86_64 build-arm64
+    deploy/macos/deploy-and-package.sh build-x86_64
+#    deploy/macos/deploy-and-package.sh build-x86_64 build-arm64
 
     mv "$dmg" packages/
 
