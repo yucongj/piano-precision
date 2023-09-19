@@ -35,7 +35,7 @@ set -u
 echo "Version: $version"
 
 source="$full_name.app"
-volume="$full_name"-"$version"
+volume="$full_versioned"
 target="$volume"/"$full_name".app
 dmg="$volume".dmg
 
