@@ -2081,26 +2081,28 @@ MainWindow::setupHelpMenu()
 
     QString name = QApplication::applicationName();
 
-    QAction *action = new QAction(il.load("help"),
-                                  tr("&Help Reference"), this); 
+    QAction *action = nullptr;
+
+/*!!!    
+    action = new QAction(il.load("help"), tr("&Help Reference"), this); 
     action->setShortcut(tr("F1"));
     action->setStatusTip(tr("Open the %1 reference manual").arg(name)); 
     connect(action, SIGNAL(triggered()), this, SLOT(help()));
     m_keyReference->registerShortcut(action);
     menu->addAction(action);
-
+*/
     action = new QAction(tr("&Key and Mouse Reference"), this);
     action->setShortcut(tr("F2"));
     action->setStatusTip(tr("Open a window showing the keystrokes you can use in %1").arg(name));
     connect(action, SIGNAL(triggered()), this, SLOT(keyReference()));
     m_keyReference->registerShortcut(action);
     menu->addAction(action);
-    
+/*!!!
     action = new QAction(tr("What's &New In This Release?"), this); 
     action->setStatusTip(tr("List the changes in this release (and every previous release) of %1").arg(name)); 
     connect(action, SIGNAL(triggered()), this, SLOT(whatsNew()));
     menu->addAction(action);
-    
+*/    
     action = new QAction(tr("&About %1").arg(name), this); 
     action->setStatusTip(tr("Show information about %1").arg(name)); 
     connect(action, SIGNAL(triggered()), this, SLOT(about()));
@@ -5867,8 +5869,8 @@ MainWindow::about()
 {
     QString aboutText;
 
-    aboutText += tr("<h3>About Sonic Visualiser</h3>");
-    aboutText += tr("<p>Sonic Visualiser is a program for viewing and exploring audio data for semantic music analysis and annotation.<br><a href=\"http://www.sonicvisualiser.org/\">http://www.sonicvisualiser.org/</a></p>");
+    aboutText += tr("<h3>About Piano Precision</h3>");
+    aboutText += tr("<p>Piano Precision is a program that assists analysis of recorded piano performances alongside their scores.<br><a href=\"https://github.com/yucongj/piano-precision/\">https://github.com/yucongj/piano-precision/</a></p><p>Piano Precision is based on Sonic Visualiser:<br><a href=\"https://www.sonicvisualiser.org/\">https://www.sonicvisualiser.org/</a></p>");
     aboutText += QString("<p><small>%1</small></p>").arg(getReleaseText());
 
     if (m_oscQueue && m_oscQueue->isOK()) {
@@ -5977,7 +5979,7 @@ MainWindow::about()
     aboutText += "</small></p>";
 
     aboutText += 
-        "<p><small>Sonic Visualiser is Copyright &copy; 2005&ndash;2007 Chris Cannam; Copyright &copy; 2006&ndash;2020 Queen Mary, University of London; Copyright &copy; 2020-2023 Particular Programs Ltd.</small></p>";
+        "<p><small>Piano Precision is Copyright &copy; 2005&ndash;2007 Chris Cannam; Copyright &copy; 2006&ndash;2020 Queen Mary, University of London; Copyright &copy; 2020-2023 Particular Programs Ltd; Copyright &copy; 2021-2023 Yucong Jiang.</small></p>";
 
     aboutText +=
         "<p><small>This program is free software; you can redistribute it and/or "

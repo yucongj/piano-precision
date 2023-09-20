@@ -257,8 +257,7 @@ main(int argc, char **argv)
 
     QApplication::setOrganizationName("sonic-visualiser");
     QApplication::setOrganizationDomain("sonicvisualiser.org");
-    // QApplication::setApplicationName(QApplication::tr("Sonic Visualiser"));
-    QApplication::setApplicationName(QApplication::tr("SV Piano Precision")); // Oct 5, 2021: Yucong Jiang
+    QApplication::setApplicationName(QApplication::tr("Piano Precision")); // Oct 5, 2021: Yucong Jiang
     QApplication::setApplicationVersion(SV_VERSION);
 
 #if (QT_VERSION >= 0x050700)
@@ -378,7 +377,7 @@ main(int argc, char **argv)
     }
     settings.endGroup();
 
-    //!!! For SV Piano Precision, until it has its own splash image
+    //!!! For Piano Precision, until it has its own splash image
     showSplash = false;
     
     if (showSplash) {

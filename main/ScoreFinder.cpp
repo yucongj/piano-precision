@@ -27,7 +27,7 @@ ScoreFinder::getScoreDirectory()
         SVDEBUG << "ScoreFinder::getScoreDirectory: HOME environment variable is not set, can't proceed!" << endl;
         return {};
     }
-    std::filesystem::path dir = string(home) + "/Documents/SV-PianoPrecision/Scores";
+    std::filesystem::path dir = string(home) + "/Documents/PianoPrecision/Scores";
     if (!std::filesystem::exists(dir)) {
         SVDEBUG << "ScoreFinder::getScoreDirectory: Score directory "
                 << dir << " does not exist, attempting to create it"
@@ -123,7 +123,7 @@ ScoreFinder::getRecordingDirectory(string scoreName)
         SVDEBUG << "ScoreFinder::getRecordingDirectory: HOME environment variable is not set, can't proceed!" << endl;
         return {};
     }
-    std::filesystem::path dir = string(home) + "/Documents/SV-PianoPrecision/Recordings/" + scoreName;
+    std::filesystem::path dir = string(home) + "/Documents/PianoPrecision/Recordings/" + scoreName;
     if (!std::filesystem::exists(dir)) {
         SVDEBUG << "ScoreFinder::getRecordingDirectory: Recording directory "
                 << dir << " does not exist, attempting to create it"

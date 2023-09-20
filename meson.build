@@ -1,6 +1,6 @@
 
 project(
-  'SV Piano Precision',
+  'Piano Precision',
   'c', 'cpp',
   version: '0.2.0',
   license: 'GPL-2.0-or-later',
@@ -1160,9 +1160,9 @@ else
 endif
 
 if system == 'linux'
-  sv_main_name = 'sv-piano-precision'
+  sv_main_name = 'piano-precision'
 else
-  sv_main_name = 'SV Piano Precision'
+  sv_main_name = 'Piano Precision'
 endif # system
 
 install_data(
