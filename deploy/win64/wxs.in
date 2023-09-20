@@ -97,29 +97,6 @@
           </Component>
           
           <Component Win64="yes"
-	      Id="SVFileAssociation"
-	      Guid="F07C5CC1-0209-4C1A-8D52-C40B50A2B964">
-            
-            <CreateFolder/>
-
-            <ProgId 
-                Id='@CONDENSED@.svfile' 
-                Description='@NAME@ project file'
-                Icon="SVExecutable">
-              <Extension 
-                  Id='sv' 
-                  ContentType='application/sonicvisualiser'>
-                <Verb 
-                    Id='open' 
-                    Command='Open' 
-                    TargetFile='SVExecutable' 
-                    Argument='"%1"' />
-              </Extension>
-            </ProgId>
-            
-          </Component>
-          
-          <Component Win64="yes"
               Id="Qt5"
               Guid="5495ED5E-939A-4BE8-9000-D55F2A7A2E90">
             <File
@@ -305,7 +282,14 @@
 		  Name="vamp-plugin-load-checker.exe"
 		  Source="build_win64\vamp-plugin-load-checker.exe"/>
 	    </Component>
-	    
+            <Component Win64="yes"
+                Id="Aligner64"
+                Guid="27770298-760D-4D7C-9C73-62F6BE3D0FE5">
+	      <File
+		  Id="aligner64"
+		  Name="score-aligner.dll"
+		  Source="build_win64\score-aligner.dll"/>
+	    </Component>
 	  </Directory> <!-- helpers -->
 	</Directory> <!-- sv -->
       </Directory> <!-- pfiles64 -->
@@ -344,6 +328,7 @@
       <ComponentRef Id="Qt5StylePlugins"/>
       <ComponentRef Id="Piper64"/>
       <ComponentRef Id="Checker64"/>
+      <ComponentRef Id="Aligner64"/>
       <ComponentRef Id="ProgramMenuDir"/>
     </Feature>
 
