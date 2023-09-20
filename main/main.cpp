@@ -21,6 +21,7 @@
 #include "base/TempDirectory.h"
 #include "base/PropertyContainer.h"
 #include "base/Preferences.h"
+#include "base/HelperExecPath.h"
 #include "data/fileio/FileSource.h"
 #include "widgets/TipDialog.h"
 #include "widgets/InteractiveFileFinder.h"
@@ -408,6 +409,20 @@ main(int argc, char **argv)
     settings.setValue("rdf-indices", list);
     settings.endGroup();
 
+    PluginPathSetter::TypeKey vampPluginTypeKey
+        { KnownPlugins::VampPlugin, KnownPlugins::FormatNative };
+
+    PluginPathSetter::Paths bundlePaths
+        { { vampPluginTypeKey,
+            { HelperExecPath(HelperExecPath::NativeArchitectureOnly)
+              .getHelperDirPaths(),
+              QString("VAMP_PATH"),
+              true              // allow environment variable to override
+            }
+            }
+        };
+
+    PluginPathSetter::savePathSettings(bundlePaths);
     PluginPathSetter::initialiseEnvironmentVariables();
     
     QIcon icon;
