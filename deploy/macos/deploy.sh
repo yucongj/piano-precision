@@ -94,6 +94,10 @@ echo "Copying in piper convert tool."
 cp $builddir/piper-convert "$source"/Contents/MacOS/
 
 echo
+echo "Copying in aligner plugin."
+cp $builddir/score-aligner.dylib "$source"/Contents/Resources/
+
+echo
 echo "Copying in lproj directories containing InfoPlist.strings translation files."
 cp -r i18n/*.lproj "$source"/Contents/Resources/
 
