@@ -75,8 +75,10 @@ svcore_moc_args = []
 feature_additional_libs = []
 feature_include_dirs = []
 server_dependencies = []
+vamp_symbol_args = []
 
 dl_dep = meson.get_compiler('c').find_library('dl', required: false)
+vampsdk_dep = dependency('vamp-sdk', version: '>= 2.10', required: false)
 vamphostsdk_dep = dependency('vamp-hostsdk', version: '>= 2.10', required: false)
 
 if system == 'linux'
@@ -176,6 +178,10 @@ if system == 'linux'
 
   svcore_moc_args = [
     '-DHAVE_MAD'
+  ]
+  
+  vamp_symbol_args += [
+    '-Wl,--version-script=' + meson.current_source_dir() / 'piano-precision-aligner/vamp-plugin.map'
   ]
   
 elif system == 'darwin'
@@ -317,6 +323,10 @@ elif system == 'darwin'
     ]
   endif
   
+  vamp_symbol_args += [
+    '-exported_symbols_list', meson.current_source_dir() / 'piano-precision-aligner/vamp-plugin.list'
+  ]
+  
 elif system == 'windows'
 
   if architecture == 'x86'
@@ -441,6 +451,10 @@ elif system == 'windows'
     '-DHAVE_MAD',
     '-DQ_OS_WIN',
   ]
+  
+  vamp_symbol_args += [
+    '-EXPORT:vampGetPluginDescriptor'
+  ]
 
 else
     error('This operating system ("' + system + '") is not supported by this build file')
@@ -543,11 +557,17 @@ bq_files = [
   'bqaudiostream/src/AudioStreamExceptions.cpp',
 ]
 
-if vamphostsdk_dep.found()
+if vampsdk_dep.found() and vamphostsdk_dep.found()
   config_summary += { 'Vamp SDK': 'system' }
+  vampsdk_files = []
   vamphostsdk_files = []
 else
   config_summary += { 'Vamp SDK': 'bundled' }
+  vampsdk_files = [
+    'vamp-plugin-sdk/src/vamp-sdk/PluginAdapter.cpp',
+    'vamp-plugin-sdk/src/vamp-sdk/RealTime.cpp',
+    'vamp-plugin-sdk/src/vamp-sdk/FFT.cpp',
+  ]
   vamphostsdk_files = [
     'vamp-plugin-sdk/src/vamp-hostsdk/PluginBufferingAdapter.cpp',
     'vamp-plugin-sdk/src/vamp-hostsdk/PluginChannelAdapter.cpp',
@@ -1072,6 +1092,36 @@ checker_lib_files = [
   'checker/src/knownplugincandidates.cpp',
   'checker/src/knownplugins.cpp',
 ]
+
+ppa_files = [
+  'piano-precision-aligner/AudioToScoreAligner.cpp',
+  'piano-precision-aligner/PianoAligner.cpp',
+  'piano-precision-aligner/Score.cpp',
+  'piano-precision-aligner/SimpleHMM.cpp',
+  'piano-precision-aligner/Templates.cpp',
+  'piano-precision-aligner/plugins.cpp',
+]
+
+ppa_plugin = shared_library(
+  'score-aligner',
+  ppa_files,
+  vampsdk_files,
+  include_directories: [
+    'vamp-plugin-sdk',
+  ],
+  cpp_args: [
+    general_defines,
+  ],
+  dependencies: [
+    vampsdk_dep,
+  ],
+  link_args: [
+    general_link_args,
+    vamp_symbol_args,
+  ],
+  name_prefix: '',
+  install: true,
+)  
 
 qt_resource_files = qt.preprocess(
   qresources: [

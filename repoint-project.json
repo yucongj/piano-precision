@@ -90,7 +90,13 @@
             "vcs": "hg",
             "service": "sourcehut",
             "owner": "breakfastquay"
-        }
+        },
+	"piano-precision-aligner": {
+            "vcs": "git",
+            "service": "github",
+            "owner": "yucongj",
+	    "branch": "main"
+	}
     }
 }
 
