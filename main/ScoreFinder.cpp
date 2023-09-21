@@ -12,22 +12,29 @@
 
 #include "ScoreFinder.h"
 #include "base/Debug.h"
+#include "system/System.h"
 
 #include <filesystem>
 #include <vector>
+#include <set>
+
+#include <QCoreApplication>
+#include <QFileInfo>
+
+#define USE_PIANO_ALIGNER_CODE_FOR_SCORE_PATH 1
 
 using std::string;
 using std::vector;
 
 string
-ScoreFinder::getScoreDirectory()
+ScoreFinder::getUserScoreDirectory()
 {
-    const char *home = getenv("HOME");
-    if (!home) {
-        SVDEBUG << "ScoreFinder::getScoreDirectory: HOME environment variable is not set, can't proceed!" << endl;
+    string home;
+    if (!getEnvUtf8("HOME", home)) {
+        SVDEBUG << "ScoreFinder::getUserScoreDirectory: HOME environment variable is not set, can't proceed!" << endl;
         return {};
     }
-    std::filesystem::path dir = string(home) + "/Documents/PianoPrecision/Scores";
+    std::filesystem::path dir = home + "/Documents/PianoPrecision/Scores";
     if (!std::filesystem::exists(dir)) {
         SVDEBUG << "ScoreFinder::getScoreDirectory: Score directory "
                 << dir << " does not exist, attempting to create it"
@@ -47,72 +54,132 @@ ScoreFinder::getScoreDirectory()
     return dir.string();
 }
 
+string
+ScoreFinder::getBundledScoreDirectory()
+{
+    // We look in:
+    // 
+    // Mac: <mydir>/../Resources/Scores
+    //
+    // Linux: <mydir>/../share/application-name/Scores
+    //
+    // Other: <mydir>/Scores
+
+    QString appName = QCoreApplication::applicationName();
+    QString myDir = QCoreApplication::applicationDirPath();
+    QString binaryName = QFileInfo(QCoreApplication::arguments().at(0))
+        .fileName();
+
+    QString qdir;
+    
+#if defined(Q_OS_MAC)
+    qdir = myDir + "/../Resources/Scores";
+#elif defined(Q_OS_LINUX)
+    if (binaryName != "") {
+        qdir = myDir + "/../share/" + binaryName + "/Scores";
+    } else {
+        qdir = myDir + "/../share/" + appName + "/Scores";
+    }
+#else
+    qdir = myDir + "/Scores";
+#endif
+    
+    string sdir(qdir.toUtf8().data());
+    std::filesystem::path dir(sdir);
+
+    if (std::filesystem::exists(dir) && std::filesystem::is_directory(dir)) {
+        return sdir;
+    } else {
+        return "";
+    }
+}
+
 vector<string>
 ScoreFinder::getScoreNames()
 {
-    auto scoreDir = getScoreDirectory();
+    vector<string> scoreDirs
+        { getUserScoreDirectory(), getBundledScoreDirectory() };
     vector<string> names;
-    if (scoreDir == "") {
-        return names;
-    }
-    if (!std::filesystem::exists(scoreDir)) {
-        SVDEBUG << "ScoreFinder::getScoreNames: Score directory \""
-                << scoreDir << "\" does not exist" << endl;
-        return names;
-    }
-    for (const auto& entry : std::filesystem::directory_iterator(scoreDir)) {
-        string folderName = entry.path().filename().string();
-        if (folderName[0] == '.') continue;
-        names.push_back(folderName);
-    }
-    SVDEBUG << "ScoreFinder::getScoreNames: Found \"" << names.size()
-            << "\" potential scores in " << scoreDir << endl;
-    return names;
-}
+    
+    for (auto scoreDir : scoreDirs) {
+        
+        if (scoreDir == "") continue;
 
-bool
-ScoreFinder::scoreExists(string scoreName)
-{
-    auto scoreDir = getScoreDirectory();
-    if (scoreDir == "") {
-        return false;
+        for (const auto& entry : std::filesystem::directory_iterator(scoreDir)) {
+
+            string name = entry.path().filename().string();
+            if (name.size() == 0 || name[0] == '.') continue;
+
+            std::filesystem::path dir(entry.path());
+            if (std::filesystem::exists(dir) &&
+                std::filesystem::is_directory(dir)) {
+                names.push_back(name);
+            }
+        }
+
+        SVDEBUG << "ScoreFinder::getScoreNames: Found \"" << names.size()
+                << "\" potential scores in " << scoreDir << endl;
     }
-    if (!std::filesystem::exists(scoreDir)) {
-        SVDEBUG << "ScoreFinder::scoreExists: Score directory \""
-                << scoreDir << "\" does not exist" << endl;
-        return false;
-    }
-    for (const auto& entry : std::filesystem::directory_iterator(scoreDir)) {
-        string folderName = entry.path().filename().string();
-        if (folderName[0] == '.') continue;
-        if (folderName == scoreName) return true;
-    }
-    return false;
+
+    return names;
 }
 
 string
 ScoreFinder::getScoreFile(string scoreName, string extension)
 {
-    string scoreDir = getScoreDirectory();
-    if (scoreDir == "") {
-        return {};
-    }
-    if (!std::filesystem::exists(scoreDir)) {
-        SVDEBUG << "ScoreFinder::getScoreFile: Score directory \""
-                << scoreDir << "\" does not exist" << endl;
-        return {};
-    }
+    vector<string> scoreDirs
+        { getUserScoreDirectory(), getBundledScoreDirectory() };
+    vector<string> names;
     
-    std::filesystem::path scorePath =
-        scoreDir + "/" + scoreName + "/" + scoreName + "." + extension;
+    for (auto scoreDir : scoreDirs) {
+        
+        if (scoreDir == "") continue;
 
-    if (!std::filesystem::exists(scorePath)) {
-        SVDEBUG << "ScoreFinder::getScoreFile: Score file \"" << scorePath
-                << "\" does not exist" << endl;
-        return {};
-    } else {
-        return scorePath.string();
+        // Inefficient
+        
+        for (const auto& entry : std::filesystem::directory_iterator(scoreDir)) {
+
+            string name = entry.path().filename().string();
+            if (name != scoreName) continue;
+
+            std::filesystem::path filePath =
+                string(entry.path()) + "/" + scoreName + "." + extension;
+
+            if (!std::filesystem::exists(filePath)) {
+                SVDEBUG << "ScoreFinder::getScoreFile: Score file \""
+                        << filePath << "\" does not exist" << endl;
+                return {};
+            } else {
+                return filePath.string();
+            }
+        }
     }
+
+    SVDEBUG << "ScoreFinder::getScoreFile: Score \""
+            << scoreName << "\" not found" << endl;
+    return {};
+}
+
+void
+ScoreFinder::initialiseAlignerEnvironmentVariables()
+{
+    string userDir = getUserScoreDirectory();
+    string bundledDir = getBundledScoreDirectory();
+
+    string separator =
+#ifdef Q_OS_WIN
+        ";"
+#else
+        ":"
+#endif
+        ;
+
+    string envPath = userDir + separator + bundledDir;
+
+    putEnvUtf8("PIANO_ALIGNER_SCORE_PATH", envPath);
+
+    SVDEBUG << "ScoreFinder::initialiseAlignerEnvironmentVariables: set "
+            << "PIANO_ALIGNER_SCORE_PATH to " << envPath << endl;
 }
 
 string

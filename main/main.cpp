@@ -15,6 +15,7 @@
 
 #include "MainWindow.h"
 #include "SVSplash.h"
+#include "ScoreFinder.h"
 
 #include "system/System.h"
 #include "system/Init.h"
@@ -423,6 +424,8 @@ main(int argc, char **argv)
 
     PluginPathSetter::savePathSettings(bundlePaths);
     PluginPathSetter::initialiseEnvironmentVariables();
+
+    ScoreFinder::initialiseAlignerEnvironmentVariables();
     
     QIcon icon;
     int sizes[] = { 16, 22, 24, 32, 48, 64, 128 };

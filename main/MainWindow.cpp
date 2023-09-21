@@ -2204,10 +2204,18 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     for (auto n: byName) items << QString::fromStdString(n);
 
     if (items.empty()) {
-        QMessageBox::warning(this,
-                             tr("No score files found"),
-                             tr("No score files were found in the scores directory \"%1\"").arg(QString::fromStdString(ScoreFinder::getScoreDirectory())),
+        auto bundled = ScoreFinder::getBundledScoreDirectory();
+        if (bundled != "") {
+            QMessageBox::warning(this,
+                                 tr("No score files found"),
+                                 tr("No score files were found in the installed application bundle or in the scores directory \"%1\"").arg(QString::fromStdString(ScoreFinder::getUserScoreDirectory())),
                              QMessageBox::Ok);
+        } else {
+            QMessageBox::warning(this,
+                                 tr("No score files found"),
+                                 tr("No score files were found in the scores directory \"%1\"").arg(QString::fromStdString(ScoreFinder::getUserScoreDirectory())),
+                                 QMessageBox::Ok);
+        }
         return;
     }
 

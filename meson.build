@@ -1099,6 +1099,7 @@ ppa_files = [
   'piano-precision-aligner/Score.cpp',
   'piano-precision-aligner/SimpleHMM.cpp',
   'piano-precision-aligner/Templates.cpp',
+  'piano-precision-aligner/Paths.cpp',
   'piano-precision-aligner/plugins.cpp',
 ]
 

@@ -19,32 +19,35 @@
 class ScoreFinder
 {
 public:
-    /** Return the full path of the directory in which all score
-     *  directories are found. If the directory does not exist yet,
-     *  create it before returning its path. If creation fails or the
-     *  path cannot be determined for any reason, return the empty
+    /** Return the full path of the directory in which user-installed
+     *  score directories are found. If the directory does not exist
+     *  yet, create it before returning its path. If creation fails or
+     *  the path cannot be determined for any reason, return the empty
      *  string.
      */
-    static std::string getScoreDirectory();
+    static std::string getUserScoreDirectory();
 
-    /** Scan the score directory (see getScoreDirectory()) and return
-     *  the names of all scores found there. The names are returned in
-     *  no particular order.
+    /** Return the full path of the directory in which app-bundled
+     *  score directories are found. If the directory does not exist
+     *  or the path cannot be determined for any reason, return the
+     *  empty string.
+     */
+    static std::string getBundledScoreDirectory();
+
+    /** Scan the score directories (getUserScoreDirectory() and
+     *  getBundledScoreDirectory()) and return the names of all scores
+     *  found there. The names are returned in no particular order and
+     *  may include duplicates if a score appears in both user and
+     *  bundled locations.
      */
     static std::vector<std::string> getScoreNames();
-
-    /** Look in the score directory (see getScoreDirectory()) for a
-     *  score of the given name, and return true if it exists, false
-     *  otherwise.
-     */
-    static bool scoreExists(std::string scoreName);
     
-    /** Look in the score directory (see getScoreDirectory()) for a
-     *  score of the given name, and return the score file of the
-     *  given extension for that score, or an empty string if it is
-     *  not found.
+    /** Look in the score directories (getUserScoreDirectory() and
+     *  getBundledScoreDirectory()) for a score of the given name, and
+     *  return the score file of the given extension for that score,
+     *  or an empty string if it is not found.
      *
-     *  For example, if the score directory is "/path/to/scores", then
+     *  For example, if a score directory is "/path/to/scores", then
      *  getScoreFile("BothHandsC", "spos") returns
      *  "/path/to/scores/BothHandsC/BothHandsC.spos" if that file
      *  exists, or "" otherwise.
@@ -53,8 +56,17 @@ public:
      *  score exists, if it is incomplete and lacks a file of the
      *  required extension. To determine whether the score exists at
      *  all or is entirely absent, use scoreExists().
+     *
+     *  Note that if a score of a given name appears in both user and
+     *  bundled directories, the user directory takes priority.
      */
     static std::string getScoreFile(std::string scoreName, std::string extension);
+
+    /** Set up the appropriate environment variables to cause the
+     *  aligner plugin to look for scores in the user and bundled
+     *  paths.
+     */
+    static void initialiseAlignerEnvironmentVariables();
 
     /** Return the full path of the directory in which recordings of
      *  the given score should be saved. If the directory does not
