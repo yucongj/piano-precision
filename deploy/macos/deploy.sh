@@ -61,6 +61,11 @@ mkdir -p "$source/Contents/Resources"
 cp -a "$builddir/$full_name" "$source/Contents/MacOS"
 
 echo
+echo "Copying in scores and recordings, if found."
+
+deploy/macos/copy-scores.sh "$full_name"
+
+echo
 echo "Copying in icon."
 
 cp "icons/sv-macicon.icns" "$source/Contents/Resources"
@@ -68,12 +73,12 @@ cp "icons/sv-macicon.icns" "$source/Contents/Resources"
 echo
 echo "Copying in frameworks and plugins from Qt installation directory."
 
-deploy/macos/copy-qt.sh "$full_app" || exit 2
+deploy/macos/copy-qt.sh "$full_name" || exit 2
 
 echo
 echo "Fixing up paths."
 
-deploy/macos/paths.sh "$full_app"
+deploy/macos/paths.sh "$full_name"
 
 echo
 echo "Copying in qt.conf to set local-only plugin paths."
