@@ -143,7 +143,7 @@ ScoreFinder::getScoreFile(string scoreName, string extension)
             if (name != scoreName) continue;
 
             std::filesystem::path filePath =
-                string(entry.path()) + "/" + scoreName + "." + extension;
+                entry.path().string() + "/" + scoreName + "." + extension;
 
             if (!std::filesystem::exists(filePath)) {
                 SVDEBUG << "ScoreFinder::getScoreFile: Score file \""
