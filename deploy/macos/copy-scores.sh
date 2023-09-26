@@ -29,6 +29,16 @@ if [ -d "$datadir" ]; then
     echo "Copying recordings from $rsrc to $rdir..."
     cp -r "$rsrc"/* "$rdir"/
     echo
+    echo "Removing .wav files where .opus found..."
+    for wav in "$rdir"/*/*.wav ; do
+	opus=${wav%wav}opus
+	if [ ! -f "$opus" ]; then
+	    echo "WARNING: No corresponding .opus for .wav file $wav, ignoring"
+	else
+	    rm "$wav"
+	fi
+    done
+    echo
     echo "Done"
 else
     echo
