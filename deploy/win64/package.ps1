@@ -32,7 +32,7 @@ $name = "Christopher Cannam"
 
 if ($sign) {
    "Signing executables"
-   &"$kitdir\signtool" sign /v /n "$name" /t http://time.certum.pl /fd sha1 /a build*\*.exe
+   &"$kitdir\signtool" sign /v /n "$name" /t http://time.certum.pl /fd sha1 /a build_win64\*.exe
 }
 
 "Packaging"

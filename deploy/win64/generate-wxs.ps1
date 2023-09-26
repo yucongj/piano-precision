@@ -16,7 +16,7 @@ if (!$redists) {
 $redist_ver = $redists[-1]
 
 $wxs = "deploy\win64\$full_kebab.wxs"
-$in = "wxs.in"
+$in = "deploy\win64\wxs.in"
 
 $redist_dir="$redist_parent_dir\$redist_ver\x64\Microsoft.VC142.CRT"
 
