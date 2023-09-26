@@ -333,7 +333,6 @@
 	Level="1">
       <ComponentRef Id="VampPlugins"/>
       <ComponentRef Id="MainExecutable"/>
-      <ComponentRef Id="SVFileAssociation"/>
       <ComponentRef Id="Sndfile"/>
       <ComponentRef Id="OpenSSL"/>
       <ComponentRef Id="OSWin10"/>

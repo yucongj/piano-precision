@@ -37,23 +37,23 @@ if ($sign) {
 
 "Packaging"
 
-if (Test-Path -Path $full_kebab.msi) {
+if (Test-Path -Path "$full_kebab.msi") {
     rm $full_kebab.msi
 }
 
-&"$wixdir\candle" -v ..\deploy\win64\$full_kebab.wxs
-&"$wixdir\light" -b . -ext WixUIExtension -ext WixUtilExtension -v $full_kebab.wixobj
-rm $full_kebab.wixobj
-rm $full_kebab.wixpdb
+&"$wixdir\candle" -v deploy\win64\"$full_kebab.wxs"
+&"$wixdir\light" -b . -ext WixUIExtension -ext WixUtilExtension -v "$full_kebab.wixobj"
+rm "$full_kebab.wixobj"
+rm "$full_kebab.wixpdb"
 
 if ($sign) {
     "Signing packages"
     &"$kitdir\signtool" sign /v /n "$name" /t http://time.certum.pl /fd sha1 /a *.msi
-    &"$kitdir\signtool" verify /pa $full_kebab.msi
+    &"$kitdir\signtool" verify /pa "$full_kebab.msi"
 }
 
 mkdir -Force packages
-mv -Force full_kebab.msi "packages\$full_versioned 64bit.msi"
+mv -Force "$full_kebab.msi" "packages\$full_versioned 64bit.msi"
 
 "Done"
 
