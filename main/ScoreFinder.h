@@ -74,7 +74,14 @@ public:
      *  fails or the path cannot be determined for any reason, return
      *  the empty string.
      */
-    static std::string getRecordingDirectory(std::string scoreName);
+    static std::string getUserRecordingDirectory(std::string scoreName);
+
+    /** Return the full path of the directory in which app-bundled
+     *  recordings of the given score may be found. If the directory
+     *  does not exist or the path cannot be determined for any
+     *  reason, return the empty string.
+     */
+    static std::string getBundledRecordingDirectory(std::string scoreName);
 };
 
 

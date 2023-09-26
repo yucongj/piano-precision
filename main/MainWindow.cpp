@@ -2261,7 +2261,7 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     }
 
     auto recordingDirectory =
-        ScoreFinder::getRecordingDirectory(scoreName.toStdString());
+        ScoreFinder::getUserRecordingDirectory(scoreName.toStdString());
     if (recordingDirectory == "") {
         QMessageBox::warning(this,
                              tr("Unable to create recording directory"),
@@ -2270,6 +2270,14 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     } else {
         RecordDirectory::setRecordContainerDirectory
             (QString::fromStdString(recordingDirectory));
+    }
+
+    auto bundledRecordingDirectory =
+        ScoreFinder::getBundledRecordingDirectory(scoreName.toStdString());
+    if (bundledRecordingDirectory != "") {
+        // OK it's not actually a file, but this prompts the find-file
+        // dialog to look here for recordings
+        m_audioFile = QString::fromStdString(bundledRecordingDirectory);
     }
 }
 

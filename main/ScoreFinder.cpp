@@ -36,17 +36,17 @@ ScoreFinder::getUserScoreDirectory()
     }
     std::filesystem::path dir = home + "/Documents/PianoPrecision/Scores";
     if (!std::filesystem::exists(dir)) {
-        SVDEBUG << "ScoreFinder::getScoreDirectory: Score directory "
+        SVDEBUG << "ScoreFinder::getUserScoreDirectory: Score directory "
                 << dir << " does not exist, attempting to create it"
                 << endl;
         if (std::filesystem::create_directories(dir)) {
-            SVDEBUG << "ScoreFinder::getScoreDirectory: Succeeded" << endl;
+            SVDEBUG << "ScoreFinder::getUserScoreDirectory: Succeeded" << endl;
         } else {
-            SVDEBUG << "ScoreFinder::getScoreDirectory: Failed to create it" << endl;
+            SVDEBUG << "ScoreFinder::getUserScoreDirectory: Failed to create it" << endl;
             return {};
         }
     } else if (!std::filesystem::is_directory(dir)) {
-        SVDEBUG << "ScoreFinder::getScoreDirectory: Location " << dir
+        SVDEBUG << "ScoreFinder::getUserScoreDirectory: Location " << dir
                 << " exists but is not a directory!"
                 << endl;
         return {};
@@ -54,16 +54,17 @@ ScoreFinder::getUserScoreDirectory()
     return dir.string();
 }
 
+static
 string
-ScoreFinder::getBundledScoreDirectory()
+getBundledDirectory(QString dirname)
 {
     // We look in:
     // 
-    // Mac: <mydir>/../Resources/Scores
+    // Mac: <mydir>/../Resources/<dirname>
     //
-    // Linux: <mydir>/../share/application-name/Scores
+    // Linux: <mydir>/../share/application-name/<dirname>
     //
-    // Other: <mydir>/Scores
+    // Other: <mydir>/<dirname>
 
     QString appName = QCoreApplication::applicationName();
     QString myDir = QCoreApplication::applicationDirPath();
@@ -73,25 +74,37 @@ ScoreFinder::getBundledScoreDirectory()
     QString qdir;
     
 #if defined(Q_OS_MAC)
-    qdir = myDir + "/../Resources/Scores";
+    qdir = myDir + "/../Resources/" + dirname;
 #elif defined(Q_OS_LINUX)
     if (binaryName != "") {
-        qdir = myDir + "/../share/" + binaryName + "/Scores";
+        qdir = myDir + "/../share/" + binaryName + "/" + dirname;
     } else {
-        qdir = myDir + "/../share/" + appName + "/Scores";
+        qdir = myDir + "/../share/" + appName + "/" + dirname;
     }
 #else
-    qdir = myDir + "/Scores";
+    qdir = myDir + "/" + dirname;
 #endif
     
     string sdir(qdir.toUtf8().data());
     std::filesystem::path dir(sdir);
 
-    if (std::filesystem::exists(dir) && std::filesystem::is_directory(dir)) {
-        return sdir;
-    } else {
+    if (!std::filesystem::exists(dir) || !std::filesystem::is_directory(dir)) {
+        SVDEBUG << "ScoreFinder::getBundledDirectory: Directory "
+                << dir << " does not exist or is not a directory"
+                << endl;
         return "";
+    } else {
+        SVDEBUG << "ScoreFinder::getBundledDirectory: Directory "
+                << dir << " exists, returning it"
+                << endl;
+        return sdir;
     }
+}
+
+string
+ScoreFinder::getBundledScoreDirectory()
+{
+    return getBundledDirectory("Scores");
 }
 
 vector<string>
@@ -183,29 +196,50 @@ ScoreFinder::initialiseAlignerEnvironmentVariables()
 }
 
 string
-ScoreFinder::getRecordingDirectory(string scoreName)
+ScoreFinder::getUserRecordingDirectory(string scoreName)
 {
     const char *home = getenv("HOME");
     if (!home) {
-        SVDEBUG << "ScoreFinder::getRecordingDirectory: HOME environment variable is not set, can't proceed!" << endl;
+        SVDEBUG << "ScoreFinder::getUserRecordingDirectory: HOME environment variable is not set, can't proceed!" << endl;
         return {};
     }
     std::filesystem::path dir = string(home) + "/Documents/PianoPrecision/Recordings/" + scoreName;
     if (!std::filesystem::exists(dir)) {
-        SVDEBUG << "ScoreFinder::getRecordingDirectory: Recording directory "
+        SVDEBUG << "ScoreFinder::getUserRecordingDirectory: Recording directory "
                 << dir << " does not exist, attempting to create it"
                 << endl;
         if (std::filesystem::create_directories(dir)) {
-            SVDEBUG << "ScoreFinder::getRecordingDirectory: Succeeded" << endl;
+            SVDEBUG << "ScoreFinder::getUserRecordingDirectory: Succeeded" << endl;
         } else {
-            SVDEBUG << "ScoreFinder::getRecordingDirectory: Failed to create it" << endl;
+            SVDEBUG << "ScoreFinder::getUserRecordingDirectory: Failed to create it" << endl;
             return {};
         }
     } else if (!std::filesystem::is_directory(dir)) {
-        SVDEBUG << "ScoreFinder::getRecordingDirectory: Location " << dir
+        SVDEBUG << "ScoreFinder::getUserRecordingDirectory: Location " << dir
                 << " exists but is not a directory!"
                 << endl;
         return {};
     }
     return dir.string();
+}
+
+string
+ScoreFinder::getBundledRecordingDirectory(string scoreName)
+{
+    string rdir = getBundledDirectory("Recordings");
+    if (rdir == "") {
+        return rdir;
+    }
+    std::filesystem::path dir = rdir + "/" + scoreName;
+    if (!std::filesystem::exists(dir) || !std::filesystem::is_directory(dir)) {
+        SVDEBUG << "ScoreFinder::getBundledRecordingDirectory: Directory "
+                << dir << " does not exist or is not a directory"
+                << endl;
+        return "";
+    } else {
+        SVDEBUG << "ScoreFinder::getBundledRecordingDirectory: Directory "
+                << dir << " exists, returning it"
+                << endl;
+        return dir.string();
+    }
 }
