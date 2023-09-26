@@ -240,6 +240,22 @@
             </Component>
 	  </Directory>
 
+	  <Directory Id="Scores" Name="scores">
+            <Component Win64="yes"
+                Id="Scores"
+                Guid="28F4D65F-3DC1-428D-8566-94496FDAF00B">
+                @SCORES@
+	    </Component>
+	  </Directory>
+
+	  <Directory Id="Recordings" Name="recordings">
+            <Component Win64="yes"
+                Id="Recordings"
+                Guid="1402393D-EC05-4D44-8271-7E960BAEBEAF">
+                @RECORDINGS@
+	    </Component>
+	  </Directory>
+
 	  <Directory Id="Helpers" Name="helpers">
             <Component Win64="yes"
                 Id="Piper64"
@@ -326,6 +342,8 @@
       <ComponentRef Id="VCRuntime"/>
       <ComponentRef Id="Qt5PlatformPlugins"/>
       <ComponentRef Id="Qt5StylePlugins"/>
+      <ComponentRef Id="Scores"/>
+      <ComponentRef Id="Recordings"/>
       <ComponentRef Id="Piper64"/>
       <ComponentRef Id="Checker64"/>
       <ComponentRef Id="Aligner64"/>

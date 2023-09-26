@@ -27,9 +27,9 @@ call .\deploy\win64\build-64.bat
 if %errorlevel% neq 0 exit /b %errorlevel%
 
 if "%ARG%" == "sign" (
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "& 'deploy\win64\deploy.ps1' 'sign'"
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "& 'deploy\win64\package.ps1' 'sign'"
 ) else (
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "& 'deploy\win64\deploy.ps1'"
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "& 'deploy\win64\package.ps1'"
 )
 if errorlevel 1 exit /b %errorlevel%
 
