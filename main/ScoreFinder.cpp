@@ -20,8 +20,7 @@
 
 #include <QCoreApplication>
 #include <QFileInfo>
-
-#define USE_PIANO_ALIGNER_CODE_FOR_SCORE_PATH 1
+#include <QDir>
 
 using std::string;
 using std::vector;
@@ -29,12 +28,8 @@ using std::vector;
 string
 ScoreFinder::getUserScoreDirectory()
 {
-    string home;
-    if (!getEnvUtf8("HOME", home)) {
-        SVDEBUG << "ScoreFinder::getUserScoreDirectory: HOME environment variable is not set, can't proceed!" << endl;
-        return {};
-    }
-    std::filesystem::path dir = home + "/Documents/PianoPrecision/Scores";
+    QString home = QDir::homePath();
+    std::filesystem::path dir = home.toStdString() + "/Documents/PianoPrecision/Scores";
     if (!std::filesystem::exists(dir)) {
         SVDEBUG << "ScoreFinder::getUserScoreDirectory: Score directory "
                 << dir << " does not exist, attempting to create it"
@@ -198,12 +193,8 @@ ScoreFinder::initialiseAlignerEnvironmentVariables()
 string
 ScoreFinder::getUserRecordingDirectory(string scoreName)
 {
-    const char *home = getenv("HOME");
-    if (!home) {
-        SVDEBUG << "ScoreFinder::getUserRecordingDirectory: HOME environment variable is not set, can't proceed!" << endl;
-        return {};
-    }
-    std::filesystem::path dir = string(home) + "/Documents/PianoPrecision/Recordings/" + scoreName;
+    QString home = QDir::homePath();
+    std::filesystem::path dir = home.toStdString() + "/Documents/PianoPrecision/Recordings/" + scoreName;
     if (!std::filesystem::exists(dir)) {
         SVDEBUG << "ScoreFinder::getUserRecordingDirectory: Recording directory "
                 << dir << " does not exist, attempting to create it"
