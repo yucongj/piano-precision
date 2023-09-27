@@ -289,6 +289,8 @@
 		  Name="vamp-plugin-load-checker.exe"
 		  Source="build_win64\vamp-plugin-load-checker.exe"/>
 	    </Component>
+	  </Directory> <!-- helpers -->
+	  <Directory Id="Plugins" Name="plugins">
             <Component Win64="yes"
                 Id="Aligner64"
                 Guid="47632cc7-adc8-4374-929f-5b3431125dd1">
@@ -297,7 +299,7 @@
 		  Name="score-aligner.dll"
 		  Source="build_win64\score-aligner.dll"/>
 	    </Component>
-	  </Directory> <!-- helpers -->
+          </Directory> <!-- plugins -->
 	</Directory> <!-- sv -->
       </Directory> <!-- pfiles64 -->
 

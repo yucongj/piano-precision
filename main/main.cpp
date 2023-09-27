@@ -412,10 +412,13 @@ main(int argc, char **argv)
     PluginPathSetter::TypeKey vampPluginTypeKey
         { KnownPlugins::VampPlugin, KnownPlugins::FormatNative };
 
+    QStringList pluginDirPaths =
+        HelperExecPath(HelperExecPath::NativeArchitectureOnly)
+        .getBundledPluginPaths();
+    
     PluginPathSetter::Paths bundlePaths
         { { vampPluginTypeKey,
-            { HelperExecPath(HelperExecPath::NativeArchitectureOnly)
-              .getHelperDirPaths(),
+            { pluginDirPaths,
               QString("VAMP_PATH"),
               true              // allow environment variable to override
             }
