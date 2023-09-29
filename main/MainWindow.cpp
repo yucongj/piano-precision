@@ -2225,6 +2225,11 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
          tr("Which score do you want to practice?"),
          items, 0, &ok);
 
+    if (!ok) {
+        // user clicked Cancel
+        return;
+    }
+    
     QString errorString;
     if (!m_scoreWidget->loadAScore(scoreName, errorString)) {
         QMessageBox::warning(this,
