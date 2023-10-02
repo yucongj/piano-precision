@@ -36,7 +36,8 @@ if (!(Test-Path -Path $in -PathType Leaf)) {
     exit 1
 }
 
-$suppress_re = "^C major "
+$suppress_re = "^(C major |TheBlues)"
+
 $component_refs = @()
 $guid_base = 'e260ca94-833d-47a0-{0}-a658022bd0a7'
 $global:guid_count = 1000

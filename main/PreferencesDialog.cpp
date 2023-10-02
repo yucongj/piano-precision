@@ -32,6 +32,7 @@
 #include <QSpinBox>
 #include <QListWidget>
 #include <QSettings>
+#include <QApplication>
 
 #include <set>
 
@@ -61,7 +62,7 @@ PreferencesDialog::PreferencesDialog(QWidget *parent) :
     m_coloursChanged(false),
     m_changesOnRestart(false)
 {
-    setWindowTitle(tr("Sonic Visualiser: Application Preferences"));
+    setWindowTitle(tr("%1: Application Preferences").arg(QApplication::applicationName()));
 
     Preferences *prefs = Preferences::getInstance();
 
@@ -1065,7 +1066,7 @@ PreferencesDialog::applyClicked()
 
     if (m_changesOnRestart) {
         QMessageBox::information(this, tr("Preferences"),
-                                 tr("<b>Restart required</b><p>One or more of the application preferences you have changed may not take full effect until Sonic Visualiser is restarted.</p><p>Please exit and restart the application now if you want these changes to take effect immediately.</p>"));
+                                 tr("<b>Restart required</b><p>One or more of the application preferences you have changed may not take full effect until %1 is restarted.</p><p>Please exit and restart the application now if you want these changes to take effect immediately.</p>").arg(QApplication::applicationName()));
         m_changesOnRestart = false;
     }
 

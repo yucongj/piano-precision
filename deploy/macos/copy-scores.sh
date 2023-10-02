@@ -39,9 +39,10 @@ if [ -d "$datadir" ]; then
 	fi
     done
     echo
-    echo "Removing trivial scores (C major scales)..."
+    echo "Removing trivial scores (C major scales and TheBlues)..."
     rm -r "$sdir/C major"*
     rm -r "$rdir/C major"*
+    rm -r "$rdir/TheBlues"*
     echo
     echo "Done"
 else
