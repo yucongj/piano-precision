@@ -34,7 +34,7 @@ compiler = meson.get_compiler('cpp').get_id()
 general_defines = [
   '-DHAVE_PIPER',
   '-DHAVE_PLUGIN_CHECKER_HELPER',
-  '-DQT_DEPRECATED_WARNINGS_SINCE=0x050A00'
+  '-DQT_DEPRECATED_WARNINGS_SINCE=0x050A00',
 ]
 
 general_link_args = []
@@ -49,26 +49,32 @@ if get_option('buildtype').startswith('release')
     '-DNO_TIMING',
     '-DNO_HIT_COUNTS',
   ]
-if compiler == 'clang'
-  general_defines += [
-    '-ffast-math',
-    '-Wno-deprecated-copy', # Qt currently hits lots of these internally
-  ]
-elif compiler == 'gcc'
-  general_defines += [
-    '-ffast-math',
-  ]
-elif compiler == 'msvc'
-  general_defines += [
-    '-fp:fast',
-    '-wd4068', # unknown pragma (we have lots of pragma 'GCC')
-    '-wd4267', # conversion from size_t to smaller integral type
-    '-wd4996', # deprecated functions, including annoying warnings about POSIX
-    '-Zc:twoPhase-', # work around incompatibility with some SDKs (CI only)
-  ]
-endif # compiler
+  if compiler == 'clang'
+    general_defines += [
+      '-ffast-math',
+      '-Wno-deprecated-copy', # Qt currently hits lots of these internally
+    ]
+  elif compiler == 'gcc'
+    general_defines += [
+      '-ffast-math',
+    ]
+  elif compiler == 'msvc'
+    general_defines += [
+      '-fp:fast',
+      '-wd4068', # unknown pragma (we have lots of pragma 'GCC')
+      '-wd4267', # conversion from size_t to smaller integral type
+      '-wd4996', # deprecated functions, including annoying warnings about POSIX
+      '-Zc:twoPhase-', # work around incompatibility with some SDKs (CI only)
+    ]
+  endif # compiler
 else # buildtype
   config_summary += { 'Build type': 'debug' }
+  if compiler == 'msvc'
+    general_defines += [
+      '-DNO_TIMING', # no sys/time.h
+      '-DNO_HIT_COUNTS', # logs uselessly to stderr only
+    ]
+  endif
 endif # get_option('buildtype')
 
 svcore_moc_args = []
@@ -399,9 +405,19 @@ elif system == 'windows'
       'sv-dependency-builds/win64-msvc/include/opus',
     ]
   endif # architecture
-  
-  feature_additional_libs = [
-    '-L' + svdeps_dir / 'lib',
+
+  if get_option('buildtype').startswith('debug')
+    feature_additional_libs = [
+      '-L' + svdeps_dir / 'lib/debug',
+      '-L' + svdeps_dir / 'lib',
+    ]
+  else
+    feature_additional_libs = [
+      '-L' + svdeps_dir / 'lib',
+    ]
+  endif
+
+  feature_additional_libs += [
     '-lbz2',
     '-lrubberband',
     '-lfftw3',
