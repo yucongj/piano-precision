@@ -29,7 +29,7 @@ call .\repoint install
 if %errorlevel% neq 0 exit /b %errorlevel%
 
 if not exist build_win64\build.ninja (
-  meson build_win64 --buildtype release -Db_lto=true
+  meson setup build_win64 --buildtype release -Db_lto=true
   if %errorlevel% neq 0 exit /b %errorlevel%
 )
 
@@ -43,6 +43,7 @@ copy %QTDIR%\bin\Qt5Network.dll .\build_win64
 copy %QTDIR%\bin\Qt5Xml.dll .\build_win64
 copy %QTDIR%\bin\Qt5Svg.dll .\build_win64
 copy %QTDIR%\bin\Qt5Test.dll .\build_win64
+copy %QTDIR%\bin\Qt5Pdf.dll .\build_win64
 copy %QTDIR%\plugins\platforms\qminimal.dll .\build_win64
 copy %QTDIR%\plugins\platforms\qwindows.dll .\build_win64
 copy %QTDIR%\plugins\styles\qwindowsvistastyle.dll .\build_win64

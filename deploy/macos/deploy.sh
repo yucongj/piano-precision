@@ -10,19 +10,23 @@ set -e
 # libraries and setting up paths etc. It does not create a
 # package. Use deploy-and-package.sh for that.
 
+. deploy/metadata.sh
+
 usage() {
     echo
-    echo "Usage: $0 <app> [<builddir>]"
+    echo "Usage: $0 [<builddir>]"
     echo
     echo "  where <builddir> defaults to \"build\""
     echo 
     echo "For example,"
     echo
-    echo "  \$ $0 MyApplication"
-    echo "  to deploy app MyApplication built in the directory \"build\""
+    echo "  \$ $0"
+    echo "  to deploy an app built in the directory \"build\""
     echo
-    echo "  \$ $0 MyApplication build-release"
-    echo "  to deploy app MyApplication built in the directory \"build-release\""
+    echo "  \$ $0 build-release"
+    echo "  to deploy an app built in the directory \"build-release\""
+    echo
+    echo "The app name <app> will be extracted from meson.build."
     echo
     echo "The executable must be already present in <builddir>/<app>, and its"
     echo "version number will be extracted from <builddir>/version.h."
@@ -33,56 +37,48 @@ usage() {
     exit 2
 }
 
-app="$1"
-if [ -z "$app" ]; then
-    usage
-fi
-
-builddir="$2"
+builddir="$1"
 if [ -z "$builddir" ]; then
     builddir=build
-elif [ -n "$3" ]; then
+elif [ -n "$2" ]; then
     usage
 fi
 
-if [ ! -f "$builddir/$app" ]; then
-    echo "File $app not found in builddir $builddir"
+set -u
+
+if [ ! -f "$builddir/$full_name" ]; then
+    echo "File $full_name not found in builddir $builddir"
     exit 2
 fi
 
-source="$app.app"
+source="$full_app"
 
 set -u
 
 mkdir -p "$source/Contents/MacOS"
 mkdir -p "$source/Contents/Resources"
 
-cp -a "$builddir/$app" "$source/Contents/MacOS"
+cp -a "$builddir/$full_name" "$source/Contents/MacOS"
 
-version=`perl -p -e 's/^[^"]*"([^"]*)".*$/$1/' $builddir/version.h`
-stem=${version%%-*}
-stem=${stem%%pre*}
-case "$stem" in
-    [0-9].[0-9]) bundleVersion="$stem".0 ;;
-    [0-9].[0-9].[0-9]) bundleVersion="$stem" ;;
-    *) echo "Error: Version stem $stem (of version $version) is neither two- nor three-part number" ;;
-esac
+echo
+echo "Copying in scores and recordings, if found."
+
+deploy/macos/copy-scores.sh "$full_name"
 
 echo
 echo "Copying in icon."
 
 cp "icons/sv-macicon.icns" "$source/Contents/Resources"
 
-
 echo
 echo "Copying in frameworks and plugins from Qt installation directory."
 
-deploy/macos/copy-qt.sh "$app" || exit 2
+deploy/macos/copy-qt.sh "$full_name" || exit 2
 
 echo
 echo "Fixing up paths."
 
-deploy/macos/paths.sh "$app"
+deploy/macos/paths.sh "$full_name"
 
 echo
 echo "Copying in qt.conf to set local-only plugin paths."
@@ -103,14 +99,19 @@ echo "Copying in piper convert tool."
 cp $builddir/piper-convert "$source"/Contents/MacOS/
 
 echo
+echo "Copying in aligner plugin."
+cp $builddir/score-aligner.dylib "$source"/Contents/Resources/
+
+echo
 echo "Copying in lproj directories containing InfoPlist.strings translation files."
 cp -r i18n/*.lproj "$source"/Contents/Resources/
 
 echo
-echo "Writing version $bundleVersion in to bundle."
+echo "Writing version $version in to bundle."
 echo "(This should be a three-part number: major.minor.point)"
 
-perl -p -e "s/SV_VERSION/$bundleVersion/" deploy/macos/Info.plist \
+cat deploy/macos/Info.plist | \
+    perl -p -e "s/[@]VERSION[@]/$version/g; s/[@]NAME[@]/$full_name/g; s/[@]IDENT[@]/$full_ident/g" deploy/macos/Info.plist \
     > "$source"/Contents/Info.plist
 
 echo "Done: check $source/Contents/Info.plist for sanity please"

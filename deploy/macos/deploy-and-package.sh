@@ -23,8 +23,6 @@ if [ "$1" = "--no-notarization" ]; then
     shift
 fi
 
-app="Sonic Visualiser"
-
 builddirs="$@"
 if [ -z "$builddirs" ]; then
     usage
@@ -32,31 +30,13 @@ fi
 
 set -u
 
-version=""
-
-for builddir in $builddirs; do
-    if [ ! -f "$builddir/$app" ]; then
-	echo "File $app not found in builddir $builddir"
-	exit 2
-    fi
-    version_here=`perl -p -e 's/^[^"]*"([^"]*)".*$/$1/' $builddir/version.h`
-    if [ -z "$version_here" ]; then
-	echo "Unable to extract version from builddir $builddir"
-	exit 2
-    fi
-    if [ -z "$version" ]; then
-	version="$version_here"
-    elif [ "$version" != "$version_here" ]; then
-	echo "Version $version_here found in builddir $builddir does not match version $version found in prior builddir(s)"
-	exit 2
-    fi
-done
+. deploy/metadata.sh
 
 echo "Version: $version"
 
-source="$app.app"
-volume="$app"-"$version"
-target="$volume"/"$app".app
+source="$full_name.app"
+volume="$full_versioned"
+target="$volume"/"$full_name".app
 dmg="$volume".dmg
 
 if [ -d "$volume" ]; then
@@ -81,9 +61,7 @@ mkdir "$volume" || exit 1
 
 ln -s /Applications "$volume"/Applications
 cp README.md "$volume/README.txt"
-cp README_OSC.md "$volume/README_OSC.txt"
 cp COPYING "$volume/COPYING.txt"
-cp CHANGELOG "$volume/CHANGELOG.txt"
 cp CITATION "$volume/CITATION.txt"
 
 for builddir in $builddirs; do
@@ -105,14 +83,14 @@ for builddir in $builddirs; do
     echo
     echo "(Re-)running deploy script in $builddir..."
 
-    QTDIR="$qtdir" deploy/macos/deploy.sh "$app" "$builddir" || exit 1
+    QTDIR="$qtdir" deploy/macos/deploy.sh "$builddir" || exit 1
 
-    if [ ! -f "$target/Contents/Macos/$app" ]; then
+    if [ ! -f "$target/Contents/Macos/$full_name" ]; then
 	echo "App does not yet exist in target $target, copying verbatim..."
 	cp -rp "$source" "$target"
     else
 	echo "App exists in target $target, merging..."
-	find "$source" -name "$app" -o -name \*.dylib -o -name Qt\* |
+	find "$source" -name "$full_name" -o -name \*.dylib -o -name Qt\* |
 	    while read f; do
 		lipo "$f" "$volume/$f" -create -output "$volume/$f"
 	    done

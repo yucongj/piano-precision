@@ -15,12 +15,14 @@
 
 #include "MainWindow.h"
 #include "SVSplash.h"
+#include "ScoreFinder.h"
 
 #include "system/System.h"
 #include "system/Init.h"
 #include "base/TempDirectory.h"
 #include "base/PropertyContainer.h"
 #include "base/Preferences.h"
+#include "base/HelperExecPath.h"
 #include "data/fileio/FileSource.h"
 #include "widgets/TipDialog.h"
 #include "widgets/InteractiveFileFinder.h"
@@ -256,8 +258,7 @@ main(int argc, char **argv)
 
     QApplication::setOrganizationName("sonic-visualiser");
     QApplication::setOrganizationDomain("sonicvisualiser.org");
-    // QApplication::setApplicationName(QApplication::tr("Sonic Visualiser"));
-    QApplication::setApplicationName(QApplication::tr("SV Piano Precision")); // Oct 5, 2021: Yucong Jiang
+    QApplication::setApplicationName(QApplication::tr("Piano Precision")); // Oct 5, 2021: Yucong Jiang
     QApplication::setApplicationVersion(SV_VERSION);
 
 #if (QT_VERSION >= 0x050700)
@@ -377,7 +378,7 @@ main(int argc, char **argv)
     }
     settings.endGroup();
 
-    //!!! For SV Piano Precision, until it has its own splash image
+    //!!! For Piano Precision, until it has its own splash image
     showSplash = false;
     
     if (showSplash) {
@@ -408,7 +409,26 @@ main(int argc, char **argv)
     settings.setValue("rdf-indices", list);
     settings.endGroup();
 
+    PluginPathSetter::TypeKey vampPluginTypeKey
+        { KnownPlugins::VampPlugin, KnownPlugins::FormatNative };
+
+    QStringList pluginDirPaths =
+        HelperExecPath(HelperExecPath::NativeArchitectureOnly)
+        .getBundledPluginPaths();
+    
+    PluginPathSetter::Paths bundlePaths
+        { { vampPluginTypeKey,
+            { pluginDirPaths,
+              QString("VAMP_PATH"),
+              true              // allow environment variable to override
+            }
+            }
+        };
+
+    PluginPathSetter::savePathSettings(bundlePaths);
     PluginPathSetter::initialiseEnvironmentVariables();
+
+    ScoreFinder::initialiseAlignerEnvironmentVariables();
     
     QIcon icon;
     int sizes[] = { 16, 22, 24, 32, 48, 64, 128 };

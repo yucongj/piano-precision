@@ -44,8 +44,10 @@ NetworkPermissionTester::havePermission()
     } else {
         SVDEBUG << "NetworkPermissionTester: Asking for permission" << endl;
 
-    QDialog d;
-        d.setWindowTitle(QCoreApplication::translate("NetworkPermissionTester", "Welcome to Sonic Visualiser"));
+        QString appname = QCoreApplication::applicationName();
+        
+        QDialog d;
+        d.setWindowTitle(QCoreApplication::translate("NetworkPermissionTester", "Welcome to %1").arg(appname));
 
         QGridLayout *layout = new QGridLayout;
         d.setLayout(layout);
@@ -53,12 +55,13 @@ NetworkPermissionTester::havePermission()
         QString preamble;
         preamble = QCoreApplication::translate
             ("NetworkPermissionTester",
-             "<h2>Welcome to Sonic Visualiser!</h2>"
-             "<p>Sonic Visualiser is a program for viewing and exploring audio data for semantic music analysis and annotation.</p>"
-             "<p>Sonic Visualiser is open source software under the GNU General Public License.</p>"
+             "<h2>Welcome to %1!</h2>"
+             "<p>%1 is a program that assists analysis of recorded piano performances alongside their scores.</p>"
+             "<p>%1 is open source software under the GNU General Public License.</p>"
              "<p><hr></p>"
              "<p><b>Before we go on...</b></p>"
-             "<p>Sonic Visualiser would like permission to use the network.</p>");
+             "<p>%1 would like permission to use the network.</p>")
+            .arg(appname);
 
         QString bullets;
         if (m_withOSC) {
@@ -82,7 +85,7 @@ NetworkPermissionTester::havePermission()
         postamble = QCoreApplication::translate
             ("NetworkPermissionTester",
              "<p><b>No personal information will be sent, no tracking is carried out, and no information will be shared with anyone else.</b></p>"
-             "<p>We recommend that you allow this, because it makes Sonic Visualiser more useful to you. But if you do not wish to allow it, please un-check the box below.<br></p>");
+             "<p>We recommend that you allow this, because it makes %1 more useful to you. But if you do not wish to allow it, please un-check the box below.<br></p>").arg(appname);
         
         QLabel *label = new QLabel;
         label->setWordWrap(true);

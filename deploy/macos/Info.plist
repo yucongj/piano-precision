@@ -5,21 +5,21 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleName</key>
-	<string>Sonic Visualiser</string>
+	<string>@NAME@</string>
 	<key>CFBundleExecutable</key>
-	<string>Sonic Visualiser</string>
+	<string>@NAME@</string>
 	<key>CFBundleIconFile</key>
 	<string>sv-macicon.icns</string>
 	<key>CFBundleIdentifier</key>
-	<string>org.sonicvisualiser.SonicVisualiser</string>
+	<string>@IDENT@</string>
 	<key>CFBundleShortVersionString</key>
-	<string>SV_VERSION</string>
+	<string>@VERSION@</string>
 
 	<!-- Provide an explanatory string for microphone usage so
 	     that access is requested. NB this is localised in
 	     the *.lproj/InfoPlist.strings files -->
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Sonic Visualiser needs to use the microphone for recording.</string>
+	<string>@NAME@ needs to use the microphone for recording.</string>
 
 	<!-- enable HiDPI -->
 	<key>NSPrincipalClass</key>
@@ -30,33 +30,6 @@
 	<key>CFBundleDocumentTypes</key>
 
 	<array>
-		<!-- we are an 'editor' of SV files -->
-		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>sv</string>
-			</array>
-			<!-- TODO
-			<key>CFBundleTypeIconFile</key>
-			<string>SVProject.icns</string> -->
-			<key>CFBundleTypeMIMETypes</key>
-			<array>
-				<string>application/x-sonic-visualiser-session</string>
-			</array>
-			<key>CFBundleTypeName</key>
-			<string>Sonic Visualiser Session</string>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>****</string>
-			</array>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
-			<key>LSIsAppleDefaultForType</key>
-			<true/>
-		</dict>
-		
 		<!-- we are a 'viewer' of general audio files -->
 		<dict>
 			<key>CFBundleTypeExtensions</key>

@@ -49,6 +49,7 @@ icons/scalable
 vamp-plugin-load-checker
 piper-vamp-simple-server
 piper-convert
+piano-precision-aligner
 *.msi
 *.user
 .vext*
@@ -64,3 +65,6 @@ Dockerfile*.gen
 squashfs-root
 .notarization-uuid
 .notarization-status
+*.dmg
+deploy/win64/piano-precision.wxs
+*.stackdump

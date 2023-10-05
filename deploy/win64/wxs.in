@@ -3,30 +3,29 @@
   @W@
 
   <Product
-      Name="Sonic Visualiser" 
+      Name="@NAME@" 
       Id="*"
       Language="1033"
       Codepage="1252" 
       Version="@VERSION@"
-      UpgradeCode="D476941E-65F3-4962-9E72-B40FAAE5DBD0"
-      Manufacturer="sonicvisualiser.org">
+      UpgradeCode="8410f6fc-6ed0-49f1-b9cf-42066e516dd3"
+      Manufacturer="particularprograms.co.uk">
     
     <Package
         Id="*"
         Keywords="Installer"
-        Description="Sonic Visualiser 64-bit Installer" 
-        Comments="Copyright (c) 2021 Chris Cannam, Queen Mary University of London, and others."
-        Manufacturer="sonicvisualiser.org" 
+        Description="@NAME@ 64-bit Installer" 
+        Manufacturer="particularprograms.co.uk" 
         InstallerVersion="200"
         Languages="1033" 
         Compressed="yes" 
         Platform="x64"
         SummaryCodepage="1252"/>
 
-    <MajorUpgrade DowngradeErrorMessage="A later version of Sonic Visualiser is already installed. Setup will now exit."/>
+    <MajorUpgrade DowngradeErrorMessage="A later version of @NAME@ is already installed. Setup will now exit."/>
 
-    <Media Id="1" Cabinet="SonicVisualiser.cab" EmbedCab="yes" DiskPrompt="CD-ROM #1"/>
-    <Property Id="DiskPrompt" Value="Sonic Visualiser Installation [1]"/>
+    <Media Id="1" Cabinet="@CONDENSED@.cab" EmbedCab="yes" DiskPrompt="CD-ROM #1"/>
+    <Property Id="DiskPrompt" Value="@NAME@ Installation [1]"/>
 
     <Directory Id="TARGETDIR" Name="SourceDir">
 
@@ -42,22 +41,22 @@
           </Component>
         </Directory>
 
-        <Directory Id="APPLICATIONFOLDER" Name="Sonic Visualiser">
+        <Directory Id="APPLICATIONFOLDER" Name="@NAME@">
 
           <Component Win64="yes"
               Id="MainExecutable"
-              Guid="65E1EBDF-4C8F-47B8-BCD6-981667F5946D">
+              Guid="4a5fd83c-463a-417c-94eb-11ac591422ce">
 
             <File
                 Id="SVExecutable"
-                Name="Sonic Visualiser.exe"
-                Source="build_win64\Sonic Visualiser.exe"
+                Name="@NAME@.exe"
+                Source="build_win64\@NAME@.exe"
                 KeyPath="yes">
 
               <Shortcut
                   Id="SVStartEntry"
                   Directory="ProgramMenuDir"
-                  Name="Sonic Visualiser"
+                  Name="@NAME@"
                   WorkingDirectory="APPLICATIONFOLDER"
                   Icon="winicon.ico"
                   IconIndex="0"
@@ -66,7 +65,7 @@
               <Shortcut
                   Id="SVDesktop"
                   Directory="DesktopFolder"
-                  Name="Sonic Visualiser"
+                  Name="@NAME@"
                   WorkingDirectory="APPLICATIONFOLDER"
                   Icon="winicon.ico"
                   IconIndex="0"
@@ -97,31 +96,8 @@
           </Component>
           
           <Component Win64="yes"
-	      Id="SVFileAssociation"
-	      Guid="F07C5CC1-0209-4C1A-8D52-C40B50A2B964">
-            
-            <CreateFolder/>
-
-            <ProgId 
-                Id='SonicVisualiser.svfile' 
-                Description='Sonic Visualiser project file'
-                Icon="SVExecutable">
-              <Extension 
-                  Id='sv' 
-                  ContentType='application/sonicvisualiser'>
-                <Verb 
-                    Id='open' 
-                    Command='Open' 
-                    TargetFile='SVExecutable' 
-                    Argument='"%1"' />
-              </Extension>
-            </ProgId>
-            
-          </Component>
-          
-          <Component Win64="yes"
               Id="Qt5"
-              Guid="5495ED5E-939A-4BE8-9000-D55F2A7A2E90">
+              Guid="58bfe617-46a5-4690-8704-a89e884473e2">
             <File
                 Id="QtCore"
                 Name="Qt5Core.dll"
@@ -147,11 +123,15 @@
                 Id="QtSvg"
                 Name="Qt5Svg.dll"
                 Source="build_win64\Qt5Svg.dll"/>
+            <File
+                Id="QtPdf"
+                Name="Qt5Pdf.dll"
+                Source="build_win64\Qt5Pdf.dll"/>
           </Component>
 
           <Component Win64="yes"
                      Id="Sndfile"
-                     Guid="04533516-6460-4155-A0D4-E9BA4D31E95C">
+                     Guid="5c81173c-ce3d-4fa3-95a2-729b90bf9509">
             <File
                 Id="libsndfile"
                 Name="libsndfile-1.dll"
@@ -161,7 +141,7 @@
 
           <Component Win64="yes"
                      Id="OpenSSL"
-                     Guid="d015dbb1-df5f-49da-a30a-1c46f3e58915">
+                     Guid="45beebd5-60bf-43a3-851d-65d08bef938d">
             <File
                 Id="libssl"
                 Name="libssl-1_1-x64.dll"
@@ -176,7 +156,7 @@
           <Component Win64="yes"
                      Id="OSWin10"
                      Transitive="yes"
-                     Guid="7b9ce14e-62ba-446e-ad45-9642b3bc4188">
+                     Guid="62e14bbf-6297-428e-8532-7777006b202b">
             <Condition>VersionNT64 &gt;= 603</Condition>
             <File
                 Id="os_win10"
@@ -188,7 +168,7 @@
           <Component Win64="yes"
                      Id="OSOther"
                      Transitive="yes"
-                     Guid="4419cc33-2a69-437e-8466-98f9104d01e9">
+                     Guid="35e28e50-e450-497d-9edb-452826c0a2e3">
             <Condition>NOT (VersionNT64 &gt;= 603)</Condition>
             <File
                 Id="os_other"
@@ -199,7 +179,7 @@
 
           <Component Win64="yes"
                Id="VCRuntime"
-               Guid="251D9513-BBD2-47CF-BE78-EF79446F7683">
+               Guid="8de9cf8d-46eb-4b43-a7bc-d4aaff4bd9a1">
 
             <!-- Redistributables are handled by the Visual Studio
                  installer (a separate program from VS itself) and are
@@ -236,7 +216,7 @@
 	  <Directory Id="Platforms" Name="platforms">
             <Component Win64="yes"
                 Id="Qt5PlatformPlugins"
-                Guid="1FFB773E-6D6D-4C0E-832B-F0FFEA959CA5">
+                Guid="46a4ecaf-1721-4935-9d70-81e0385e0451">
 	      <File
                   Id="qminimal"
                   Name="qminimal.dll"
@@ -251,7 +231,7 @@
 	  <Directory Id="Styles" Name="styles">
             <Component Win64="yes"
                 Id="Qt5StylePlugins"
-                Guid="7A676FC1-B139-432C-A7D3-F33984934B79">
+                Guid="a8d30088-919f-4ad4-93f4-b11c5170b78d">
 	      <File
                   Id="qwindowsvistastyle"
                   Name="qwindowsvistastyle.dll"
@@ -259,10 +239,18 @@
             </Component>
 	  </Directory>
 
+	  <Directory Id="Scores" Name="scores">
+            @SCORES@
+	  </Directory>
+
+	  <Directory Id="Recordings" Name="recordings">
+            @RECORDINGS@
+	  </Directory>
+
 	  <Directory Id="Helpers" Name="helpers">
             <Component Win64="yes"
                 Id="Piper64"
-                Guid="6385BD86-A5D3-4C77-AD41-B2DCA5B34E48">
+                Guid="a91cf8ee-c217-4f41-afea-1368f21ba3d7">
 	      <File
 		  Id="piperconv64"
 		  Name="piper-convert.exe"
@@ -294,62 +282,30 @@
                   Source="C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Redist\MSVC\@REDIST_VER@\x64\Microsoft.VC142.CRT\vcruntime140_1.DLL"/>
 	    </Component>
             <Component Win64="yes"
-                Id="Piper32"
-                Guid="F27A00A8-DD03-45B0-A13C-8CD8CC6F7386">
-	      <File
-		  Id="piper32"
-		  Name="piper-vamp-simple-server-32.exe"
-		  Source="build_win32\piper-vamp-simple-server.exe"/>
-	      <File
-                  Id="libgcc32"
-                  Name="libgcc_s_dw2-1.dll"
-                  Source="build_win32\libgcc_s_dw2-1.dll"/>
-	      <File
-                  Id="libstdcplusplus32"
-                  Name="libstdc++-6.dll"
-                  Source="build_win32\libstdc++-6.dll"/>
-	      <File
-                  Id="libwinpthread32"
-                  Name="libwinpthread-1.dll"
-                  Source="build_win32\libwinpthread-1.dll"/>
-	    </Component>
-            <Component Win64="yes"
                 Id="Checker64"
-                Guid="19A400D9-D5B2-4CB5-AF84-7C1DEA11D7B5">
+                Guid="e01b0c2c-6163-4fb2-96ae-b7dbad22e2d4">
 	      <File
 		  Id="checker64"
 		  Name="vamp-plugin-load-checker.exe"
 		  Source="build_win64\vamp-plugin-load-checker.exe"/>
 	    </Component>
-            <Component Win64="yes"
-                Id="Checker32"
-                Guid="4F3FDFEC-23BD-4F2F-9B8F-9C8387FDEC21">
-	      <File
-		  Id="checker32"
-		  Name="vamp-plugin-load-checker-32.exe"
-		  Source="build_win32\vamp-plugin-load-checker.exe"/>
-	    </Component>
-	    
 	  </Directory> <!-- helpers -->
+	  <Directory Id="Plugins" Name="plugins">
+            <Component Win64="yes"
+                Id="Aligner64"
+                Guid="47632cc7-adc8-4374-929f-5b3431125dd1">
+	      <File
+		  Id="aligner64"
+		  Name="score-aligner.dll"
+		  Source="build_win64\score-aligner.dll"/>
+	    </Component>
+          </Directory> <!-- plugins -->
 	</Directory> <!-- sv -->
       </Directory> <!-- pfiles64 -->
 
-      <Directory Id="ProgramFilesFolder" Name="PFiles">
-        <Directory Id="Vamp32Plugins" Name="Vamp Plugins">
-          <Component
-              Id="Vamp32Plugins"
-              Guid="62d23999-63ed-4937-b904-ec8e47a776d1">
-            <File
-                Id="Vamp32README"
-                Name="README.txt"
-                Source="deploy\win64\README-Vamp32.txt"/>
-          </Component>
-        </Directory>
-      </Directory>
-
       <Directory Id="ProgramMenuFolder" Name="Programs">
-        <Directory Id="ProgramMenuDir" Name="Sonic Visualiser">
-          <Component Id="ProgramMenuDir" Guid="C1980FF3-D135-46F8-8542-F937748721E6">
+        <Directory Id="ProgramMenuDir" Name="@NAME@">
+          <Component Id="ProgramMenuDir" Guid="be9dd699-574e-4487-8515-d6ff94983d6e">
             <RemoveFolder Id="ProgramMenuDir" On="uninstall"/>
             <RegistryValue Root="HKMU" Key="Software\[Manufacturer]\[ProductName]" Type="string" Value="" KeyPath="yes"/>
           </Component>
@@ -363,14 +319,13 @@
     <Feature 
 	Id="Complete"
 	Title="Required files"
-	Description="Installs the required files for running Sonic Visualiser."
+	Description="Installs the required files for running @NAME@."
 	AllowAdvertise="no"
 	Absent="disallow"
 	ConfigurableDirectory="APPLICATIONFOLDER"
 	Level="1">
       <ComponentRef Id="VampPlugins"/>
       <ComponentRef Id="MainExecutable"/>
-      <ComponentRef Id="SVFileAssociation"/>
       <ComponentRef Id="Sndfile"/>
       <ComponentRef Id="OpenSSL"/>
       <ComponentRef Id="OSWin10"/>
@@ -380,11 +335,10 @@
       <ComponentRef Id="Qt5PlatformPlugins"/>
       <ComponentRef Id="Qt5StylePlugins"/>
       <ComponentRef Id="Piper64"/>
-      <ComponentRef Id="Piper32"/>
       <ComponentRef Id="Checker64"/>
-      <ComponentRef Id="Checker32"/>
-      <ComponentRef Id="Vamp32Plugins"/>
+      <ComponentRef Id="Aligner64"/>
       <ComponentRef Id="ProgramMenuDir"/>
+      @COMPONENT_REFS@
     </Feature>
 
     <UI>
@@ -394,14 +348,14 @@
 
     <Property Id="WIXUI_INSTALLDIR" Value="APPLICATIONFOLDER" />
     <Property Id="WIXUI_DONTVALIDATEPATH" Value="1" />
-    <Property Id="ApplicationFolderName" Value="Sonic Visualiser" />
+    <Property Id="ApplicationFolderName" Value="@NAME@" />
     <Property Id="WixAppFolder" Value="WixPerMachineFolder" />
     <WixVariable Id="WixUILicenseRtf" Value="deploy\win64\License.rtf" />
     
     <Icon Id="winicon.ico" SourceFile="icons\sv-winicon.ico"/>
     <Property Id="ARPPRODUCTICON" Value="winicon.ico" />
 
-    <WixVariable Id="WixUIBannerBmp" Value="deploy\win32\top.bmp"/>
-    <WixVariable Id="WixUIDialogBmp" Value="deploy\win32\main.bmp"/>
+    <WixVariable Id="WixUIBannerBmp" Value="deploy\win64\top.bmp"/>
+    <WixVariable Id="WixUIDialogBmp" Value="deploy\win64\main.bmp"/>
 
   </Product> </Wix>
