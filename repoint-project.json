@@ -94,7 +94,7 @@
 	"piano-precision-aligner": {
             "vcs": "git",
             "service": "github",
-            "owner": "cannam",
+            "owner": "yucongj",
 	    "branch": "main"
 	}
     }
