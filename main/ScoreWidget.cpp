@@ -442,7 +442,39 @@ ScoreWidget::showPage(int page)
     SVDEBUG << "ScoreWidget::showPage: Using scaled size "
             << scaled.width() << " x " << scaled.height() << endl;
 
-    m_image = m_document->render(page, scaled);
+    QImage rendered = m_document->render(page, scaled);
+
+    QImage converted = rendered.convertToFormat(QImage::Format_ARGB32);
+    QRgb *pixels = reinterpret_cast<QRgb *>(converted.bits());
+
+    bool needsTransparency = false;
+    size_t iw = converted.width(), ih = converted.height();
+    
+    // Check whether the image has white or white-ish opaque pixels;
+    // if so we need to make them transparent. We do a quick single
+    // scan along the diagonal to check for these:
+    for (size_t i = 0; i < std::min(iw, ih); ++i) {
+        QRgb pixel = pixels[i * iw + i];
+        if (qAlpha(pixel) < 240) continue;
+        if (qRed(pixel) > 127 && qGreen(pixel) > 127 && qBlue(pixel) > 127) {
+            needsTransparency = true;
+            break;
+        }
+    }
+    if (needsTransparency) {
+        for (size_t ix = 0; ix < iw * ih; ++ix) {
+            QRgb pixel = pixels[ix];
+            int r = qRed(pixel), g = qGreen(pixel), b = qBlue(pixel);
+            int maxlevel = std::max(r, std::max(g, b));
+            // 255 -> 0, but everything from 128 down -> 255
+            int alpha = 255 - (maxlevel - 128) * 2;
+            if (alpha < 0) alpha = 0;
+            if (alpha > 255) alpha = 255;
+            pixels[ix] = qRgba(r, g, b, std::min(qAlpha(pixel), alpha));
+        }
+    }
+    m_image = converted;
+    
     m_page = page;
     emit pageChanged(m_page);
     update();
