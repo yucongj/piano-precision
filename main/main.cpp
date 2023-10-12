@@ -412,6 +412,9 @@ main(int argc, char **argv)
     PluginPathSetter::TypeKey vampPluginTypeKey
         { KnownPlugins::VampPlugin, KnownPlugins::FormatNative };
 
+    PluginPathSetter::TypeKey ladspaPluginTypeKey
+        { KnownPlugins::LADSPAPlugin, KnownPlugins::FormatNative };
+
     QStringList pluginDirPaths =
         HelperExecPath(HelperExecPath::NativeArchitectureOnly)
         .getBundledPluginPaths();
@@ -422,7 +425,13 @@ main(int argc, char **argv)
               QString("VAMP_PATH"),
               true              // allow environment variable to override
             }
+            },
+          { ladspaPluginTypeKey,
+            { {},
+              QString("LADSPA_PATH"),
+              false             // do not load from system paths
             }
+          }
         };
 
     PluginPathSetter::savePathSettings(bundlePaths);

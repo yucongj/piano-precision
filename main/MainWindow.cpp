@@ -67,6 +67,7 @@
 #include "audio/AudioCallbackPlaySource.h"
 #include "audio/AudioCallbackRecordTarget.h"
 #include "audio/PlaySpeedRangeMapper.h"
+#include "data/fileio/AudioFileReaderFactory.h"
 #include "data/fileio/DataFileReaderFactory.h"
 #include "data/fileio/PlaylistFileReader.h"
 #include "data/fileio/WavFileWriter.h"
@@ -2279,9 +2280,44 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
 
     auto bundledRecordingDirectory =
         ScoreFinder::getBundledRecordingDirectory(scoreName.toStdString());
-    if (bundledRecordingDirectory != "") {
-        // OK it's not actually a file, but this prompts the find-file
-        // dialog to look here for recordings
+    if (bundledRecordingDirectory == "") {
+        return;
+    }
+
+    // If we have a bundled recording directory and there are no audio
+    // files in the user recording directory, override the find-file
+    // dialog so that it looks in the bundled directory
+
+    bool haveUserRecordings = false;
+    if (recordingDirectory != "") {
+        QDir dir(QString::fromUtf8(recordingDirectory.c_str()));
+        QStringList nameFilters =
+            AudioFileReaderFactory::getKnownExtensions().split(" ");
+        if (!dir.entryList(nameFilters).empty()) {
+            haveUserRecordings = true;
+        } else {
+            for (auto sub: dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+                QDir subdir(dir.filePath(sub));
+                if (!subdir.entryList(nameFilters).empty()) {
+                    haveUserRecordings = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    m_sessionFile = "";
+
+    settings.beginGroup("FileFinder");
+    settings.remove("audiopath");
+    settings.remove("lastpath");
+    settings.endGroup();
+
+    // These aren't files, but they work anyway with the current file
+    // finder
+    if (haveUserRecordings) {
+        m_audioFile = QString::fromStdString(recordingDirectory);
+    } else {
         m_audioFile = QString::fromStdString(bundledRecordingDirectory);
     }
 }
@@ -5428,6 +5464,8 @@ MainWindow::mainModelChanged(ModelId modelId)
         connect(m_mainLevelPan, SIGNAL(panChanged(float)),
                 this, SLOT(mainModelPanChanged(float)));
     }
+
+    rewindStart();
 }
 
 void
