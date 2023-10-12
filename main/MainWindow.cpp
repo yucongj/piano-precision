@@ -5428,6 +5428,8 @@ MainWindow::mainModelChanged(ModelId modelId)
         connect(m_mainLevelPan, SIGNAL(panChanged(float)),
                 this, SLOT(mainModelPanChanged(float)));
     }
+
+    rewindStart();
 }
 
 void
