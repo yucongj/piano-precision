@@ -427,7 +427,7 @@ main(int argc, char **argv)
             }
             },
           { ladspaPluginTypeKey,
-            { pluginDirPaths,
+            { {},
               QString("LADSPA_PATH"),
               false             // do not load from system paths
             }
