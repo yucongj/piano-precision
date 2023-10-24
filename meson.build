@@ -352,7 +352,7 @@ elif system == 'windows'
   capnp_cpp_plugin = svdeps_dir / 'bin/capnpc-c++'
 
   windows = import('windows')
-  rc = windows.compile_resources('icons/sv.rc')
+  rc = windows.compile_resources('icons/piano-precision.rc')
 
   general_defines += [
     '-DWIN32',
@@ -1142,7 +1142,7 @@ ppa_plugin = shared_library(
 
 qt_resource_files = qt.preprocess(
   qresources: [
-  'sonic-visualiser.qrc',
+  'piano-precision.qrc',
 ])
 
 if compiler == 'msvc'
@@ -1183,12 +1183,12 @@ else
 endif # system
 
 install_data(
-  'sonic-visualiser.desktop',
+  'piano-precision.desktop',
   install_dir : get_option('datadir') / 'applications',
 )
 
 install_data(
-  'icons/sonic-visualiser.svg',
+  'icons/piano-precision-icon.svg',
   install_dir : get_option('datadir') / 'icons/hicolor/scalable/apps',
 )
 

@@ -71,13 +71,13 @@
     <file>icons/scalable/zoom-out.svg</file>
     <file>icons/scalable/zoom-fit.svg</file>
     <file>icons/scalable/zoom-reset.svg</file>
-    <file>icons/scalable/sv-icon-light.svg</file>
-    <file>icons/scalable/sv-icon.svg</file>
-    <file>icons/scalable/sv-splash.svg</file>
-    <file>icons/scalable/sv-splash.png</file>
-    <file>icons/scalable/sv-splash@2x.png</file>
-    <file>icons/scalable/sv-splash-dark.svg</file>
 
+    <file>icons/piano-precision-icon.svg</file>
+    <file>icons/piano-precision-icon-16x16.png</file>
+    <file>icons/piano-precision-icon-32x32.png</file>
+    <file>icons/piano-precision-icon-64x64.png</file>
+    <file>icons/piano-precision-icon-128x128.png</file>
+    <file>icons/piano-precision-icon-256x256.png</file>
     <file>icons/image.png</file>
     <file>icons/draw-curve.png</file>
     <file>icons/measure.png</file>
@@ -92,13 +92,6 @@
     <file>icons/stereo.png</file>
     <file>icons/sharpen.png</file>
     <file>icons/emptypage.png</file>
-    <file>icons/sv-16x16.png</file>
-    <file>icons/sv-22x22.png</file>
-    <file>icons/sv-24x24.png</file>
-    <file>icons/sv-32x32.png</file>
-    <file>icons/sv-48x48.png</file>
-    <file>icons/sv-64x64.png</file>
-    <file>icons/sv-128x128.png</file>
     <file>samples/bass.wav</file>
     <file>samples/beep.wav</file>
     <file>samples/bounce.wav</file>
@@ -116,14 +109,10 @@
     <file>samples/strike.wav</file>
     <file>samples/tap.wav</file>
     <file>templates/default.svt</file>
-    <file>templates/Scrolling Waveforms.svt</file>
-    <file>templates/Spectrograms.svt</file>
-    <file>templates/Waveform and Melodic Range Spectrogram.svt</file>
     <file>i18n/sonic-visualiser_ru.qm</file>
     <file>i18n/sonic-visualiser_en_GB.qm</file>
     <file>i18n/sonic-visualiser_en_US.qm</file>
     <file>i18n/sonic-visualiser_cs_CZ.qm</file>
-    <file>i18n/tips_en.xml</file>
     <file>README.md</file>
     <file>CHANGELOG</file>
     <file>COPYING</file>
