@@ -440,9 +440,10 @@ main(int argc, char **argv)
     ScoreFinder::initialiseAlignerEnvironmentVariables();
     
     QIcon icon;
-    int sizes[] = { 16, 22, 24, 32, 48, 64, 128 };
+    int sizes[] = { 16, 32, 64, 128, 256 };
     for (int i = 0; i < int(sizeof(sizes)/sizeof(sizes[0])); ++i) {
-        icon.addFile(QString(":icons/sv-%1x%2.png").arg(sizes[i]).arg(sizes[i]));
+        icon.addFile(QString(":icons/piano-precision-icon-%1x%2.png")
+                     .arg(sizes[i]).arg(sizes[i]));
     }
     QApplication::setWindowIcon(icon);
 

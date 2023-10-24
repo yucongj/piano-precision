@@ -68,7 +68,7 @@ deploy/macos/copy-scores.sh "$full_name"
 echo
 echo "Copying in icon."
 
-cp "icons/sv-macicon.icns" "$source/Contents/Resources"
+cp "icons/piano-precision-macicon.icns" "$source/Contents/Resources"
 
 echo
 echo "Copying in frameworks and plugins from Qt installation directory."

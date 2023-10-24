@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Piano Precision
+Comment=Analyze recorded piano performances together with their scores
+Exec=piano-precision %U
+Keywords=audio; sound
+Terminal=false
+Type=Application
+Icon=piano-precision-icon
+Categories=Audio;AudioVideo;
+MimeType=application/x-ogg;audio/mp3;audio/ogg;audio/mpeg;audio/mpegurl;audio/x-flac;audio/x-mp3;audio/x-mpeg;audio/x-mpegurl;audio/x-wav;audio/wav;application/ogg;audio/x-vorbis+ogg;
