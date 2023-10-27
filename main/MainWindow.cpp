@@ -132,6 +132,7 @@
 #include <QFileSystemWatcher>
 #include <QTextEdit>
 #include <QWidgetAction>
+#include <QGroupBox>
 
 #include <iostream>
 #include <cstdio>
@@ -246,10 +247,36 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     m_scorePageLabel->setAlignment(Qt::AlignHCenter);
 
     scoreWidgetLayout->addWidget(m_scoreWidget, 0, 0, 1, 3);
+    scoreWidgetLayout->setRowStretch(0, 10);
+    
     scoreWidgetLayout->addWidget(m_scorePageDownButton, 1, 0);
     scoreWidgetLayout->addWidget(m_scorePageLabel, 1, 1);
     scoreWidgetLayout->addWidget(m_scorePageUpButton, 1, 2);
+
+    QGroupBox *selectionGroupBox = new QGroupBox(tr("Selection within Score"));
+    QGridLayout *selectionLayout = new QGridLayout;
     
+    QLabel *selectFromLabel = new QLabel(tr("From:"));
+    m_selectFrom = new QLabel("");
+    QPushButton *selectFromButton = new QPushButton(tr("Choose"));
+
+    QLabel *selectToLabel = new QLabel(tr("To:"));
+    m_selectTo = new QLabel("");
+    QPushButton *selectToButton = new QPushButton(tr("Choose"));
+
+    selectionLayout->addWidget(new QLabel(" "), 0, 0);
+    selectionLayout->addWidget(selectFromLabel, 0, 1, Qt::AlignRight);
+    selectionLayout->addWidget(m_selectFrom, 0, 2);
+    selectionLayout->addWidget(selectFromButton, 0, 3);
+    selectionLayout->addWidget(selectToLabel, 1, 1, Qt::AlignRight);
+    selectionLayout->addWidget(m_selectTo, 1, 2);
+    selectionLayout->addWidget(selectToButton, 1, 3);
+    selectionLayout->setColumnStretch(2, 10);
+
+    selectionGroupBox->setLayout(selectionLayout);
+
+    scoreWidgetLayout->addWidget(selectionGroupBox, 2, 0, 1, 3);
+
     scoreWidgetContainer->setLayout(scoreWidgetLayout);
 
     m_mainScroll = new QScrollArea(frame);

@@ -204,6 +204,8 @@ protected:
     QPushButton             *m_scorePageDownButton;
     QPushButton             *m_scorePageUpButton;
     QLabel                  *m_scorePageLabel;
+    QLabel                  *m_selectFrom;
+    QLabel                  *m_selectTo;
 
     bool                     m_mainMenusCreated;
     QMenu                   *m_paneMenu;
