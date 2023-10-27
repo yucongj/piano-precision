@@ -1768,6 +1768,10 @@ MainWindow::prepareTransformsMenu()
             this,
             SLOT(installedTransformsPopulated()));
 
+    std::set<Transform::Type> restrictedTo;
+    restrictedTo.insert(Transform::FeatureExtraction);
+    TransformFactory::getInstance()->restrictTransformTypes(restrictedTo);
+    
     QTimer::singleShot(150, TransformFactory::getInstance(),
                        SLOT(startPopulatingInstalledTransforms()));
 }
