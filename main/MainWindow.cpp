@@ -133,6 +133,7 @@
 #include <QTextEdit>
 #include <QWidgetAction>
 #include <QGroupBox>
+#include <QButtonGroup>
 
 #include <iostream>
 #include <cstdio>
@@ -255,14 +256,44 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
 
     QGroupBox *selectionGroupBox = new QGroupBox(tr("Selection within Score"));
     QGridLayout *selectionLayout = new QGridLayout;
+
+    QButtonGroup *selectGroup = new QButtonGroup;
+    selectGroup->setExclusive(false); // want to allow nothing to be checked
     
     QLabel *selectFromLabel = new QLabel(tr("From:"));
     m_selectFrom = new QLabel("");
     QPushButton *selectFromButton = new QPushButton(tr("Choose"));
+    selectFromButton->setCheckable(true);
+    selectGroup->addButton(selectFromButton);
 
     QLabel *selectToLabel = new QLabel(tr("To:"));
     m_selectTo = new QLabel("");
     QPushButton *selectToButton = new QPushButton(tr("Choose"));
+    selectToButton->setCheckable(true);
+    selectGroup->addButton(selectToButton);
+
+    connect(selectFromButton, &QPushButton::toggled, [=] (bool checked) {
+        SVDEBUG << "selectFromButton toggled: checked = " << checked << endl;
+        if (checked) {
+            selectToButton->setChecked(false);
+            m_scoreWidget->setInteractionMode
+                (ScoreWidget::InteractionMode::SelectStart);
+        } else {
+            m_scoreWidget->setInteractionMode
+                (ScoreWidget::InteractionMode::Navigate);
+        }
+    });
+    connect(selectToButton, &QPushButton::toggled, [=] (bool checked) {
+        SVDEBUG << "selectToButton toggled: checked = " << checked << endl;
+        if (checked) {
+            selectFromButton->setChecked(false);
+            m_scoreWidget->setInteractionMode
+                (ScoreWidget::InteractionMode::SelectEnd);
+        } else {
+            m_scoreWidget->setInteractionMode
+                (ScoreWidget::InteractionMode::Navigate);
+        }
+    });
 
     selectionLayout->addWidget(new QLabel(" "), 0, 0);
     selectionLayout->addWidget(selectFromLabel, 0, 1, Qt::AlignRight);
@@ -2473,10 +2504,16 @@ MainWindow::scorePageUpButtonClicked()
 void
 MainWindow::scoreInteractionModeChanged(ScoreWidget::InteractionMode mode)
 {
+    SVDEBUG << "MainWindow::scoreInteractionModeChanged: mode = " << int(mode)
+            << endl;
+    
     ViewManager::ToolMode toolMode = ViewManager::NavigateMode;
     
     if (mode == ScoreWidget::InteractionMode::Edit) {
         toolMode = ViewManager::EditMode;
+    } else if (mode == ScoreWidget::InteractionMode::SelectStart ||
+               mode == ScoreWidget::InteractionMode::SelectEnd) {
+        toolMode = ViewManager::SelectMode;
     }
     
     for (auto &p : m_toolActions) {
@@ -3258,6 +3295,7 @@ MainWindow::documentRestored()
 void
 MainWindow::toolNavigateSelected()
 {
+    SVDEBUG << "MainWindow::toolNavigateSelected" << endl;
     m_viewManager->setToolMode(ViewManager::NavigateMode);
     m_scoreWidget->setInteractionMode(ScoreWidget::InteractionMode::Navigate);
 }
@@ -3265,12 +3303,14 @@ MainWindow::toolNavigateSelected()
 void
 MainWindow::toolSelectSelected()
 {
+    SVDEBUG << "MainWindow::toolSelectSelected" << endl;
     m_viewManager->setToolMode(ViewManager::SelectMode);
 }
 
 void
 MainWindow::toolEditSelected()
 {
+    SVDEBUG << "MainWindow::toolEditSelected" << endl;
     m_viewManager->setToolMode(ViewManager::EditMode);
     m_scoreWidget->setInteractionMode(ScoreWidget::InteractionMode::Edit);
 }

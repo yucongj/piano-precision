@@ -62,7 +62,7 @@ public:
     /**
      * Mode for mouse interaction.
      */
-    enum class InteractionMode { None, Navigate, Edit };
+    enum class InteractionMode { None, Navigate, Edit, SelectStart, SelectEnd };
 
     /**
      * Return the current interaction mode.
