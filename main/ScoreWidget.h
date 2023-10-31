@@ -100,6 +100,18 @@ signals:
     void scorePositionHighlighted(int, ScoreWidget::InteractionMode);
     void scorePositionActivated(int, ScoreWidget::InteractionMode);
     void interactionEnded(ScoreWidget::InteractionMode); // e.g. because mouse left widget
+
+    /**
+     * Emitted when the selected region of score changes. The start
+     * and end are given using score positions. The toStartOfScore and
+     * toEndOfScore flags are set if the start and/or end correspond
+     * to the very start/end of the whole score, in which case the UI
+     * may prefer to show the value using terms like "start" or "end"
+     * rather than positional values.
+     */
+    void selectionChanged(int startPosition, bool toStartOfScore,
+                          int endPosition, bool toEndOfScore);
+    
     void pageChanged(int page);
 
 protected:
@@ -121,6 +133,8 @@ private:
     InteractionMode m_mode;
     int m_scorePosition;
     int m_mousePosition;
+    int m_selectStartPosition;
+    int m_selectEndPosition;
     bool m_mouseActive;
 
     QRectF rectForPosition(int pos);

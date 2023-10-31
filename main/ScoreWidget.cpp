@@ -25,6 +25,7 @@
 
 static QColor navigateHighlightColour("#59c4df");
 static QColor editHighlightColour("#ffbd00");
+static QColor selectHighlightColour("#913d88");
 
 using std::vector;
 using std::pair;
@@ -139,6 +140,9 @@ ScoreWidget::setElements(ScoreElements elements)
     for (auto e: elements) {
         m_elementsByPosition.insert({ e.position, e });
     }
+
+    m_selectStartPosition = -1;
+    m_selectEndPosition = -1;
 }
 
 void
@@ -190,6 +194,30 @@ ScoreWidget::mousePressEvent(QMouseEvent *e)
     }
     
     mouseMoveEvent(e);
+
+    if (!m_elements.empty()) {
+        if (m_mode == InteractionMode::SelectStart) {
+            m_selectStartPosition = m_mousePosition;
+            if (m_selectEndPosition <= m_selectStartPosition) {
+                m_selectEndPosition = -1;
+            }
+#ifdef DEBUG_SCORE_WIDGET
+            SVDEBUG << "ScoreWidget::mousePressEvent: Set select start to "
+                    << m_selectStartPosition << " (end is "
+                    << m_selectEndPosition << ")" << endl;
+#endif
+        } else if (m_mode == InteractionMode::SelectEnd) {
+            m_selectEndPosition = m_mousePosition;
+            if (m_selectStartPosition >= m_selectEndPosition) {
+                m_selectStartPosition = -1;
+            }
+#ifdef DEBUG_SCORE_WIDGET
+            SVDEBUG << "ScoreWidget::mousePressEvent: Set select end to "
+                    << m_selectEndPosition << " (start is "
+                    << m_selectStartPosition << ")" << endl;
+#endif
+        }
+    }
     
     if (m_mousePosition >= 0) {
 #ifdef DEBUG_SCORE_WIDGET
@@ -375,6 +403,9 @@ ScoreWidget::paintEvent(QPaintEvent *e)
     int xorigin = (mySize.width() - imageSize.width() / dpr) / 2;
     int yorigin = (mySize.height() - imageSize.height() / dpr) / 2;
 
+    // Show a highlight bar under the mouse if the interaction mode is
+    // anything other than None - the colour depends on the mode
+    
     if (m_mode != InteractionMode::None) {
 
         int position = m_scorePosition;
@@ -384,22 +415,54 @@ ScoreWidget::paintEvent(QPaintEvent *e)
         
         QRectF rect = rectForPosition(position);
         if (!rect.isNull()) {
-            QColor colour = (m_mode == InteractionMode::Edit ?
-                             editHighlightColour :
-                             navigateHighlightColour);
-            colour.setAlpha(160);
+
+            QColor highlightColour;
+
+            switch (m_mode) {
+            case InteractionMode::Navigate:
+                highlightColour = navigateHighlightColour;
+                break;
+            case InteractionMode::Edit:
+                highlightColour = editHighlightColour;
+                break;
+            case InteractionMode::SelectStart:
+            case InteractionMode::SelectEnd:
+                highlightColour = selectHighlightColour;
+                break;
+            default: // None already handled in conditional above
+                throw std::runtime_error("Unhandled case in mode switch");
+            }
+            
+            highlightColour.setAlpha(160);
             paint.setPen(Qt::NoPen);
-            paint.setBrush(colour);
+            paint.setBrush(highlightColour);
+            
 #ifdef DEBUG_SCORE_WIDGET
             SVDEBUG << "ScoreWidget::paint: highlighting rect with origin "
                     << rect.x() << "," << rect.y() << " and size "
                     << rect.width() << "x" << rect.height()
-                    << " using colour " << colour.name() << endl;
+                    << " using colour " << highlightColour.name() << endl;
 #endif
+            
             paint.drawRect(rect);
         }
     }
 
+    // Highlight the current selection if there is one
+
+    if (!m_elements.empty() &&
+        (m_selectStartPosition != -1 || m_selectEndPosition != -1)) {
+        int start = m_selectStartPosition;
+        if (start == -1) {
+            start = m_elementsByPosition.begin()->first;
+        }
+        int end = m_selectEndPosition;
+        if (end == -1) {
+            end = m_elementsByPosition.rbegin()->first;
+        }
+        
+    }
+    
     paint.drawImage
         (QRect(xorigin, yorigin,
                imageSize.width() / dpr,
