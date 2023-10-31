@@ -235,6 +235,8 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
             this, SLOT(scoreInteractionModeChanged(ScoreWidget::InteractionMode)));
     connect(m_scoreWidget, SIGNAL(interactionEnded(ScoreWidget::InteractionMode)),
             this, SLOT(scoreInteractionEnded(ScoreWidget::InteractionMode)));
+    connect(m_scoreWidget, SIGNAL(selectionChanged(int, bool, int, bool)),
+            this, SLOT(scoreSelectionChanged(int, bool, int, bool)));
     connect(m_scoreWidget, SIGNAL(pageChanged(int)),
             this, SLOT(scorePageChanged(int)));
 
@@ -2470,6 +2472,27 @@ MainWindow::highlightFrameInScore(sv_frame_t frame)
     }
 
     m_scoreWidget->setScorePosition(position);
+}
+
+void
+MainWindow::scoreSelectionChanged(int start, bool atStart,
+                                  int end, bool atEnd)
+{
+    SVDEBUG << "MainWindow::scoreSelectionChanged: start = " << start
+            << ", atStart = " << atStart << ", end = " << end
+            << ", atEnd = " << atEnd << endl;
+
+    if (atStart) {
+        m_selectFrom->setText(tr("Start"));
+    } else {
+        m_selectFrom->setText(QString("%1").arg(start));
+    }
+
+    if (atEnd) {
+        m_selectTo->setText(tr("End"));
+    } else {
+        m_selectTo->setText(QString("%1").arg(end));
+    }
 }
 
 void

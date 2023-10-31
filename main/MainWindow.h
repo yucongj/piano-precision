@@ -139,6 +139,7 @@ protected slots:
     void scoreInteractionEnded(ScoreWidget::InteractionMode);
     void frameIlluminated(sv_frame_t);
     void highlightFrameInScore(sv_frame_t);
+    void scoreSelectionChanged(int, bool, int, bool);
     void scorePageChanged(int page);
     void scorePageDownButtonClicked();
     void scorePageUpButtonClicked();

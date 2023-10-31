@@ -195,28 +195,43 @@ ScoreWidget::mousePressEvent(QMouseEvent *e)
     
     mouseMoveEvent(e);
 
-    if (!m_elements.empty() && m_mousePosition >= 0) {
+    if (!m_elements.empty() && m_mousePosition >= 0 &&
+        (m_mode == InteractionMode::SelectStart ||
+         m_mode == InteractionMode::SelectEnd)) {
+
         if (m_mode == InteractionMode::SelectStart) {
             m_selectStartPosition = m_mousePosition;
             if (m_selectEndPosition <= m_selectStartPosition) {
                 m_selectEndPosition = -1;
             }
-#ifdef DEBUG_SCORE_WIDGET
-            SVDEBUG << "ScoreWidget::mousePressEvent: Set select start to "
-                    << m_selectStartPosition << " (end is "
-                    << m_selectEndPosition << ")" << endl;
-#endif
-        } else if (m_mode == InteractionMode::SelectEnd) {
+        } else {
             m_selectEndPosition = m_mousePosition;
             if (m_selectStartPosition >= m_selectEndPosition) {
                 m_selectStartPosition = -1;
             }
-#ifdef DEBUG_SCORE_WIDGET
-            SVDEBUG << "ScoreWidget::mousePressEvent: Set select end to "
-                    << m_selectEndPosition << " (start is "
-                    << m_selectStartPosition << ")" << endl;
-#endif
         }
+        
+#ifdef DEBUG_SCORE_WIDGET
+        SVDEBUG << "ScoreWidget::mousePressEvent: Set select start to "
+                << m_selectStartPosition << " and end to "
+                << m_selectEndPosition << endl;
+#endif
+
+        int start = m_selectStartPosition;
+        int end = m_selectEndPosition;
+        int scoreStart = m_elementsByPosition.begin()->second.position;
+        int scoreEnd = m_elementsByPosition.rbegin()->second.position;
+        bool atStart = false, atEnd = false;
+        if (start == -1 || start == scoreStart) {
+            start = scoreStart;
+            atStart = true;
+        }
+        if (end == -1 || end == scoreEnd) {
+            end = scoreEnd;
+            atEnd = true;
+        }
+        
+        emit selectionChanged(start, atStart, end, atEnd);
     }
     
     if (m_mousePosition >= 0) {
