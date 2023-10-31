@@ -195,7 +195,7 @@ ScoreWidget::mousePressEvent(QMouseEvent *e)
     
     mouseMoveEvent(e);
 
-    if (!m_elements.empty()) {
+    if (!m_elements.empty() && m_mousePosition >= 0) {
         if (m_mode == InteractionMode::SelectStart) {
             m_selectStartPosition = m_mousePosition;
             if (m_selectEndPosition <= m_selectStartPosition) {
@@ -266,6 +266,21 @@ ScoreWidget::rectForPosition(int pos)
 
     // just use the first element for now...
 
+    const ScoreElement &elt = itr->second;
+    
+#ifdef DEBUG_SCORE_WIDGET
+    SVDEBUG << "ScoreWidget::rectForPosition: Position "
+            << pos << " has corresponding element id="
+            << elt.id << " on page=" << elt.page << " with x="
+            << elt.x << ", y=" << elt.y << ", sy=" << elt.sy << endl;
+#endif
+
+    return rectForElement(elt);
+}
+
+QRectF
+ScoreWidget::rectForElement(const ScoreElement &elt)
+{
     // Now, we know the units are a bit mad for these values.  I
     // think(?) they are in inches * dpi * constant where dpi = 360
     // and constant = 12, so inches * 4320 or mm * 170.08 approx.
@@ -282,18 +297,9 @@ ScoreWidget::rectForPosition(int pos)
     // (pixel_height)/50513.4 and x ratio (pixel_width)/35716.5. Oh,
     // and that's times the device pixel ratio.
 
-    ScoreElement elt = itr->second;
-
-#ifdef DEBUG_SCORE_WIDGET
-    SVDEBUG << "ScoreWidget::rectForPosition: Position "
-            << pos << " has corresponding element id="
-            << elt.id << " on page=" << elt.page << " with x="
-            << elt.x << ", y=" << elt.y << ", sy=" << elt.sy << endl;
-#endif
-
     if (elt.page != m_page) {
 #ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidget::rectForPosition: Position " << pos
+        SVDEBUG << "ScoreWidget::rectForElement: Element at " << elt.position
                 << " is not on the current page (page " << elt.page
                 << ", we are on " << m_page << ")" << endl;
 #endif
@@ -443,8 +449,10 @@ ScoreWidget::paintEvent(QPaintEvent *e)
                     << rect.width() << "x" << rect.height()
                     << " using colour " << highlightColour.name() << endl;
 #endif
-            
-            paint.drawRect(rect);
+
+            if (rect != QRectF()) {
+                paint.drawRect(rect);
+            }
         }
     }
 
@@ -452,15 +460,54 @@ ScoreWidget::paintEvent(QPaintEvent *e)
 
     if (!m_elements.empty() &&
         (m_selectStartPosition != -1 || m_selectEndPosition != -1)) {
-        int start = m_selectStartPosition;
-        if (start == -1) {
-            start = m_elementsByPosition.begin()->first;
-        }
-        int end = m_selectEndPosition;
-        if (end == -1) {
-            end = m_elementsByPosition.rbegin()->first;
-        }
+
+        QColor fillColour = selectHighlightColour.lighter();
+        fillColour.setAlpha(100);
+        paint.setPen(Qt::NoPen);
+        paint.setBrush(fillColour);
         
+        PositionElementMap::iterator i0 = m_elementsByPosition.begin();
+        if (m_selectStartPosition > 0) {
+            i0 = m_elementsByPosition.lower_bound(m_selectStartPosition);
+        }
+        PositionElementMap::iterator i1 = m_elementsByPosition.end();
+        if (m_selectEndPosition > 0) {
+            i1 = m_elementsByPosition.lower_bound(m_selectEndPosition);
+        }
+
+        int prevY = -1;
+        for (auto i = i0; i != i1 && i != m_elementsByPosition.end(); ++i) {
+            if (i->second.page < m_page) {
+                continue;
+            }
+            if (i->second.page > m_page) {
+                break;
+            }
+            const ScoreElement &elt(i->second);
+            QRectF rect = rectForElement(elt);
+            if (rect == QRectF()) {
+                continue;
+            }
+            auto j = i;
+            ++j;
+            if (i == i0) {
+                prevY = elt.y;
+            }
+            if (elt.y != prevY) {
+                rect.setX(0);
+                rect.setWidth(m_image.width());
+            } else {
+                rect.setWidth(m_image.width() - rect.x());
+            }
+            if (j != m_elementsByPosition.end() && j->second.y == elt.y) {
+                QRectF nextRect = rectForElement(j->second);
+                if (nextRect != QRectF()) {
+                    rect.setWidth(nextRect.x() - rect.x());
+                }
+            }
+            paint.drawRect(rect);
+            prevY = elt.y;
+        }
     }
     
     paint.drawImage

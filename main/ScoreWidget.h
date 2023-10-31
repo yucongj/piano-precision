@@ -138,10 +138,12 @@ private:
     bool m_mouseActive;
 
     QRectF rectForPosition(int pos);
+    QRectF rectForElement(const ScoreElement &elt);
     int positionForPoint(QPoint point);
     
     ScoreElements m_elements;
-    std::multimap<int, ScoreElement> m_elementsByPosition;
+    typedef std::multimap<int, ScoreElement> PositionElementMap;
+    PositionElementMap m_elementsByPosition;
 };
 
 #endif
