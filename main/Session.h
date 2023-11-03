@@ -21,18 +21,31 @@
 
 #include "view/View.h"
 
+#include "data/model/Model.h"
+
 class Session
 {
 public:
+    Session();
+    virtual ~Session();
 
+    void setDocument(Document *,
+                     View *topView,
+                     View *bottomView,
+                     Layer *timeRuler);
+
+    void unsetDocument();
+    
+    void setMainModel(ModelId);
 
 private:
     // I don't own any of these. The SV main window owns the document
     // and views; the document owns the layers and models
     Document *m_document;
+    ModelId m_mainModel;
     View *m_topView;
     View *m_bottomView;
-    TimeRulerLayer *m_timeRulerLayer;
+    Layer *m_timeRulerLayer;
     WaveformLayer *m_waveformLayer;
     TimeValueLayer *m_onsetsLayer;
     TimeValueLayer *m_tempoLayer;

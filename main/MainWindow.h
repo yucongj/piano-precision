@@ -19,6 +19,7 @@
 #include "framework/MainWindowBase.h"
 
 #include "ScoreWidget.h"
+#include "Session.h"
 
 class VersionTester;
 class Surveyer;
@@ -186,6 +187,8 @@ protected slots:
     virtual void saveSessionAsTemplate();
     virtual void manageSavedTemplates();
 
+    virtual QString getDefaultSessionTemplate() const;
+
     virtual void website();
     virtual void help();
     virtual void about();
@@ -265,6 +268,8 @@ protected:
     VersionTester           *m_versionTester;
     QString                  m_newerVersionIs;
 
+    Session                  m_session;
+    
     struct LayerConfiguration {
         LayerConfiguration(LayerFactory::LayerType _layer
                                                = LayerFactory::TimeRuler,

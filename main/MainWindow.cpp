@@ -20,6 +20,7 @@
 #include "ScoreWidget.h" // Added Oct 6, 2021
 #include "ScorePositionReader.h" // Added Oct 6, 2021
 #include "ScoreFinder.h"
+#include "Session.h"
 
 #include "view/Pane.h"
 #include "view/PaneStack.h"
@@ -2257,7 +2258,8 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     
     QSettings settings;
     settings.beginGroup("MainWindow");
-    settings.setValue("sessiontemplate", QString::fromStdString(templateFile));
+//!!!    settings.setValue("sessiontemplate", QString::fromStdString(templateFile));
+    settings.setValue("sessiontemplate", "");
     settings.endGroup();
     
     ScorePositionReader posReader;
@@ -3944,7 +3946,7 @@ MainWindow::newSession()
     closeSession();
     stop();
     createDocument();
-
+/*!!!
     Pane *pane = m_paneStack->addPane();
 
     connect(pane, SIGNAL(contextHelpChanged(const QString &)),
@@ -3966,21 +3968,63 @@ MainWindow::newSession()
     CommandHistory::getInstance()->documentSaved();
     documentRestored();
     updateMenuStates();
+*/
+}
+
+QString
+MainWindow::getDefaultSessionTemplate() const
+{
+    return "";
 }
 
 void
 MainWindow::documentReplaced()
 {
+    SVDEBUG << "MainWindow::documentReplaced" << endl;
+    
     if (m_document) {
         connect(m_document, SIGNAL(activity(QString)),
                 m_activityLog, SLOT(activityHappened(QString)));
     }
+
+    Pane *topPane = m_paneStack->addPane();
+    Pane *bottomPane = m_paneStack->addPane();
+
+    connect(topPane, SIGNAL(contextHelpChanged(const QString &)),
+            this, SLOT(contextHelpChanged(const QString &)));
+
+    connect(bottomPane, SIGNAL(contextHelpChanged(const QString &)),
+            this, SLOT(contextHelpChanged(const QString &)));
+
+    m_overview->registerView(topPane);
+    m_overview->registerView(bottomPane);
+
+    if (!m_timeRulerLayer) {
+        m_timeRulerLayer = m_document->createMainModelLayer
+            (LayerFactory::TimeRuler);
+    }
+
+    m_document->addLayerToView(topPane, m_timeRulerLayer);
+
+    SVDEBUG << "MainWindow::documentReplaced: Added views, now calling m_session.setDocument" << endl;
+    
+    m_session.setDocument(m_document, topPane, bottomPane, m_timeRulerLayer);
+
+    CommandHistory::getInstance()->clear();
+    CommandHistory::getInstance()->documentSaved();
+    documentRestored();
+    updateMenuStates();
 }
 
 void
 MainWindow::closeSession()
 {
+    SVDEBUG << "MainWindow::closeSession" << endl;
+    
     if (!checkSaveModified()) return;
+
+    SVDEBUG << "MainWindow::closeSession: telling session about it" << endl;
+    m_session.unsetDocument();
 
     while (m_paneStack->getPaneCount() > 0) {
 
@@ -4024,7 +4068,7 @@ MainWindow::closeSession()
     m_sessionFile = "";
     m_originalLocation = "";
     setWindowTitle(QApplication::applicationName());
-
+    
     CommandHistory::getInstance()->clear();
     CommandHistory::getInstance()->documentSaved();
     documentRestored();
@@ -5458,6 +5502,8 @@ MainWindow::modelAdded(ModelId modelId)
 void
 MainWindow::mainModelChanged(ModelId modelId)
 {
+    SVDEBUG << "MainWindow::mainModelChanged" << endl;
+    
     m_panLayer->setModel(modelId);
 
     MainWindowBase::mainModelChanged(modelId);
@@ -5470,6 +5516,10 @@ MainWindow::mainModelChanged(ModelId modelId)
     }
 
     rewindStart();
+
+    SVDEBUG << "MainWindow::mainModelChanged: Now calling m_session.setMainModel" << endl;
+
+    m_session.setMainModel(modelId);
 }
 
 void
