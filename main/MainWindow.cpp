@@ -2246,6 +2246,8 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
         return;
     }
 
+    m_scoreId = scoreName;
+/*!!!    
     std::string templateFile =
         ScoreFinder::getScoreFile(scoreName.toStdString(), "svt");
     if (templateFile == "") {
@@ -2255,7 +2257,7 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
                              QMessageBox::Ok);
         return;
     }
-    
+*/    
     QSettings settings;
     settings.beginGroup("MainWindow");
 //!!!    settings.setValue("sessiontemplate", QString::fromStdString(templateFile));
@@ -5519,7 +5521,7 @@ MainWindow::mainModelChanged(ModelId modelId)
 
     SVDEBUG << "MainWindow::mainModelChanged: Now calling m_session.setMainModel" << endl;
 
-    m_session.setMainModel(modelId);
+    m_session.setMainModel(modelId, m_scoreId);
 }
 
 void

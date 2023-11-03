@@ -268,6 +268,7 @@ protected:
     VersionTester           *m_versionTester;
     QString                  m_newerVersionIs;
 
+    QString                  m_scoreId;
     Session                  m_session;
     
     struct LayerConfiguration {

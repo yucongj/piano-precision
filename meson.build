@@ -1101,6 +1101,7 @@ sv_main_moc_files = qt.preprocess(
   'main/Surveyer.h',
   'main/SVSplash.h',
   'main/PreferencesDialog.h',
+  'main/Session.h',
   'main/ScoreWidget.h',
 ])
 

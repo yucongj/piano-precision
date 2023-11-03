@@ -23,8 +23,10 @@
 
 #include "data/model/Model.h"
 
-class Session
+class Session : public QObject
 {
+    Q_OBJECT
+    
 public:
     Session();
     virtual ~Session();
@@ -36,19 +38,25 @@ public:
 
     void unsetDocument();
     
-    void setMainModel(ModelId);
+    void setMainModel(ModelId modelId, QString scoreId);
 
+protected slots:
+    void modelReady(ModelId);
+    
 private:
     // I don't own any of these. The SV main window owns the document
     // and views; the document owns the layers and models
     Document *m_document;
+    QString m_scoreId;
     ModelId m_mainModel;
     View *m_topView;
     View *m_bottomView;
     Layer *m_timeRulerLayer;
     WaveformLayer *m_waveformLayer;
     TimeValueLayer *m_onsetsLayer;
+    ModelId m_onsetsModel;
     TimeValueLayer *m_tempoLayer;
+    ModelId m_tempoModel;
 };
 
 #endif
