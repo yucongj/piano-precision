@@ -242,6 +242,7 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
             this, SLOT(scorePageChanged(int)));
 
     m_alignButton = new QPushButton(tr("Align"));
+    m_alignButton->setIcon(IconLoader().load("align"));
     connect(m_alignButton, SIGNAL(clicked()),
             this, SLOT(alignButtonClicked()));
     m_alignButton->setEnabled(false);
@@ -2974,7 +2975,7 @@ MainWindow::setupToolbars()
             m_soloAction, SLOT(setChecked(bool)));
     connect(m_soloAction, SIGNAL(triggered()), this, SLOT(playSoloToggled()));
     connect(this, SIGNAL(canChangeSolo(bool)), m_soloAction, SLOT(setEnabled(bool)));
-
+/*!!! Not in Piano Precision, we have our own align button elsewhere
     QAction *alAction = toolbar->addAction(il.load("align"),
                                            tr("Align File Timelines"));
     alAction->setCheckable(true);
@@ -2985,13 +2986,13 @@ MainWindow::setupToolbars()
             alAction, SLOT(setChecked(bool)));
     connect(alAction, SIGNAL(triggered()), this, SLOT(alignToggled()));
     connect(this, SIGNAL(canAlign(bool)), alAction, SLOT(setEnabled(bool)));
-
+*/
     m_keyReference->registerShortcut(m_playAction);
     m_keyReference->registerShortcut(m_recordAction);
     m_keyReference->registerShortcut(m_playSelectionAction);
     m_keyReference->registerShortcut(m_playLoopAction);
     m_keyReference->registerShortcut(m_soloAction);
-    m_keyReference->registerShortcut(alAction);
+//!!!    m_keyReference->registerShortcut(alAction);
     m_keyReference->registerShortcut(m_rwdAction);
     m_keyReference->registerShortcut(m_ffwdAction);
     m_keyReference->registerShortcut(m_rwdSimilarAction);
@@ -3004,7 +3005,7 @@ MainWindow::setupToolbars()
     menu->addAction(m_playSelectionAction);
     menu->addAction(m_playLoopAction);
     menu->addAction(m_soloAction);
-    menu->addAction(alAction);
+//!!!    menu->addAction(alAction);
     menu->addSeparator();
     menu->addAction(m_rwdAction);
     menu->addAction(m_ffwdAction);
@@ -3022,7 +3023,7 @@ MainWindow::setupToolbars()
     m_rightButtonPlaybackMenu->addAction(m_playSelectionAction);
     m_rightButtonPlaybackMenu->addAction(m_playLoopAction);
     m_rightButtonPlaybackMenu->addAction(m_soloAction);
-    if (alAction) m_rightButtonPlaybackMenu->addAction(alAction);
+//!!!    if (alAction) m_rightButtonPlaybackMenu->addAction(alAction);
     m_rightButtonPlaybackMenu->addSeparator();
     m_rightButtonPlaybackMenu->addAction(m_rwdAction);
     m_rightButtonPlaybackMenu->addAction(m_ffwdAction);
