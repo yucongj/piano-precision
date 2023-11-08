@@ -241,6 +241,11 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     connect(m_scoreWidget, SIGNAL(pageChanged(int)),
             this, SLOT(scorePageChanged(int)));
 
+    m_alignButton = new QPushButton(tr("Calculate Alignment"));
+    connect(m_alignButton, SIGNAL(clicked()),
+            this, SLOT(alignButtonClicked()));
+    m_alignButton->setEnabled(false);
+    
     m_scorePageDownButton = new QPushButton("<<");
     connect(m_scorePageDownButton, SIGNAL(clicked()),
             this, SLOT(scorePageDownButtonClicked()));
@@ -253,9 +258,10 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     scoreWidgetLayout->addWidget(m_scoreWidget, 0, 0, 1, 3);
     scoreWidgetLayout->setRowStretch(0, 10);
     
-    scoreWidgetLayout->addWidget(m_scorePageDownButton, 1, 0);
-    scoreWidgetLayout->addWidget(m_scorePageLabel, 1, 1);
-    scoreWidgetLayout->addWidget(m_scorePageUpButton, 1, 2);
+    scoreWidgetLayout->addWidget(m_alignButton, 1, 0, 1, 3, Qt::AlignHCenter);
+    scoreWidgetLayout->addWidget(m_scorePageDownButton, 2, 0);
+    scoreWidgetLayout->addWidget(m_scorePageLabel, 2, 1);
+    scoreWidgetLayout->addWidget(m_scorePageUpButton, 2, 2);
 
     QGroupBox *selectionGroupBox = new QGroupBox(tr("Selection within Score"));
     QGridLayout *selectionLayout = new QGridLayout;
@@ -309,7 +315,7 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
 
     selectionGroupBox->setLayout(selectionLayout);
 
-    scoreWidgetLayout->addWidget(selectionGroupBox, 2, 0, 1, 3);
+    scoreWidgetLayout->addWidget(selectionGroupBox, 3, 0, 1, 3);
 
     scoreWidgetContainer->setLayout(scoreWidgetLayout);
 
@@ -2526,6 +2532,12 @@ MainWindow::scorePageUpButtonClicked()
     if (page + 1 < m_scoreWidget->getPageCount()) {
         m_scoreWidget->showPage(page + 1);
     }
+}
+
+void
+MainWindow::alignButtonClicked()
+{
+    m_session.beginAlignment();
 }
 
 void
@@ -5612,10 +5624,7 @@ MainWindow::mainModelChanged(ModelId modelId)
     SVDEBUG << "MainWindow::mainModelChanged: Now calling m_session.setMainModel" << endl;
 
     m_session.setMainModel(modelId, m_scoreId);
-
-    if (!modelId.isNone()) {
-        m_session.beginAlignment();
-    }
+    m_alignButton->setEnabled(!modelId.isNone());
 }
 
 void

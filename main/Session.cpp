@@ -89,7 +89,7 @@ Session::setMainModel(ModelId modelId, QString scoreId)
 
     m_waveformLayer = qobject_cast<WaveformLayer *>
         (m_document->createLayer(LayerFactory::Waveform));
-    m_waveformLayer->setBaseColour(cdb->getColourIndex(tr("Bright Blue")));
+    m_waveformLayer->setBaseColour(cdb->getColourIndex(tr("Orange")));
     
     m_document->addLayerToView(m_topView, m_waveformLayer);
     m_document->setModel(m_waveformLayer, modelId);

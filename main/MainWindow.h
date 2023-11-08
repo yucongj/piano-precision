@@ -144,6 +144,7 @@ protected slots:
     void scorePageChanged(int page);
     void scorePageDownButtonClicked();
     void scorePageUpButtonClicked();
+    void alignButtonClicked();
 
     virtual void playSpeedChanged(int);
     void playSoloToggled() override;
@@ -205,6 +206,7 @@ protected:
     
     QScrollArea             *m_mainScroll;
     ScoreWidget             *m_scoreWidget; // Added Oct 6, 2021
+    QPushButton             *m_alignButton;
     QPushButton             *m_scorePageDownButton;
     QPushButton             *m_scorePageUpButton;
     QLabel                  *m_scorePageLabel;
