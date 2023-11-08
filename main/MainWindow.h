@@ -140,6 +140,7 @@ protected slots:
     void scoreInteractionEnded(ScoreWidget::InteractionMode);
     void frameIlluminated(sv_frame_t);
     void highlightFrameInScore(sv_frame_t);
+    void scoreSelectionChanged(int, bool, int, bool);
     void scorePageChanged(int page);
     void scorePageDownButtonClicked();
     void scorePageUpButtonClicked();
@@ -207,6 +208,8 @@ protected:
     QPushButton             *m_scorePageDownButton;
     QPushButton             *m_scorePageUpButton;
     QLabel                  *m_scorePageLabel;
+    QLabel                  *m_selectFrom;
+    QLabel                  *m_selectTo;
 
     bool                     m_mainMenusCreated;
     QMenu                   *m_paneMenu;
