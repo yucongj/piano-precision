@@ -180,8 +180,8 @@ Session::modelReady(ModelId id)
     }
 
     if (QMessageBox::question
-        (m_topView, tr("Accept this alignment?"),
-         tr("Alignment finished. Do you want to save or cancel this alignment?"),
+        (m_topView, tr("Save alignment?"),
+         tr("<b>Alignment finished</b><p>Do you want to keep this alignment?"),
          QMessageBox::Save | QMessageBox::Cancel,
          QMessageBox::Save) ==
         QMessageBox::Save) {

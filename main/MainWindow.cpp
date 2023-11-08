@@ -308,12 +308,12 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
 
     selectionLayout->addWidget(new QLabel(" "), 0, 0);
     selectionLayout->addWidget(selectFromLabel, 0, 1, Qt::AlignRight);
-    selectionLayout->addWidget(m_selectFrom, 0, 2);
-    selectionLayout->addWidget(selectFromButton, 0, 3);
+    selectionLayout->addWidget(selectFromButton, 0, 2);
+    selectionLayout->addWidget(m_selectFrom, 0, 3);
     selectionLayout->addWidget(selectToLabel, 1, 1, Qt::AlignRight);
-    selectionLayout->addWidget(m_selectTo, 1, 2);
-    selectionLayout->addWidget(selectToButton, 1, 3);
-    selectionLayout->setColumnStretch(2, 10);
+    selectionLayout->addWidget(selectToButton, 1, 2);
+    selectionLayout->addWidget(m_selectTo, 1, 3);
+    selectionLayout->setColumnStretch(3, 10);
 
     selectionGroupBox->setLayout(selectionLayout);
 
@@ -1170,6 +1170,9 @@ MainWindow::setupViewMenu()
 
     m_keyReference->setCategory(tr("Display Features"));
 
+    // For Piano Precision
+    m_viewManager->setShowCentreLine(false);
+    
     action = new QAction(tr("Show &Centre Line"), this);
     action->setShortcut(tr("'"));
     action->setStatusTip(tr("Show or hide the centre line"));
@@ -5628,6 +5631,7 @@ MainWindow::mainModelChanged(ModelId modelId)
                 this, SLOT(mainModelPanChanged(float)));
     }
 
+    zoomToFit();
     rewindStart();
 
     SVDEBUG << "MainWindow::mainModelChanged: Now calling m_session.setMainModel" << endl;
