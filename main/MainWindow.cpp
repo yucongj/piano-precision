@@ -241,10 +241,11 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     connect(m_scoreWidget, SIGNAL(pageChanged(int)),
             this, SLOT(scorePageChanged(int)));
 
-    m_alignButton = new QPushButton(tr("Calculate Alignment"));
+    m_alignButton = new QPushButton(tr("Align"));
     connect(m_alignButton, SIGNAL(clicked()),
             this, SLOT(alignButtonClicked()));
     m_alignButton->setEnabled(false);
+    m_subsetOfScoreSelected = false;
     
     m_scorePageDownButton = new QPushButton("<<");
     connect(m_scorePageDownButton, SIGNAL(clicked()),
@@ -2503,6 +2504,9 @@ MainWindow::scoreSelectionChanged(int start, bool atStart,
     } else {
         m_selectTo->setText(QString("%1").arg(end));
     }
+
+    m_subsetOfScoreSelected = (!atStart || !atEnd);
+    updateAlignButtonText();
 }
 
 void
@@ -3285,6 +3289,8 @@ MainWindow::updateMenuStates()
             m_rwdAction->setStatusTip(tr("Rewind"));
         }
     }
+
+    updateAlignButtonText();
 }
 
 void
@@ -5625,6 +5631,27 @@ MainWindow::mainModelChanged(ModelId modelId)
 
     m_session.setMainModel(modelId, m_scoreId);
     m_alignButton->setEnabled(!modelId.isNone());
+}
+
+void
+MainWindow::updateAlignButtonText()
+{
+    bool subsetOfAudioSelected = !m_viewManager->getSelections().empty();
+    QString label = tr("Align");
+    if (m_subsetOfScoreSelected) {
+        if (subsetOfAudioSelected) {
+            label = tr("Align Selections of Score and Audio");
+        } else {
+            label = tr("Align Selection of Score with All of Audio");
+        }
+    } else {
+        if (subsetOfAudioSelected) {
+            label = tr("Align All of Score with Selection of Audio");
+        } else {
+            label = tr("Align Score with Audio");
+        }
+    }
+    m_alignButton->setText(label);
 }
 
 void
