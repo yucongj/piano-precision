@@ -219,19 +219,10 @@ ScoreWidget::mousePressEvent(QMouseEvent *e)
 
         int start = m_selectStartPosition;
         int end = m_selectEndPosition;
-        int scoreStart = m_elementsByPosition.begin()->second.position;
-        int scoreEnd = m_elementsByPosition.rbegin()->second.position;
-        bool atStart = false, atEnd = false;
-        if (start == -1 || start == scoreStart) {
-            start = scoreStart;
-            atStart = true;
-        }
-        if (end == -1 || end == scoreEnd) {
-            end = scoreEnd;
-            atEnd = true;
-        }
-        
-        emit selectionChanged(start, atStart, end, atEnd);
+        if (start == -1) start = getStartPosition();
+        if (end == -1) end = getEndPosition();
+        emit selectionChanged(start, isSelectedFromStart(),
+                              end, isSelectedToEnd());
     }
     
     if (m_mousePosition >= 0) {
@@ -240,6 +231,46 @@ ScoreWidget::mousePressEvent(QMouseEvent *e)
 #endif
         emit scorePositionActivated(m_mousePosition, m_mode);
     }
+}
+
+int
+ScoreWidget::getStartPosition() const
+{
+    if (m_elementsByPosition.empty()) {
+        return 0;
+    }
+    return m_elementsByPosition.begin()->second.position;
+}
+
+bool
+ScoreWidget::isSelectedFromStart() const
+{
+    return (m_elementsByPosition.empty() ||
+            m_selectStartPosition < 0 ||
+            m_selectStartPosition <= getStartPosition());
+}
+
+int
+ScoreWidget::getEndPosition() const
+{
+    if (m_elementsByPosition.empty()) {
+        return 0;
+    }
+    return m_elementsByPosition.rbegin()->second.position;
+}
+
+bool
+ScoreWidget::isSelectedToEnd() const
+{
+    return (m_elementsByPosition.empty() ||
+            m_selectEndPosition < 0 ||
+            m_selectEndPosition >= getEndPosition());
+}
+
+bool
+ScoreWidget::isSelectedAll() const
+{
+    return isSelectedFromStart() && isSelectedToEnd();
 }
 
 void
@@ -474,7 +505,9 @@ ScoreWidget::paintEvent(QPaintEvent *e)
     // Highlight the current selection if there is one
 
     if (!m_elements.empty() &&
-        (m_selectStartPosition != -1 || m_selectEndPosition != -1)) {
+        (!isSelectedAll() ||
+         (m_mode == InteractionMode::SelectStart ||
+          m_mode == InteractionMode::SelectEnd))) {
 
         QColor fillColour = selectHighlightColour.lighter();
         fillColour.setAlpha(100);

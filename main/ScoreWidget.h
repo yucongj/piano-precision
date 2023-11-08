@@ -137,6 +137,14 @@ private:
     int m_selectEndPosition;
     bool m_mouseActive;
 
+    int getStartPosition() const;
+    bool isSelectedFromStart() const;
+
+    int getEndPosition() const;
+    bool isSelectedToEnd() const;
+
+    bool isSelectedAll() const;
+    
     QRectF rectForPosition(int pos);
     QRectF rectForElement(const ScoreElement &elt);
     int positionForPoint(QPoint point);

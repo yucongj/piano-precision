@@ -264,13 +264,13 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     selectGroup->setExclusive(false); // want to allow nothing to be checked
     
     QLabel *selectFromLabel = new QLabel(tr("From:"));
-    m_selectFrom = new QLabel("");
+    m_selectFrom = new QLabel(tr("Start"));
     QPushButton *selectFromButton = new QPushButton(tr("Choose"));
     selectFromButton->setCheckable(true);
     selectGroup->addButton(selectFromButton);
 
     QLabel *selectToLabel = new QLabel(tr("To:"));
-    m_selectTo = new QLabel("");
+    m_selectTo = new QLabel(tr("End"));
     QPushButton *selectToButton = new QPushButton(tr("Choose"));
     selectToButton->setCheckable(true);
     selectGroup->addButton(selectToButton);
