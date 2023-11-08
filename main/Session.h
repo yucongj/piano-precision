@@ -17,6 +17,7 @@
 
 #include "layer/TimeRulerLayer.h"
 #include "layer/WaveformLayer.h"
+#include "layer/SpectrogramLayer.h"
 #include "layer/TimeValueLayer.h"
 
 #include "view/View.h"
@@ -55,6 +56,7 @@ private:
     View *m_bottomView;
     Layer *m_timeRulerLayer;
     WaveformLayer *m_waveformLayer;
+    SpectrogramLayer *m_spectrogramLayer;
     TimeValueLayer *m_onsetsLayer;
     ModelId m_onsetsModel;
     TimeValueLayer *m_tempoLayer;

@@ -15,6 +15,7 @@
 #include "transform/TransformFactory.h"
 #include "transform/ModelTransformer.h"
 #include "layer/ColourDatabase.h"
+#include "layer/ColourMapper.h"
 
 using namespace std;
 
@@ -24,6 +25,7 @@ Session::Session() :
     m_bottomView(nullptr),
     m_timeRulerLayer(nullptr),
     m_waveformLayer(nullptr),
+    m_spectrogramLayer(nullptr),
     m_onsetsLayer(nullptr),
     m_tempoLayer(nullptr)
 {
@@ -49,6 +51,7 @@ Session::setDocument(Document *doc,
     m_bottomView = bottomView;
     m_timeRulerLayer = timeRuler;
     m_waveformLayer = nullptr;
+    m_spectrogramLayer = nullptr;
     m_onsetsLayer = nullptr;
     m_onsetsModel = {};
     m_tempoLayer = nullptr;
@@ -83,12 +86,20 @@ Session::setMainModel(ModelId modelId, QString scoreId)
     m_document->addLayerToView(m_bottomView, m_timeRulerLayer);
     
     ColourDatabase *cdb = ColourDatabase::getInstance();
+
     m_waveformLayer = qobject_cast<WaveformLayer *>
         (m_document->createLayer(LayerFactory::Waveform));
     m_waveformLayer->setBaseColour(cdb->getColourIndex(tr("Bright Blue")));
     
     m_document->addLayerToView(m_topView, m_waveformLayer);
     m_document->setModel(m_waveformLayer, modelId);
+
+    m_spectrogramLayer = qobject_cast<SpectrogramLayer *>
+        (m_document->createLayer(LayerFactory::MelodicRangeSpectrogram));
+    m_spectrogramLayer->setColourMap(ColourMapper::BlackOnWhite);
+
+    m_document->addLayerToView(m_bottomView, m_spectrogramLayer);
+    m_document->setModel(m_spectrogramLayer, modelId);
 }
 
 void
