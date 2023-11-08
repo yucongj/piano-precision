@@ -75,22 +75,31 @@ Session::setMainModel(ModelId modelId, QString scoreId)
     }
 
     if (m_waveformLayer) {
+        //!!! Review this
         SVDEBUG << "Session::setMainModel: Waveform layer already exists - currently we expect a process by which the document and panes are created and then setMainModel called here only once per document" << endl;
         return;
     }
 
-    ColourDatabase *cdb = ColourDatabase::getInstance();
-    
     m_document->addLayerToView(m_bottomView, m_timeRulerLayer);
     
+    ColourDatabase *cdb = ColourDatabase::getInstance();
     m_waveformLayer = qobject_cast<WaveformLayer *>
         (m_document->createLayer(LayerFactory::Waveform));
     m_waveformLayer->setBaseColour(cdb->getColourIndex(tr("Bright Blue")));
     
     m_document->addLayerToView(m_topView, m_waveformLayer);
     m_document->setModel(m_waveformLayer, modelId);
+}
 
-    ModelTransformer::Input input(modelId);
+void
+Session::beginAlignment()
+{
+    if (m_mainModel.isNone()) {
+        SVDEBUG << "Session::beginAlignment: WARNING: No main model; one should have been set first" << endl;
+        return;
+    }
+
+    ModelTransformer::Input input(m_mainModel);
 
     vector<pair<QString, View *>> layerDefinitions {
         { "vamp:score-aligner:pianoaligner:chordonsets", m_topView },
@@ -103,7 +112,7 @@ Session::setMainModel(ModelId modelId, QString scoreId)
         
         Transform t = TransformFactory::getInstance()->
             getDefaultTransformFor(defn.first);
-        t.setProgram(scoreId);
+        t.setProgram(m_scoreId);
 
         //!!! return error codes
     
@@ -135,6 +144,8 @@ Session::setMainModel(ModelId modelId, QString scoreId)
     m_onsetsModel = m_onsetsLayer->getModel();
     m_tempoModel = m_tempoLayer->getModel();
 
+    ColourDatabase *cdb = ColourDatabase::getInstance();
+    
     m_onsetsLayer->setPlotStyle(TimeValueLayer::PlotSegmentation);
     m_onsetsLayer->setDrawSegmentDivisions(true);
     m_onsetsLayer->setFillSegments(false);

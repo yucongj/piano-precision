@@ -5522,6 +5522,10 @@ MainWindow::mainModelChanged(ModelId modelId)
     SVDEBUG << "MainWindow::mainModelChanged: Now calling m_session.setMainModel" << endl;
 
     m_session.setMainModel(modelId, m_scoreId);
+
+    if (!modelId.isNone()) {
+        m_session.beginAlignment();
+    }
 }
 
 void

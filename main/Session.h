@@ -40,6 +40,8 @@ public:
     
     void setMainModel(ModelId modelId, QString scoreId);
 
+    void beginAlignment();
+
 protected slots:
     void modelReady(ModelId);
     
