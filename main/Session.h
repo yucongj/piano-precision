@@ -61,6 +61,7 @@ private:
     ModelId m_onsetsModel;
     TimeValueLayer *m_tempoLayer;
     ModelId m_tempoModel;
+    int m_modelsReady;
 };
 
 #endif

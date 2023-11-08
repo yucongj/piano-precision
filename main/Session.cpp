@@ -17,6 +17,8 @@
 #include "layer/ColourDatabase.h"
 #include "layer/ColourMapper.h"
 
+#include <QMessageBox>
+
 using namespace std;
 
 Session::Session() :
@@ -110,6 +112,8 @@ Session::beginAlignment()
         return;
     }
 
+    m_modelsReady = 0;
+    
     ModelTransformer::Input input(m_mainModel);
 
     vector<pair<QString, View *>> layerDefinitions {
@@ -142,7 +146,8 @@ Session::beginAlignment()
             return;
         }
                     
-        connect(model, SIGNAL(ready(ModelId)), this, SLOT(modelReady(ModelId)));
+        connect(model, SIGNAL(ready(ModelId)),
+                this, SLOT(modelReady(ModelId)));
     }
     
     m_onsetsLayer = qobject_cast<TimeValueLayer *>(newLayers[0]);
@@ -169,5 +174,26 @@ void
 Session::modelReady(ModelId id)
 {
     SVDEBUG << "Session::modelReady: model is " << id << endl;
+
+    if (++m_modelsReady < 2) {
+        return;
+    }
+
+    if (QMessageBox::question
+        (m_topView, tr("Accept this alignment?"),
+         tr("Alignment finished. Do you want to save or cancel this alignment?"),
+         QMessageBox::Save | QMessageBox::Cancel,
+         QMessageBox::Save) ==
+        QMessageBox::Save) {
+
+        SVDEBUG << "Session::modelReady: Save chosen" << endl;
+        
+    } else {
+
+        SVDEBUG << "Session::modelReady: Cancel chosen" << endl;
+        
+        m_document->deleteLayer(m_onsetsLayer, true);
+        m_document->deleteLayer(m_tempoLayer, true);
+    }
 }
 

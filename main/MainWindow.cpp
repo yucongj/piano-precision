@@ -486,8 +486,10 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     connect(m_viewManager, SIGNAL(playbackFrameChanged(sv_frame_t)),
             this, SLOT(viewManagerPlaybackFrameChanged(sv_frame_t)));
     
-    chooseScore(); // Added by YJ, Oct 5, 2021
+    m_showPropertyBoxesAction->trigger();
     
+    chooseScore(); // Added by YJ, Oct 5, 2021
+
     SVDEBUG << "MainWindow: Constructor done" << endl;
 }
 
