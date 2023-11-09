@@ -2547,7 +2547,19 @@ MainWindow::scorePageUpButtonClicked()
 void
 MainWindow::alignButtonClicked()
 {
-    m_session.beginAlignment();
+    int scorePositionStart = -1, scorePositionEnd = -1;
+    sv_frame_t audioFrameStart = -1, audioFrameEnd = -1;
+    
+    if (m_subsetOfScoreSelected) {
+        m_scoreWidget->getSelection(scorePositionStart, scorePositionEnd);
+    }
+
+    if (!m_viewManager->getSelections().empty()) {
+        m_viewManager->getSelection().getExtents(audioFrameStart, audioFrameEnd);
+    }
+    
+    m_session.beginPartialAlignment(scorePositionStart, scorePositionEnd,
+                                    audioFrameStart, audioFrameEnd);
 }
 
 void

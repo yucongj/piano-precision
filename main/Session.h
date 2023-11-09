@@ -43,6 +43,11 @@ public:
 
     void beginAlignment();
 
+    void beginPartialAlignment(int scorePositionStart,
+                               int scorePositionEnd,
+                               sv_frame_t audioFrameStart,
+                               sv_frame_t audioFrameEnd);
+
 protected slots:
     void modelReady(ModelId);
     

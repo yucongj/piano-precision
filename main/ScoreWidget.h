@@ -58,6 +58,12 @@ public:
      * Return the total number of pages, or 0 if no score is loaded.
      */
     int getPageCount() const;
+
+    /**
+     * Return the start and end score positions of the current
+     * selection, or -1 if there is no constraint at either end.
+     */
+    void getSelection(int &start, int &end) const;
     
     /**
      * Mode for mouse interaction.

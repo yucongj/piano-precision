@@ -112,6 +112,21 @@ Session::beginAlignment()
         return;
     }
 
+    beginPartialAlignment(-1, -1, -1, -1);
+}
+
+void
+Session::beginPartialAlignment(int scorePositionStart,
+                               int scorePositionEnd,
+                               sv_frame_t audioFrameStart,
+                               sv_frame_t audioFrameEnd)
+{
+    if (m_mainModel.isNone()) {
+        SVDEBUG << "Session::beginPartialAlignment: WARNING: No main model; one should have been set first" << endl;
+        return;
+    }
+
+    //!!! race condition here - need to either cancel or count properly
     m_modelsReady = 0;
     
     ModelTransformer::Input input(m_mainModel);
@@ -122,12 +137,39 @@ Session::beginAlignment()
     };
 
     vector<Layer *> newLayers;
+
+    sv_samplerate_t sampleRate = ModelById::get(m_mainModel)->getSampleRate();
+    RealTime audioStart, audioEnd;
+    if (audioFrameStart == -1) {
+        audioStart = RealTime::fromSeconds(-1.0);
+    } else {
+        audioStart = RealTime::frame2RealTime(audioFrameStart, sampleRate);
+    }
+    if (audioFrameEnd == -1) {
+        audioEnd = RealTime::fromSeconds(-1.0);
+    } else {
+        audioEnd = RealTime::frame2RealTime(audioFrameEnd, sampleRate);
+    }
+
+    SVDEBUG << "Session::beginPartialAlignment: score position start = "
+            << scorePositionStart << ", end = " << scorePositionEnd
+            << ", audio start = " << audioStart << ", end = "
+            << audioEnd << endl;
+    
+    Transform::ParameterMap params {
+        { "score-position-start", scorePositionStart },
+        { "score-position-end", scorePositionEnd },
+        { "audio-start", float(audioStart.toDouble()) },
+        { "audio-end", float(audioEnd.toDouble()) }
+    };
     
     for (auto defn : layerDefinitions) {
         
         Transform t = TransformFactory::getInstance()->
             getDefaultTransformFor(defn.first);
+
         t.setProgram(m_scoreId);
+        t.setParameters(params);
 
         //!!! return error codes
     

@@ -274,6 +274,13 @@ ScoreWidget::isSelectedAll() const
 }
 
 void
+ScoreWidget::getSelection(int &start, int &end) const
+{
+    start = m_selectStartPosition;
+    end = m_selectEndPosition;
+}
+
+void
 ScoreWidget::mouseDoubleClickEvent(QMouseEvent *e)
 {
     if (e->button() != Qt::LeftButton) {
