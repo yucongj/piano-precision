@@ -29,7 +29,11 @@ Session::Session() :
     m_waveformLayer(nullptr),
     m_spectrogramLayer(nullptr),
     m_onsetsLayer(nullptr),
-    m_tempoLayer(nullptr)
+    m_pendingOnsetsLayer(nullptr),
+    m_awaitingOnsetsLayer(false),
+    m_tempoLayer(nullptr),
+    m_pendingTempoLayer(nullptr),
+    m_awaitingTempoLayer(false)
 {
     SVDEBUG << "Session::Session" << endl;
 }
@@ -55,9 +59,11 @@ Session::setDocument(Document *doc,
     m_waveformLayer = nullptr;
     m_spectrogramLayer = nullptr;
     m_onsetsLayer = nullptr;
-    m_onsetsModel = {};
+    m_pendingOnsetsLayer = nullptr;
+    m_awaitingOnsetsLayer = false;
     m_tempoLayer = nullptr;
-    m_tempoModel = {};
+    m_pendingTempoLayer = nullptr;
+    m_awaitingTempoLayer = false;
 }
 
 void
@@ -126,14 +132,15 @@ Session::beginPartialAlignment(int scorePositionStart,
         return;
     }
 
-    //!!! race condition here - need to either cancel or count properly
-    m_modelsReady = 0;
-    
     ModelTransformer::Input input(m_mainModel);
 
-    vector<pair<QString, View *>> layerDefinitions {
-        { "vamp:score-aligner:pianoaligner:chordonsets", m_topView },
-        { "vamp:score-aligner:pianoaligner:eventtempo", m_bottomView }
+    vector<pair<QString, pair<View *, TimeValueLayer **>>> layerDefinitions {
+        { "vamp:score-aligner:pianoaligner:chordonsets",
+          { m_topView, &m_pendingOnsetsLayer }
+        },
+        { "vamp:score-aligner:pianoaligner:eventtempo",
+          { m_bottomView, &m_pendingTempoLayer }
+        }
     };
 
     vector<Layer *> newLayers;
@@ -162,11 +169,31 @@ Session::beginPartialAlignment(int scorePositionStart,
         { "audio-start", float(audioStart.toDouble()) },
         { "audio-end", float(audioEnd.toDouble()) }
     };
+
+    // General principle is to create new layers using
+    // m_document->createDerivedLayer, which creates and attaches a
+    // model and runs a transform in the background.
+    //
+    // If we have an existing layer of the same type already, we don't
+    // delete it but we do temporarily hide it.
+    //
+    // When the model is complete, our callback is called; at this
+    // moment, if we had a layer which is now hidden, we merge its
+    // model with the new one (into the new layer, not the old) and
+    // ask the user if they want to keep the new one. If so, we delete
+    // the old; if not, we restore the old and delete the new.
+    //
+    //!!! What should we do if the user requests an alignment when we
+    //!!! are already waiting for one to complete?
     
     for (auto defn : layerDefinitions) {
+
+        auto transformId = defn.first;
+        auto view = defn.second.first;
+        auto layerPtr = defn.second.second;
         
         Transform t = TransformFactory::getInstance()->
-            getDefaultTransformFor(defn.first);
+            getDefaultTransformFor(transformId);
 
         t.setProgram(m_scoreId);
         t.setParameters(params);
@@ -175,41 +202,54 @@ Session::beginPartialAlignment(int scorePositionStart,
     
         Layer *layer = m_document->createDerivedLayer(t, input);
         if (!layer) {
-            SVDEBUG << "Session::setMainModel: Transform failed to initialise" << endl;
+            SVDEBUG << "Session::beginPartialAlignment: Transform failed to initialise" << endl;
             return;
         }
-        newLayers.push_back(layer);
+        if (layer->getModel().isNone()) {
+            SVDEBUG << "Session::beginPartialAlignment: Transform failed to create a model" << endl;
+            return;
+        }
 
-        m_document->addLayerToView(defn.second, layer);
+        TimeValueLayer *tvl = qobject_cast<TimeValueLayer *>(layer);
+        if (!tvl) {
+            SVDEBUG << "Session::beginPartialAlignment: Transform resulted in wrong layer type" << endl;
+            return;
+        }
+
+        if (*layerPtr) {
+            m_document->deleteLayer(*layerPtr, true);
+        }
+            
+        *layerPtr = tvl;
+        
+        m_document->addLayerToView(view, layer);
 
         Model *model = ModelById::get(layer->getModel()).get();
-        if (!model) {
-            SVDEBUG << "Session::setMainModel: Transform failed to create a model" << endl;
-            return;
-        }
-                    
         connect(model, SIGNAL(ready(ModelId)),
                 this, SLOT(modelReady(ModelId)));
     }
-    
-    m_onsetsLayer = qobject_cast<TimeValueLayer *>(newLayers[0]);
-    m_tempoLayer = qobject_cast<TimeValueLayer *>(newLayers[1]);
-    if (!m_onsetsLayer || !m_tempoLayer) {
-        SVDEBUG << "Session::setMainModel: Layers are not of the expected type" << endl;
-        return;
-    }
-    
-    m_onsetsModel = m_onsetsLayer->getModel();
-    m_tempoModel = m_tempoLayer->getModel();
 
+    // Hide the existing layers. This is only a temporary method of
+    // removing them, normally we would go through the document if we
+    // wanted to delete them entirely
+    if (m_onsetsLayer) {
+        m_topView->removeLayer(m_onsetsLayer);
+    }
+    if (m_tempoLayer) {
+        m_bottomView->removeLayer(m_tempoLayer);
+    }
+        
     ColourDatabase *cdb = ColourDatabase::getInstance();
     
-    m_onsetsLayer->setPlotStyle(TimeValueLayer::PlotSegmentation);
-    m_onsetsLayer->setDrawSegmentDivisions(true);
-    m_onsetsLayer->setFillSegments(false);
+    m_pendingOnsetsLayer->setPlotStyle(TimeValueLayer::PlotSegmentation);
+    m_pendingOnsetsLayer->setDrawSegmentDivisions(true);
+    m_pendingOnsetsLayer->setFillSegments(false);
 
-    m_tempoLayer->setPlotStyle(TimeValueLayer::PlotLines);
-    m_tempoLayer->setBaseColour(cdb->getColourIndex(tr("Blue")));
+    m_pendingTempoLayer->setPlotStyle(TimeValueLayer::PlotLines);
+    m_pendingTempoLayer->setBaseColour(cdb->getColourIndex(tr("Blue")));
+
+    m_awaitingOnsetsLayer = true;
+    m_awaitingTempoLayer = true;
 }
 
 void
@@ -217,25 +257,63 @@ Session::modelReady(ModelId id)
 {
     SVDEBUG << "Session::modelReady: model is " << id << endl;
 
-    if (++m_modelsReady < 2) {
-        return;
+    if (m_pendingOnsetsLayer && id == m_pendingOnsetsLayer->getModel()) {
+        m_awaitingOnsetsLayer = false;
     }
+    if (m_pendingTempoLayer && id == m_pendingTempoLayer->getModel()) {
+        m_awaitingTempoLayer = false;
+    }
+
+    if (!m_awaitingOnsetsLayer && !m_awaitingTempoLayer) {
+        alignmentComplete();
+    }
+}
+
+void
+Session::alignmentComplete()
+{
+    SVDEBUG << "Session::alignmentComplete" << endl;
 
     if (QMessageBox::question
         (m_topView, tr("Save alignment?"),
          tr("<b>Alignment finished</b><p>Do you want to keep this alignment?"),
          QMessageBox::Save | QMessageBox::Cancel,
-         QMessageBox::Save) ==
+         QMessageBox::Save) !=
         QMessageBox::Save) {
 
-        SVDEBUG << "Session::modelReady: Save chosen" << endl;
+        SVDEBUG << "Session::alignmentComplete: Cancel chosen" << endl;
         
-    } else {
+        m_document->deleteLayer(m_pendingOnsetsLayer, true);
+        m_pendingOnsetsLayer = nullptr;
 
-        SVDEBUG << "Session::modelReady: Cancel chosen" << endl;
+        m_document->deleteLayer(m_pendingTempoLayer, true);
+        m_pendingTempoLayer = nullptr;
+
+        if (m_onsetsLayer) {
+            m_topView->addLayer(m_onsetsLayer);
+        }
+        if (m_tempoLayer) {
+            m_topView->addLayer(m_tempoLayer);
+        }
+
+        return;
+    }
         
+    SVDEBUG << "Session::alignmentComplete: Save chosen" << endl;
+
+    //!!! merge here from old to new
+    
+    
+    if (m_onsetsLayer) {
         m_document->deleteLayer(m_onsetsLayer, true);
+    }
+    m_onsetsLayer = m_pendingOnsetsLayer;
+    m_pendingOnsetsLayer = nullptr;
+    
+    if (m_tempoLayer) {
         m_document->deleteLayer(m_tempoLayer, true);
     }
+    m_tempoLayer = m_pendingTempoLayer;
+    m_pendingTempoLayer = nullptr;
 }
 

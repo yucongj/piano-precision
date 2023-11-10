@@ -63,10 +63,13 @@ private:
     WaveformLayer *m_waveformLayer;
     SpectrogramLayer *m_spectrogramLayer;
     TimeValueLayer *m_onsetsLayer;
-    ModelId m_onsetsModel;
+    TimeValueLayer *m_pendingOnsetsLayer;
+    bool m_awaitingOnsetsLayer;
     TimeValueLayer *m_tempoLayer;
-    ModelId m_tempoModel;
-    int m_modelsReady;
+    TimeValueLayer *m_pendingTempoLayer;
+    bool m_awaitingTempoLayer;
+
+    void alignmentComplete();
 };
 
 #endif
