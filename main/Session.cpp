@@ -21,21 +21,10 @@
 
 using namespace std;
 
-Session::Session() :
-    m_document(nullptr),
-    m_topView(nullptr),
-    m_bottomView(nullptr),
-    m_timeRulerLayer(nullptr),
-    m_waveformLayer(nullptr),
-    m_spectrogramLayer(nullptr),
-    m_onsetsLayer(nullptr),
-    m_pendingOnsetsLayer(nullptr),
-    m_awaitingOnsetsLayer(false),
-    m_tempoLayer(nullptr),
-    m_pendingTempoLayer(nullptr),
-    m_awaitingTempoLayer(false)
+Session::Session()
 {
     SVDEBUG << "Session::Session" << endl;
+    setDocument(nullptr, nullptr, nullptr, nullptr);
 }
 
 Session::~Session()
@@ -53,14 +42,20 @@ Session::setDocument(Document *doc,
     m_document = doc;
     m_scoreId = "";
     m_mainModel = {};
+    
     m_topView = topView;
     m_bottomView = bottomView;
     m_timeRulerLayer = timeRuler;
     m_waveformLayer = nullptr;
     m_spectrogramLayer = nullptr;
+
+    m_partialAlignmentAudioStart = -1;
+    m_partialAlignmentAudioEnd = -1;
+    
     m_onsetsLayer = nullptr;
     m_pendingOnsetsLayer = nullptr;
     m_awaitingOnsetsLayer = false;
+    
     m_tempoLayer = nullptr;
     m_pendingTempoLayer = nullptr;
     m_awaitingTempoLayer = false;
@@ -248,6 +243,9 @@ Session::beginPartialAlignment(int scorePositionStart,
     m_pendingTempoLayer->setPlotStyle(TimeValueLayer::PlotLines);
     m_pendingTempoLayer->setBaseColour(cdb->getColourIndex(tr("Blue")));
 
+    m_partialAlignmentAudioStart = audioFrameStart;
+    m_partialAlignmentAudioEnd = audioFrameEnd;
+    
     m_awaitingOnsetsLayer = true;
     m_awaitingTempoLayer = true;
 }
@@ -301,8 +299,14 @@ Session::alignmentComplete()
         
     SVDEBUG << "Session::alignmentComplete: Save chosen" << endl;
 
-    //!!! merge here from old to new
-    
+    if (m_onsetsLayer) {
+        mergeLayers(m_onsetsLayer, m_pendingOnsetsLayer,
+                    m_partialAlignmentAudioStart, m_partialAlignmentAudioEnd);
+    }
+    if (m_tempoLayer) {
+        mergeLayers(m_tempoLayer, m_pendingTempoLayer,
+                    m_partialAlignmentAudioStart, m_partialAlignmentAudioEnd);
+    }
     
     if (m_onsetsLayer) {
         m_document->deleteLayer(m_onsetsLayer, true);
@@ -316,4 +320,27 @@ Session::alignmentComplete()
     m_tempoLayer = m_pendingTempoLayer;
     m_pendingTempoLayer = nullptr;
 }
+
+void
+Session::mergeLayers(TimeValueLayer *from, TimeValueLayer *to,
+                     sv_frame_t overlapStart, sv_frame_t overlapEnd)
+{
+    // Currently the way we are handling this is by having "to"
+    // contain *only* the new events, within overlapStart to
+    // overlapEnd.  So the merge just copies all events outside that
+    // range from "from" to "to". There are surely cleverer ways
+
+    //!!! We should also use a command
+    
+    auto fromModel = ModelById::getAs<SparseTimeValueModel>(from->getModel());
+    auto toModel = ModelById::getAs<SparseTimeValueModel>(to->getModel());
+
+    EventVector beforeOverlap = fromModel->getEventsWithin(0, overlapStart);
+    EventVector afterOverlap = fromModel->getEventsWithin
+        (overlapEnd, fromModel->getEndFrame() - overlapEnd);
+
+    for (auto e : beforeOverlap) toModel->add(e);
+    for (auto e : afterOverlap) toModel->add(e);
+}
+
 

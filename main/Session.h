@@ -57,19 +57,27 @@ private:
     Document *m_document;
     QString m_scoreId;
     ModelId m_mainModel;
+
     View *m_topView;
     View *m_bottomView;
     Layer *m_timeRulerLayer;
     WaveformLayer *m_waveformLayer;
     SpectrogramLayer *m_spectrogramLayer;
+
+    sv_frame_t m_partialAlignmentAudioStart;
+    sv_frame_t m_partialAlignmentAudioEnd;
+    
     TimeValueLayer *m_onsetsLayer;
     TimeValueLayer *m_pendingOnsetsLayer;
     bool m_awaitingOnsetsLayer;
+    
     TimeValueLayer *m_tempoLayer;
     TimeValueLayer *m_pendingTempoLayer;
     bool m_awaitingTempoLayer;
 
     void alignmentComplete();
+    void mergeLayers(TimeValueLayer *from, TimeValueLayer *to,
+                     sv_frame_t overlapStart, sv_frame_t overlapEnd);
 };
 
 #endif
