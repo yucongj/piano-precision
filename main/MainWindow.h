@@ -19,6 +19,7 @@
 #include "framework/MainWindowBase.h"
 
 #include "ScoreWidget.h"
+#include "Session.h"
 
 class VersionTester;
 class Surveyer;
@@ -139,9 +140,11 @@ protected slots:
     void scoreInteractionEnded(ScoreWidget::InteractionMode);
     void frameIlluminated(sv_frame_t);
     void highlightFrameInScore(sv_frame_t);
+    void scoreSelectionChanged(int, bool, int, bool);
     void scorePageChanged(int page);
     void scorePageDownButtonClicked();
     void scorePageUpButtonClicked();
+    void alignButtonClicked();
 
     virtual void playSpeedChanged(int);
     void playSoloToggled() override;
@@ -186,6 +189,8 @@ protected slots:
     virtual void saveSessionAsTemplate();
     virtual void manageSavedTemplates();
 
+    virtual QString getDefaultSessionTemplate() const;
+
     virtual void website();
     virtual void help();
     virtual void about();
@@ -201,9 +206,12 @@ protected:
     
     QScrollArea             *m_mainScroll;
     ScoreWidget             *m_scoreWidget; // Added Oct 6, 2021
+    QPushButton             *m_alignButton;
     QPushButton             *m_scorePageDownButton;
     QPushButton             *m_scorePageUpButton;
     QLabel                  *m_scorePageLabel;
+    QLabel                  *m_selectFrom;
+    QLabel                  *m_selectTo;
 
     bool                     m_mainMenusCreated;
     QMenu                   *m_paneMenu;
@@ -265,6 +273,9 @@ protected:
     VersionTester           *m_versionTester;
     QString                  m_newerVersionIs;
 
+    QString                  m_scoreId;
+    Session                  m_session;
+    
     struct LayerConfiguration {
         LayerConfiguration(LayerFactory::LayerType _layer
                                                = LayerFactory::TimeRuler,
@@ -338,6 +349,9 @@ protected:
     
     void connectLayerEditDialog(ModelDataTableDialog *) override;
 
+    bool m_subsetOfScoreSelected;
+    void updateAlignButtonText();
+    
     bool isOnsetsLayer(Layer *) const;
     TimeValueLayer *findOnsetsLayer(Pane ** = nullptr) const;
 };

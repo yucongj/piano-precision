@@ -20,6 +20,7 @@
 #include "ScoreWidget.h" // Added Oct 6, 2021
 #include "ScorePositionReader.h" // Added Oct 6, 2021
 #include "ScoreFinder.h"
+#include "Session.h"
 
 #include "view/Pane.h"
 #include "view/PaneStack.h"
@@ -132,6 +133,8 @@
 #include <QFileSystemWatcher>
 #include <QTextEdit>
 #include <QWidgetAction>
+#include <QGroupBox>
+#include <QButtonGroup>
 
 #include <iostream>
 #include <cstdio>
@@ -233,9 +236,18 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
             this, SLOT(scoreInteractionModeChanged(ScoreWidget::InteractionMode)));
     connect(m_scoreWidget, SIGNAL(interactionEnded(ScoreWidget::InteractionMode)),
             this, SLOT(scoreInteractionEnded(ScoreWidget::InteractionMode)));
+    connect(m_scoreWidget, SIGNAL(selectionChanged(int, bool, int, bool)),
+            this, SLOT(scoreSelectionChanged(int, bool, int, bool)));
     connect(m_scoreWidget, SIGNAL(pageChanged(int)),
             this, SLOT(scorePageChanged(int)));
 
+    m_alignButton = new QPushButton(tr("Align"));
+    m_alignButton->setIcon(IconLoader().load("align"));
+    connect(m_alignButton, SIGNAL(clicked()),
+            this, SLOT(alignButtonClicked()));
+    m_alignButton->setEnabled(false);
+    m_subsetOfScoreSelected = false;
+    
     m_scorePageDownButton = new QPushButton("<<");
     connect(m_scorePageDownButton, SIGNAL(clicked()),
             this, SLOT(scorePageDownButtonClicked()));
@@ -246,10 +258,67 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     m_scorePageLabel->setAlignment(Qt::AlignHCenter);
 
     scoreWidgetLayout->addWidget(m_scoreWidget, 0, 0, 1, 3);
-    scoreWidgetLayout->addWidget(m_scorePageDownButton, 1, 0);
-    scoreWidgetLayout->addWidget(m_scorePageLabel, 1, 1);
-    scoreWidgetLayout->addWidget(m_scorePageUpButton, 1, 2);
+    scoreWidgetLayout->setRowStretch(0, 10);
     
+    scoreWidgetLayout->addWidget(m_alignButton, 1, 0, 1, 3, Qt::AlignHCenter);
+    scoreWidgetLayout->addWidget(m_scorePageDownButton, 2, 0);
+    scoreWidgetLayout->addWidget(m_scorePageLabel, 2, 1);
+    scoreWidgetLayout->addWidget(m_scorePageUpButton, 2, 2);
+
+    QGroupBox *selectionGroupBox = new QGroupBox(tr("Selection within Score"));
+    QGridLayout *selectionLayout = new QGridLayout;
+
+    QButtonGroup *selectGroup = new QButtonGroup;
+    selectGroup->setExclusive(false); // want to allow nothing to be checked
+    
+    QLabel *selectFromLabel = new QLabel(tr("From:"));
+    m_selectFrom = new QLabel(tr("Start"));
+    QPushButton *selectFromButton = new QPushButton(tr("Choose"));
+    selectFromButton->setCheckable(true);
+    selectGroup->addButton(selectFromButton);
+
+    QLabel *selectToLabel = new QLabel(tr("To:"));
+    m_selectTo = new QLabel(tr("End"));
+    QPushButton *selectToButton = new QPushButton(tr("Choose"));
+    selectToButton->setCheckable(true);
+    selectGroup->addButton(selectToButton);
+
+    connect(selectFromButton, &QPushButton::toggled, [=] (bool checked) {
+        SVDEBUG << "selectFromButton toggled: checked = " << checked << endl;
+        if (checked) {
+            selectToButton->setChecked(false);
+            m_scoreWidget->setInteractionMode
+                (ScoreWidget::InteractionMode::SelectStart);
+        } else {
+            m_scoreWidget->setInteractionMode
+                (ScoreWidget::InteractionMode::Navigate);
+        }
+    });
+    connect(selectToButton, &QPushButton::toggled, [=] (bool checked) {
+        SVDEBUG << "selectToButton toggled: checked = " << checked << endl;
+        if (checked) {
+            selectFromButton->setChecked(false);
+            m_scoreWidget->setInteractionMode
+                (ScoreWidget::InteractionMode::SelectEnd);
+        } else {
+            m_scoreWidget->setInteractionMode
+                (ScoreWidget::InteractionMode::Navigate);
+        }
+    });
+
+    selectionLayout->addWidget(new QLabel(" "), 0, 0);
+    selectionLayout->addWidget(selectFromLabel, 0, 1, Qt::AlignRight);
+    selectionLayout->addWidget(selectFromButton, 0, 2);
+    selectionLayout->addWidget(m_selectFrom, 0, 3);
+    selectionLayout->addWidget(selectToLabel, 1, 1, Qt::AlignRight);
+    selectionLayout->addWidget(selectToButton, 1, 2);
+    selectionLayout->addWidget(m_selectTo, 1, 3);
+    selectionLayout->setColumnStretch(3, 10);
+
+    selectionGroupBox->setLayout(selectionLayout);
+
+    scoreWidgetLayout->addWidget(selectionGroupBox, 3, 0, 1, 3);
+
     scoreWidgetContainer->setLayout(scoreWidgetLayout);
 
     m_mainScroll = new QScrollArea(frame);
@@ -418,8 +487,10 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     connect(m_viewManager, SIGNAL(playbackFrameChanged(sv_frame_t)),
             this, SLOT(viewManagerPlaybackFrameChanged(sv_frame_t)));
     
-    chooseScore(); // Added by YJ, Oct 5, 2021
+    m_showPropertyBoxesAction->trigger();
     
+    chooseScore(); // Added by YJ, Oct 5, 2021
+
     SVDEBUG << "MainWindow: Constructor done" << endl;
 }
 
@@ -1099,6 +1170,9 @@ MainWindow::setupViewMenu()
 
     m_keyReference->setCategory(tr("Display Features"));
 
+    // For Piano Precision
+    m_viewManager->setShowCentreLine(false);
+    
     action = new QAction(tr("Show &Centre Line"), this);
     action->setShortcut(tr("'"));
     action->setStatusTip(tr("Show or hide the centre line"));
@@ -1768,6 +1842,10 @@ MainWindow::prepareTransformsMenu()
             this,
             SLOT(installedTransformsPopulated()));
 
+    std::set<Transform::Type> restrictedTo;
+    restrictedTo.insert(Transform::FeatureExtraction);
+    TransformFactory::getInstance()->restrictTransformTypes(restrictedTo);
+    
     QTimer::singleShot(150, TransformFactory::getInstance(),
                        SLOT(startPopulatingInstalledTransforms()));
 }
@@ -2241,6 +2319,8 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
         return;
     }
 
+    m_scoreId = scoreName;
+/*!!!    
     std::string templateFile =
         ScoreFinder::getScoreFile(scoreName.toStdString(), "svt");
     if (templateFile == "") {
@@ -2250,10 +2330,11 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
                              QMessageBox::Ok);
         return;
     }
-    
+*/    
     QSettings settings;
     settings.beginGroup("MainWindow");
-    settings.setValue("sessiontemplate", QString::fromStdString(templateFile));
+//!!!    settings.setValue("sessiontemplate", QString::fromStdString(templateFile));
+    settings.setValue("sessiontemplate", "");
     settings.endGroup();
     
     ScorePositionReader posReader;
@@ -2411,6 +2492,30 @@ MainWindow::highlightFrameInScore(sv_frame_t frame)
 }
 
 void
+MainWindow::scoreSelectionChanged(int start, bool atStart,
+                                  int end, bool atEnd)
+{
+    SVDEBUG << "MainWindow::scoreSelectionChanged: start = " << start
+            << ", atStart = " << atStart << ", end = " << end
+            << ", atEnd = " << atEnd << endl;
+
+    if (atStart) {
+        m_selectFrom->setText(tr("Start"));
+    } else {
+        m_selectFrom->setText(QString("%1").arg(start));
+    }
+
+    if (atEnd) {
+        m_selectTo->setText(tr("End"));
+    } else {
+        m_selectTo->setText(QString("%1").arg(end));
+    }
+
+    m_subsetOfScoreSelected = (!atStart || !atEnd);
+    updateAlignButtonText();
+}
+
+void
 MainWindow::scorePageChanged(int page)
 {
     int n = m_scoreWidget->getPageCount();
@@ -2440,12 +2545,36 @@ MainWindow::scorePageUpButtonClicked()
 }
 
 void
+MainWindow::alignButtonClicked()
+{
+    int scorePositionStart = -1, scorePositionEnd = -1;
+    sv_frame_t audioFrameStart = -1, audioFrameEnd = -1;
+    
+    if (m_subsetOfScoreSelected) {
+        m_scoreWidget->getSelection(scorePositionStart, scorePositionEnd);
+    }
+
+    if (!m_viewManager->getSelections().empty()) {
+        m_viewManager->getSelection().getExtents(audioFrameStart, audioFrameEnd);
+    }
+    
+    m_session.beginPartialAlignment(scorePositionStart, scorePositionEnd,
+                                    audioFrameStart, audioFrameEnd);
+}
+
+void
 MainWindow::scoreInteractionModeChanged(ScoreWidget::InteractionMode mode)
 {
+    SVDEBUG << "MainWindow::scoreInteractionModeChanged: mode = " << int(mode)
+            << endl;
+    
     ViewManager::ToolMode toolMode = ViewManager::NavigateMode;
     
     if (mode == ScoreWidget::InteractionMode::Edit) {
         toolMode = ViewManager::EditMode;
+    } else if (mode == ScoreWidget::InteractionMode::SelectStart ||
+               mode == ScoreWidget::InteractionMode::SelectEnd) {
+        toolMode = ViewManager::SelectMode;
     }
     
     for (auto &p : m_toolActions) {
@@ -2861,7 +2990,7 @@ MainWindow::setupToolbars()
             m_soloAction, SLOT(setChecked(bool)));
     connect(m_soloAction, SIGNAL(triggered()), this, SLOT(playSoloToggled()));
     connect(this, SIGNAL(canChangeSolo(bool)), m_soloAction, SLOT(setEnabled(bool)));
-
+/*!!! Not in Piano Precision, we have our own align button elsewhere
     QAction *alAction = toolbar->addAction(il.load("align"),
                                            tr("Align File Timelines"));
     alAction->setCheckable(true);
@@ -2872,13 +3001,13 @@ MainWindow::setupToolbars()
             alAction, SLOT(setChecked(bool)));
     connect(alAction, SIGNAL(triggered()), this, SLOT(alignToggled()));
     connect(this, SIGNAL(canAlign(bool)), alAction, SLOT(setEnabled(bool)));
-
+*/
     m_keyReference->registerShortcut(m_playAction);
     m_keyReference->registerShortcut(m_recordAction);
     m_keyReference->registerShortcut(m_playSelectionAction);
     m_keyReference->registerShortcut(m_playLoopAction);
     m_keyReference->registerShortcut(m_soloAction);
-    m_keyReference->registerShortcut(alAction);
+//!!!    m_keyReference->registerShortcut(alAction);
     m_keyReference->registerShortcut(m_rwdAction);
     m_keyReference->registerShortcut(m_ffwdAction);
     m_keyReference->registerShortcut(m_rwdSimilarAction);
@@ -2891,7 +3020,7 @@ MainWindow::setupToolbars()
     menu->addAction(m_playSelectionAction);
     menu->addAction(m_playLoopAction);
     menu->addAction(m_soloAction);
-    menu->addAction(alAction);
+//!!!    menu->addAction(alAction);
     menu->addSeparator();
     menu->addAction(m_rwdAction);
     menu->addAction(m_ffwdAction);
@@ -2909,7 +3038,7 @@ MainWindow::setupToolbars()
     m_rightButtonPlaybackMenu->addAction(m_playSelectionAction);
     m_rightButtonPlaybackMenu->addAction(m_playLoopAction);
     m_rightButtonPlaybackMenu->addAction(m_soloAction);
-    if (alAction) m_rightButtonPlaybackMenu->addAction(alAction);
+//!!!    if (alAction) m_rightButtonPlaybackMenu->addAction(alAction);
     m_rightButtonPlaybackMenu->addSeparator();
     m_rightButtonPlaybackMenu->addAction(m_rwdAction);
     m_rightButtonPlaybackMenu->addAction(m_ffwdAction);
@@ -3178,6 +3307,8 @@ MainWindow::updateMenuStates()
             m_rwdAction->setStatusTip(tr("Rewind"));
         }
     }
+
+    updateAlignButtonText();
 }
 
 void
@@ -3227,6 +3358,7 @@ MainWindow::documentRestored()
 void
 MainWindow::toolNavigateSelected()
 {
+    SVDEBUG << "MainWindow::toolNavigateSelected" << endl;
     m_viewManager->setToolMode(ViewManager::NavigateMode);
     m_scoreWidget->setInteractionMode(ScoreWidget::InteractionMode::Navigate);
 }
@@ -3234,12 +3366,14 @@ MainWindow::toolNavigateSelected()
 void
 MainWindow::toolSelectSelected()
 {
+    SVDEBUG << "MainWindow::toolSelectSelected" << endl;
     m_viewManager->setToolMode(ViewManager::SelectMode);
 }
 
 void
 MainWindow::toolEditSelected()
 {
+    SVDEBUG << "MainWindow::toolEditSelected" << endl;
     m_viewManager->setToolMode(ViewManager::EditMode);
     m_scoreWidget->setInteractionMode(ScoreWidget::InteractionMode::Edit);
 }
@@ -3940,7 +4074,7 @@ MainWindow::newSession()
     closeSession();
     stop();
     createDocument();
-
+/*!!!
     Pane *pane = m_paneStack->addPane();
 
     connect(pane, SIGNAL(contextHelpChanged(const QString &)),
@@ -3962,21 +4096,63 @@ MainWindow::newSession()
     CommandHistory::getInstance()->documentSaved();
     documentRestored();
     updateMenuStates();
+*/
+}
+
+QString
+MainWindow::getDefaultSessionTemplate() const
+{
+    return "";
 }
 
 void
 MainWindow::documentReplaced()
 {
+    SVDEBUG << "MainWindow::documentReplaced" << endl;
+    
     if (m_document) {
         connect(m_document, SIGNAL(activity(QString)),
                 m_activityLog, SLOT(activityHappened(QString)));
     }
+
+    Pane *topPane = m_paneStack->addPane();
+    Pane *bottomPane = m_paneStack->addPane();
+
+    connect(topPane, SIGNAL(contextHelpChanged(const QString &)),
+            this, SLOT(contextHelpChanged(const QString &)));
+
+    connect(bottomPane, SIGNAL(contextHelpChanged(const QString &)),
+            this, SLOT(contextHelpChanged(const QString &)));
+
+    m_overview->registerView(topPane);
+    m_overview->registerView(bottomPane);
+
+    if (!m_timeRulerLayer) {
+        m_timeRulerLayer = m_document->createMainModelLayer
+            (LayerFactory::TimeRuler);
+    }
+
+    m_document->addLayerToView(topPane, m_timeRulerLayer);
+
+    SVDEBUG << "MainWindow::documentReplaced: Added views, now calling m_session.setDocument" << endl;
+    
+    m_session.setDocument(m_document, topPane, bottomPane, m_timeRulerLayer);
+
+    CommandHistory::getInstance()->clear();
+    CommandHistory::getInstance()->documentSaved();
+    documentRestored();
+    updateMenuStates();
 }
 
 void
 MainWindow::closeSession()
 {
+    SVDEBUG << "MainWindow::closeSession" << endl;
+    
     if (!checkSaveModified()) return;
+
+    SVDEBUG << "MainWindow::closeSession: telling session about it" << endl;
+    m_session.unsetDocument();
 
     while (m_paneStack->getPaneCount() > 0) {
 
@@ -4020,7 +4196,7 @@ MainWindow::closeSession()
     m_sessionFile = "";
     m_originalLocation = "";
     setWindowTitle(QApplication::applicationName());
-
+    
     CommandHistory::getInstance()->clear();
     CommandHistory::getInstance()->documentSaved();
     documentRestored();
@@ -5454,6 +5630,8 @@ MainWindow::modelAdded(ModelId modelId)
 void
 MainWindow::mainModelChanged(ModelId modelId)
 {
+    SVDEBUG << "MainWindow::mainModelChanged" << endl;
+    
     m_panLayer->setModel(modelId);
 
     MainWindowBase::mainModelChanged(modelId);
@@ -5465,7 +5643,34 @@ MainWindow::mainModelChanged(ModelId modelId)
                 this, SLOT(mainModelPanChanged(float)));
     }
 
+    zoomToFit();
     rewindStart();
+
+    SVDEBUG << "MainWindow::mainModelChanged: Now calling m_session.setMainModel" << endl;
+
+    m_session.setMainModel(modelId, m_scoreId);
+    m_alignButton->setEnabled(!modelId.isNone());
+}
+
+void
+MainWindow::updateAlignButtonText()
+{
+    bool subsetOfAudioSelected = !m_viewManager->getSelections().empty();
+    QString label = tr("Align");
+    if (m_subsetOfScoreSelected) {
+        if (subsetOfAudioSelected) {
+            label = tr("Align Selections of Score and Audio");
+        } else {
+            label = tr("Align Selection of Score with All of Audio");
+        }
+    } else {
+        if (subsetOfAudioSelected) {
+            label = tr("Align All of Score with Selection of Audio");
+        } else {
+            label = tr("Align Score with Audio");
+        }
+    }
+    m_alignButton->setText(label);
 }
 
 void

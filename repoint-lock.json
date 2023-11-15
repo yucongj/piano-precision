@@ -4,10 +4,10 @@
       "pin": "7df85ecf98d9477c1ac5a36f51807062e00d8695"
     },
     "svcore": {
-      "pin": "ce9f4472abffd6cd605a799eade8649a85448e2f"
+      "pin": "b6daf4f6d2e5326d1a0beb872474ea3faf1bc2e3"
     },
     "svgui": {
-      "pin": "d0f18907d647e78625bcb1add1ad161a976a0fe3"
+      "pin": "0e84e577c1c8eaa233d3ee7e687c9e9a18faa915"
     },
     "svapp": {
       "pin": "a831622fe4f86b95390dfc4d4be7eeee388f4e4e"
@@ -49,7 +49,7 @@
       "pin": "2e4bd170f57f"
     },
     "piano-precision-aligner": {
-      "pin": "513d14d15af6687a417b9cb5b9f72b27f29623b5"
+      "pin": "82d502d209123514b952b1a2828795e45fb3dc06"
     }
   }
 }

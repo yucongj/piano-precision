@@ -25,6 +25,7 @@
 
 static QColor navigateHighlightColour("#59c4df");
 static QColor editHighlightColour("#ffbd00");
+static QColor selectHighlightColour("#913d88");
 
 using std::vector;
 using std::pair;
@@ -139,6 +140,9 @@ ScoreWidget::setElements(ScoreElements elements)
     for (auto e: elements) {
         m_elementsByPosition.insert({ e.position, e });
     }
+
+    m_selectStartPosition = -1;
+    m_selectEndPosition = -1;
 }
 
 void
@@ -190,6 +194,36 @@ ScoreWidget::mousePressEvent(QMouseEvent *e)
     }
     
     mouseMoveEvent(e);
+
+    if (!m_elements.empty() && m_mousePosition >= 0 &&
+        (m_mode == InteractionMode::SelectStart ||
+         m_mode == InteractionMode::SelectEnd)) {
+
+        if (m_mode == InteractionMode::SelectStart) {
+            m_selectStartPosition = m_mousePosition;
+            if (m_selectEndPosition <= m_selectStartPosition) {
+                m_selectEndPosition = -1;
+            }
+        } else {
+            m_selectEndPosition = m_mousePosition;
+            if (m_selectStartPosition >= m_selectEndPosition) {
+                m_selectStartPosition = -1;
+            }
+        }
+        
+#ifdef DEBUG_SCORE_WIDGET
+        SVDEBUG << "ScoreWidget::mousePressEvent: Set select start to "
+                << m_selectStartPosition << " and end to "
+                << m_selectEndPosition << endl;
+#endif
+
+        int start = m_selectStartPosition;
+        int end = m_selectEndPosition;
+        if (start == -1) start = getStartPosition();
+        if (end == -1) end = getEndPosition();
+        emit selectionChanged(start, isSelectedFromStart(),
+                              end, isSelectedToEnd());
+    }
     
     if (m_mousePosition >= 0) {
 #ifdef DEBUG_SCORE_WIDGET
@@ -197,6 +231,53 @@ ScoreWidget::mousePressEvent(QMouseEvent *e)
 #endif
         emit scorePositionActivated(m_mousePosition, m_mode);
     }
+}
+
+int
+ScoreWidget::getStartPosition() const
+{
+    if (m_elementsByPosition.empty()) {
+        return 0;
+    }
+    return m_elementsByPosition.begin()->second.position;
+}
+
+bool
+ScoreWidget::isSelectedFromStart() const
+{
+    return (m_elementsByPosition.empty() ||
+            m_selectStartPosition < 0 ||
+            m_selectStartPosition <= getStartPosition());
+}
+
+int
+ScoreWidget::getEndPosition() const
+{
+    if (m_elementsByPosition.empty()) {
+        return 0;
+    }
+    return m_elementsByPosition.rbegin()->second.position;
+}
+
+bool
+ScoreWidget::isSelectedToEnd() const
+{
+    return (m_elementsByPosition.empty() ||
+            m_selectEndPosition < 0 ||
+            m_selectEndPosition >= getEndPosition());
+}
+
+bool
+ScoreWidget::isSelectedAll() const
+{
+    return isSelectedFromStart() && isSelectedToEnd();
+}
+
+void
+ScoreWidget::getSelection(int &start, int &end) const
+{
+    start = m_selectStartPosition;
+    end = m_selectEndPosition;
 }
 
 void
@@ -238,6 +319,21 @@ ScoreWidget::rectForPosition(int pos)
 
     // just use the first element for now...
 
+    const ScoreElement &elt = itr->second;
+    
+#ifdef DEBUG_SCORE_WIDGET
+    SVDEBUG << "ScoreWidget::rectForPosition: Position "
+            << pos << " has corresponding element id="
+            << elt.id << " on page=" << elt.page << " with x="
+            << elt.x << ", y=" << elt.y << ", sy=" << elt.sy << endl;
+#endif
+
+    return rectForElement(elt);
+}
+
+QRectF
+ScoreWidget::rectForElement(const ScoreElement &elt)
+{
     // Now, we know the units are a bit mad for these values.  I
     // think(?) they are in inches * dpi * constant where dpi = 360
     // and constant = 12, so inches * 4320 or mm * 170.08 approx.
@@ -254,18 +350,9 @@ ScoreWidget::rectForPosition(int pos)
     // (pixel_height)/50513.4 and x ratio (pixel_width)/35716.5. Oh,
     // and that's times the device pixel ratio.
 
-    ScoreElement elt = itr->second;
-
-#ifdef DEBUG_SCORE_WIDGET
-    SVDEBUG << "ScoreWidget::rectForPosition: Position "
-            << pos << " has corresponding element id="
-            << elt.id << " on page=" << elt.page << " with x="
-            << elt.x << ", y=" << elt.y << ", sy=" << elt.sy << endl;
-#endif
-
     if (elt.page != m_page) {
 #ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidget::rectForPosition: Position " << pos
+        SVDEBUG << "ScoreWidget::rectForElement: Element at " << elt.position
                 << " is not on the current page (page " << elt.page
                 << ", we are on " << m_page << ")" << endl;
 #endif
@@ -375,6 +462,9 @@ ScoreWidget::paintEvent(QPaintEvent *e)
     int xorigin = (mySize.width() - imageSize.width() / dpr) / 2;
     int yorigin = (mySize.height() - imageSize.height() / dpr) / 2;
 
+    // Show a highlight bar under the mouse if the interaction mode is
+    // anything other than None - the colour depends on the mode
+    
     if (m_mode != InteractionMode::None) {
 
         int position = m_scorePosition;
@@ -384,22 +474,97 @@ ScoreWidget::paintEvent(QPaintEvent *e)
         
         QRectF rect = rectForPosition(position);
         if (!rect.isNull()) {
-            QColor colour = (m_mode == InteractionMode::Edit ?
-                             editHighlightColour :
-                             navigateHighlightColour);
-            colour.setAlpha(160);
+
+            QColor highlightColour;
+
+            switch (m_mode) {
+            case InteractionMode::Navigate:
+                highlightColour = navigateHighlightColour;
+                break;
+            case InteractionMode::Edit:
+                highlightColour = editHighlightColour;
+                break;
+            case InteractionMode::SelectStart:
+            case InteractionMode::SelectEnd:
+                highlightColour = selectHighlightColour;
+                break;
+            default: // None already handled in conditional above
+                throw std::runtime_error("Unhandled case in mode switch");
+            }
+            
+            highlightColour.setAlpha(160);
             paint.setPen(Qt::NoPen);
-            paint.setBrush(colour);
+            paint.setBrush(highlightColour);
+            
 #ifdef DEBUG_SCORE_WIDGET
             SVDEBUG << "ScoreWidget::paint: highlighting rect with origin "
                     << rect.x() << "," << rect.y() << " and size "
                     << rect.width() << "x" << rect.height()
-                    << " using colour " << colour.name() << endl;
+                    << " using colour " << highlightColour.name() << endl;
 #endif
-            paint.drawRect(rect);
+
+            if (rect != QRectF()) {
+                paint.drawRect(rect);
+            }
         }
     }
 
+    // Highlight the current selection if there is one
+
+    if (!m_elements.empty() &&
+        (!isSelectedAll() ||
+         (m_mode == InteractionMode::SelectStart ||
+          m_mode == InteractionMode::SelectEnd))) {
+
+        QColor fillColour = selectHighlightColour.lighter();
+        fillColour.setAlpha(100);
+        paint.setPen(Qt::NoPen);
+        paint.setBrush(fillColour);
+        
+        PositionElementMap::iterator i0 = m_elementsByPosition.begin();
+        if (m_selectStartPosition > 0) {
+            i0 = m_elementsByPosition.lower_bound(m_selectStartPosition);
+        }
+        PositionElementMap::iterator i1 = m_elementsByPosition.end();
+        if (m_selectEndPosition > 0) {
+            i1 = m_elementsByPosition.lower_bound(m_selectEndPosition);
+        }
+
+        int prevY = -1;
+        for (auto i = i0; i != i1 && i != m_elementsByPosition.end(); ++i) {
+            if (i->second.page < m_page) {
+                continue;
+            }
+            if (i->second.page > m_page) {
+                break;
+            }
+            const ScoreElement &elt(i->second);
+            QRectF rect = rectForElement(elt);
+            if (rect == QRectF()) {
+                continue;
+            }
+            auto j = i;
+            ++j;
+            if (i == i0) {
+                prevY = elt.y;
+            }
+            if (elt.y != prevY) {
+                rect.setX(0);
+                rect.setWidth(m_image.width());
+            } else {
+                rect.setWidth(m_image.width() - rect.x());
+            }
+            if (j != m_elementsByPosition.end() && j->second.y == elt.y) {
+                QRectF nextRect = rectForElement(j->second);
+                if (nextRect != QRectF()) {
+                    rect.setWidth(nextRect.x() - rect.x());
+                }
+            }
+            paint.drawRect(rect);
+            prevY = elt.y;
+        }
+    }
+    
     paint.drawImage
         (QRect(xorigin, yorigin,
                imageSize.width() / dpr,

@@ -58,11 +58,17 @@ public:
      * Return the total number of pages, or 0 if no score is loaded.
      */
     int getPageCount() const;
+
+    /**
+     * Return the start and end score positions of the current
+     * selection, or -1 if there is no constraint at either end.
+     */
+    void getSelection(int &start, int &end) const;
     
     /**
      * Mode for mouse interaction.
      */
-    enum class InteractionMode { None, Navigate, Edit };
+    enum class InteractionMode { None, Navigate, Edit, SelectStart, SelectEnd };
 
     /**
      * Return the current interaction mode.
@@ -100,6 +106,18 @@ signals:
     void scorePositionHighlighted(int, ScoreWidget::InteractionMode);
     void scorePositionActivated(int, ScoreWidget::InteractionMode);
     void interactionEnded(ScoreWidget::InteractionMode); // e.g. because mouse left widget
+
+    /**
+     * Emitted when the selected region of score changes. The start
+     * and end are given using score positions. The toStartOfScore and
+     * toEndOfScore flags are set if the start and/or end correspond
+     * to the very start/end of the whole score, in which case the UI
+     * may prefer to show the value using terms like "start" or "end"
+     * rather than positional values.
+     */
+    void selectionChanged(int startPosition, bool toStartOfScore,
+                          int endPosition, bool toEndOfScore);
+    
     void pageChanged(int page);
 
 protected:
@@ -121,13 +139,25 @@ private:
     InteractionMode m_mode;
     int m_scorePosition;
     int m_mousePosition;
+    int m_selectStartPosition;
+    int m_selectEndPosition;
     bool m_mouseActive;
 
+    int getStartPosition() const;
+    bool isSelectedFromStart() const;
+
+    int getEndPosition() const;
+    bool isSelectedToEnd() const;
+
+    bool isSelectedAll() const;
+    
     QRectF rectForPosition(int pos);
+    QRectF rectForElement(const ScoreElement &elt);
     int positionForPoint(QPoint point);
     
     ScoreElements m_elements;
-    std::multimap<int, ScoreElement> m_elementsByPosition;
+    typedef std::multimap<int, ScoreElement> PositionElementMap;
+    PositionElementMap m_elementsByPosition;
 };
 
 #endif
