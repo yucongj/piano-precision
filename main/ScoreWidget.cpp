@@ -75,7 +75,10 @@ ScoreWidget::loadAScore(QString scoreName)
     if (!loadAScore(scoreName, errorString)) {
         emit loadFailed(scoreName, tr("Failed to load score %1: %2")
                         .arg(scoreName).arg(errorString));
+        return;
     }
+
+    clearSelection();
 }
 
 bool
@@ -221,8 +224,12 @@ ScoreWidget::mousePressEvent(QMouseEvent *e)
         int end = m_selectEndPosition;
         if (start == -1) start = getStartPosition();
         if (end == -1) end = getEndPosition();
-        emit selectionChanged(start, isSelectedFromStart(),
-                              end, isSelectedToEnd());
+        emit selectionChanged(start,
+                              isSelectedFromStart(),
+                              labelForPosition(start),
+                              end,
+                              isSelectedToEnd(),
+                              labelForPosition(end));
     }
     
     if (m_mousePosition >= 0) {
@@ -231,6 +238,30 @@ ScoreWidget::mousePressEvent(QMouseEvent *e)
 #endif
         emit scorePositionActivated(m_mousePosition, m_mode);
     }
+}
+
+void
+ScoreWidget::clearSelection()
+{
+#ifdef DEBUG_SCORE_WIDGET
+    SVDEBUG << "ScoreWidget::clearSelection" << endl;
+#endif
+
+    if (m_selectStartPosition == -1 && m_selectEndPosition == -1) {
+        return;
+    }
+
+    m_selectStartPosition = -1;
+    m_selectEndPosition = -1;
+
+    emit selectionChanged(m_selectStartPosition,
+                          true,
+                          labelForPosition(getStartPosition()),
+                          m_selectEndPosition,
+                          true,
+                          labelForPosition(getEndPosition()));
+
+    update();
 }
 
 int
@@ -325,10 +356,26 @@ ScoreWidget::rectForPosition(int pos)
     SVDEBUG << "ScoreWidget::rectForPosition: Position "
             << pos << " has corresponding element id="
             << elt.id << " on page=" << elt.page << " with x="
-            << elt.x << ", y=" << elt.y << ", sy=" << elt.sy << endl;
+            << elt.x << ", y=" << elt.y << ", sy=" << elt.sy
+            << ", label= " << elt.label << endl;
 #endif
 
     return rectForElement(elt);
+}
+    
+QString
+ScoreWidget::labelForPosition(int pos)
+{
+    auto itr = m_elementsByPosition.lower_bound(pos);
+    if (itr == m_elementsByPosition.end()) {
+#ifdef DEBUG_SCORE_WIDGET
+        SVDEBUG << "ScoreWidget::rectForPosition: Position " << pos
+                << " does not have any corresponding element" << endl;
+#endif
+        return {};
+    }
+
+    return itr->second.label;
 }
 
 QRectF

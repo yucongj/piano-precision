@@ -31,10 +31,9 @@ public:
     }
     
 private:
-    QString m_scoreName;
     QString m_scoreFilename;
 
-    bool loadScoreFile(QString filename);
+    bool loadScoreFile(QString filename, bool isExtendedFormat);
 	
     ScoreElements m_elements;
 };

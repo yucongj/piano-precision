@@ -20,7 +20,7 @@
 #include "layer/SpectrogramLayer.h"
 #include "layer/TimeValueLayer.h"
 
-#include "view/View.h"
+#include "view/Pane.h"
 
 #include "data/model/Model.h"
 
@@ -33,8 +33,8 @@ public:
     virtual ~Session();
 
     void setDocument(Document *,
-                     View *topView,
-                     View *bottomView,
+                     Pane *topPane,
+                     Pane *bottomPane,
                      Layer *timeRuler);
 
     void unsetDocument();
@@ -48,18 +48,28 @@ public:
                                sv_frame_t audioFrameStart,
                                sv_frame_t audioFrameEnd);
 
+    TimeValueLayer *getOnsetsLayer();
+    Pane *getPaneContainingOnsetsLayer();
+    
+    TimeValueLayer *getTempoLayer();
+    Pane *getPaneContainingTempoLayer();
+
+signals:
+    void alignmentAccepted();
+    void alignmentFrameIlluminated(sv_frame_t);
+                                       
 protected slots:
     void modelReady(ModelId);
     
 private:
     // I don't own any of these. The SV main window owns the document
-    // and views; the document owns the layers and models
+    // and panes; the document owns the layers and models
     Document *m_document;
     QString m_scoreId;
     ModelId m_mainModel;
 
-    View *m_topView;
-    View *m_bottomView;
+    Pane *m_topPane;
+    Pane *m_bottomPane;
     Layer *m_timeRulerLayer;
     WaveformLayer *m_waveformLayer;
     SpectrogramLayer *m_spectrogramLayer;

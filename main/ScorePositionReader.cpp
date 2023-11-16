@@ -21,6 +21,7 @@
 #include <map>
 
 using std::map;
+using std::string;
 
 static std::ostream &operator<<(std::ostream &o, const QStringRef &r) {
     return o << r.toString();
@@ -35,28 +36,34 @@ ScorePositionReader::~ScorePositionReader()
 }
 
 bool
-ScorePositionReader::loadAScore(QString scoreName)
+ScorePositionReader::loadAScore(QString qScoreName)
 {
-    m_scoreName = scoreName;
-
-    SVDEBUG << "ScorePositionReader::loadAScore: Score \"" << scoreName
+    SVDEBUG << "ScorePositionReader::loadAScore: Score \"" << qScoreName
 	    << "\" requested" << endl;
 
-    std::string scorePath =
-        ScoreFinder::getScoreFile(scoreName.toStdString(), "spos");
+    string scoreName = qScoreName.toStdString();
+    string scorePath = ScoreFinder::getScoreFile(scoreName, "sposx");
+    bool isExtendedFormat = true;
+
     if (scorePath == "") {
-        std::cerr << "Score file (.spos) not found!" << '\n';
-        return false;
+        SVDEBUG << "Extended score file (.sposx) not found - falling back to .spos file" << endl;
+        scorePath = ScoreFinder::getScoreFile(scoreName, "spos");
+        isExtendedFormat = false;
+        if (scorePath == "") {
+            SVDEBUG << "Score file (.spos) not found!" << endl;
+            return false;
+        }
     }
         
     QString filename = scorePath.c_str();
     SVDEBUG << "ScorePositionReader::loadAScore: Found file, calling "
-	    << "loadScoreFile with filename \"" << filename << "\"" << endl;
-    return loadScoreFile(filename);
+	    << "loadScoreFile with filename \"" << filename << "\""
+            << " and isExtendedFormat = " << isExtendedFormat << endl;
+    return loadScoreFile(filename, isExtendedFormat);
 }
 
 bool
-ScorePositionReader::loadScoreFile(QString filename)
+ScorePositionReader::loadScoreFile(QString filename, bool isExtendedFormat)
 {
     QFile file(filename);
 
@@ -165,6 +172,7 @@ ScorePositionReader::loadScoreFile(QString filename)
 			    << "Invalid page " << attrs.value("page") << endl;
 		    return false;
 		}
+                elements[id].id = id;
 		elements[id].x = x;
 		elements[id].y = y;
 		elements[id].sy = sy;
@@ -200,6 +208,10 @@ ScorePositionReader::loadScoreFile(QString filename)
 		    return false;
 		}
 		elements[elid].position = position;
+
+                if (isExtendedFormat) {
+                    elements[elid].label = attrs.value("label").toString();
+                }
 	    }
 	    break;
 	}

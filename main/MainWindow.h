@@ -138,9 +138,10 @@ protected slots:
     void scorePositionActivated(int, ScoreWidget::InteractionMode);
     void actOnScorePosition(int, ScoreWidget::InteractionMode, bool activated);
     void scoreInteractionEnded(ScoreWidget::InteractionMode);
-    void frameIlluminated(sv_frame_t);
+    void alignmentAccepted();
+    void alignmentFrameIlluminated(sv_frame_t);
     void highlightFrameInScore(sv_frame_t);
-    void scoreSelectionChanged(int, bool, int, bool);
+    void scoreSelectionChanged(int, bool, QString, int, bool, QString);
     void scorePageChanged(int page);
     void scorePageDownButtonClicked();
     void scorePageUpButtonClicked();
@@ -162,8 +163,6 @@ protected slots:
     void layerRemoved(Layer *) override;
     void layerInAView(Layer *, bool) override;
 
-    void onsetsLayerCompleted();
-    
     void mainModelChanged(ModelId) override;
     virtual void mainModelGainChanged(float);
     virtual void mainModelPanChanged(float);
@@ -212,6 +211,7 @@ protected:
     QLabel                  *m_scorePageLabel;
     QLabel                  *m_selectFrom;
     QLabel                  *m_selectTo;
+    QPushButton             *m_resetSelectionButton;
 
     bool                     m_mainMenusCreated;
     QMenu                   *m_paneMenu;
@@ -351,9 +351,6 @@ protected:
 
     bool m_subsetOfScoreSelected;
     void updateAlignButtonText();
-    
-    bool isOnsetsLayer(Layer *) const;
-    TimeValueLayer *findOnsetsLayer(Pane ** = nullptr) const;
 };
 
 

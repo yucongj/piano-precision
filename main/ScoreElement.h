@@ -16,6 +16,8 @@
 #include <vector>
 #include <map>
 
+#include <QString>
+
 struct ScoreElement {
     int id;
     double x;
@@ -23,6 +25,7 @@ struct ScoreElement {
     double sy;
     int page;
     int position;
+    QString label;
     
     ScoreElement() : id(0), x(0.0), y(0.0), sy(0.0), page(0), position(0) { }
 };

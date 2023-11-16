@@ -33,8 +33,8 @@ Session::~Session()
 
 void
 Session::setDocument(Document *doc,
-                     View *topView,
-                     View *bottomView,
+                     Pane *topPane,
+                     Pane *bottomPane,
                      Layer *timeRuler)
 {
     SVDEBUG << "Session::setDocument(" << doc << ")" << endl;
@@ -43,8 +43,8 @@ Session::setDocument(Document *doc,
     m_scoreId = "";
     m_mainModel = {};
     
-    m_topView = topView;
-    m_bottomView = bottomView;
+    m_topPane = topPane;
+    m_bottomPane = bottomPane;
     m_timeRulerLayer = timeRuler;
     m_waveformLayer = nullptr;
     m_spectrogramLayer = nullptr;
@@ -67,6 +67,30 @@ Session::unsetDocument()
     setDocument(nullptr, nullptr, nullptr, nullptr);
 }
 
+TimeValueLayer *
+Session::getOnsetsLayer()
+{
+    return m_onsetsLayer;
+}
+
+Pane *
+Session::getPaneContainingOnsetsLayer()
+{
+    return m_topPane;
+}
+
+TimeValueLayer *
+Session::getTempoLayer()
+{
+    return m_tempoLayer;
+}
+
+Pane *
+Session::getPaneContainingTempoLayer()
+{
+    return m_bottomPane;
+}
+
 void
 Session::setMainModel(ModelId modelId, QString scoreId)
 {
@@ -86,7 +110,7 @@ Session::setMainModel(ModelId modelId, QString scoreId)
         return;
     }
 
-    m_document->addLayerToView(m_bottomView, m_timeRulerLayer);
+    m_document->addLayerToView(m_bottomPane, m_timeRulerLayer);
     
     ColourDatabase *cdb = ColourDatabase::getInstance();
 
@@ -94,14 +118,14 @@ Session::setMainModel(ModelId modelId, QString scoreId)
         (m_document->createLayer(LayerFactory::Waveform));
     m_waveformLayer->setBaseColour(cdb->getColourIndex(tr("Orange")));
     
-    m_document->addLayerToView(m_topView, m_waveformLayer);
+    m_document->addLayerToView(m_topPane, m_waveformLayer);
     m_document->setModel(m_waveformLayer, modelId);
 
     m_spectrogramLayer = qobject_cast<SpectrogramLayer *>
         (m_document->createLayer(LayerFactory::MelodicRangeSpectrogram));
     m_spectrogramLayer->setColourMap(ColourMapper::BlackOnWhite);
 
-    m_document->addLayerToView(m_bottomView, m_spectrogramLayer);
+    m_document->addLayerToView(m_bottomPane, m_spectrogramLayer);
     m_document->setModel(m_spectrogramLayer, modelId);
 }
 
@@ -129,12 +153,12 @@ Session::beginPartialAlignment(int scorePositionStart,
 
     ModelTransformer::Input input(m_mainModel);
 
-    vector<pair<QString, pair<View *, TimeValueLayer **>>> layerDefinitions {
+    vector<pair<QString, pair<Pane *, TimeValueLayer **>>> layerDefinitions {
         { "vamp:score-aligner:pianoaligner:chordonsets",
-          { m_topView, &m_pendingOnsetsLayer }
+          { m_topPane, &m_pendingOnsetsLayer }
         },
         { "vamp:score-aligner:pianoaligner:eventtempo",
-          { m_bottomView, &m_pendingTempoLayer }
+          { m_bottomPane, &m_pendingTempoLayer }
         }
     };
 
@@ -184,7 +208,7 @@ Session::beginPartialAlignment(int scorePositionStart,
     for (auto defn : layerDefinitions) {
 
         auto transformId = defn.first;
-        auto view = defn.second.first;
+        auto pane = defn.second.first;
         auto layerPtr = defn.second.second;
         
         Transform t = TransformFactory::getInstance()->
@@ -217,21 +241,26 @@ Session::beginPartialAlignment(int scorePositionStart,
             
         *layerPtr = tvl;
         
-        m_document->addLayerToView(view, layer);
+        m_document->addLayerToView(pane, layer);
 
-        Model *model = ModelById::get(layer->getModel()).get();
-        connect(model, SIGNAL(ready(ModelId)),
-                this, SLOT(modelReady(ModelId)));
+        ModelId modelId = layer->getModel();
+        auto model = ModelById::get(modelId);
+        if (model->isReady(nullptr)) {
+            modelReady(modelId);
+        } else {
+            connect(model.get(), SIGNAL(ready(ModelId)),
+                    this, SLOT(modelReady(ModelId)));
+        }
     }
 
     // Hide the existing layers. This is only a temporary method of
     // removing them, normally we would go through the document if we
     // wanted to delete them entirely
     if (m_onsetsLayer) {
-        m_topView->removeLayer(m_onsetsLayer);
+        m_topPane->removeLayer(m_onsetsLayer);
     }
     if (m_tempoLayer) {
-        m_bottomView->removeLayer(m_tempoLayer);
+        m_bottomPane->removeLayer(m_tempoLayer);
     }
         
     ColourDatabase *cdb = ColourDatabase::getInstance();
@@ -239,7 +268,11 @@ Session::beginPartialAlignment(int scorePositionStart,
     m_pendingOnsetsLayer->setPlotStyle(TimeValueLayer::PlotSegmentation);
     m_pendingOnsetsLayer->setDrawSegmentDivisions(true);
     m_pendingOnsetsLayer->setFillSegments(false);
+    m_pendingOnsetsLayer->setPermitValueEditOfSegmentation(false);
 
+    connect(m_pendingOnsetsLayer, SIGNAL(frameIlluminated(sv_frame_t)),
+            this, SIGNAL(alignmentFrameIlluminated(sv_frame_t)));
+    
     m_pendingTempoLayer->setPlotStyle(TimeValueLayer::PlotLines);
     m_pendingTempoLayer->setBaseColour(cdb->getColourIndex(tr("Blue")));
 
@@ -273,7 +306,7 @@ Session::alignmentComplete()
     SVDEBUG << "Session::alignmentComplete" << endl;
 
     if (QMessageBox::question
-        (m_topView, tr("Save alignment?"),
+        (m_topPane, tr("Save alignment?"),
          tr("<b>Alignment finished</b><p>Do you want to keep this alignment?"),
          QMessageBox::Save | QMessageBox::Cancel,
          QMessageBox::Save) !=
@@ -288,10 +321,10 @@ Session::alignmentComplete()
         m_pendingTempoLayer = nullptr;
 
         if (m_onsetsLayer) {
-            m_topView->addLayer(m_onsetsLayer);
+            m_topPane->addLayer(m_onsetsLayer);
         }
         if (m_tempoLayer) {
-            m_topView->addLayer(m_tempoLayer);
+            m_topPane->addLayer(m_tempoLayer);
         }
 
         return;
@@ -319,6 +352,8 @@ Session::alignmentComplete()
     }
     m_tempoLayer = m_pendingTempoLayer;
     m_pendingTempoLayer = nullptr;
+
+    emit alignmentAccepted();
 }
 
 void

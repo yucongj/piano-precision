@@ -236,8 +236,10 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
             this, SLOT(scoreInteractionModeChanged(ScoreWidget::InteractionMode)));
     connect(m_scoreWidget, SIGNAL(interactionEnded(ScoreWidget::InteractionMode)),
             this, SLOT(scoreInteractionEnded(ScoreWidget::InteractionMode)));
-    connect(m_scoreWidget, SIGNAL(selectionChanged(int, bool, int, bool)),
-            this, SLOT(scoreSelectionChanged(int, bool, int, bool)));
+    connect(m_scoreWidget,
+            SIGNAL(selectionChanged(int, bool, QString, int, bool, QString)),
+            this,
+            SLOT(scoreSelectionChanged(int, bool, QString, int, bool, QString)));
     connect(m_scoreWidget, SIGNAL(pageChanged(int)),
             this, SLOT(scorePageChanged(int)));
 
@@ -306,6 +308,11 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
         }
     });
 
+    m_resetSelectionButton = new QPushButton(tr("Reset"));
+    connect(m_resetSelectionButton, SIGNAL(clicked()),
+            m_scoreWidget, SLOT(clearSelection()));
+    m_resetSelectionButton->setEnabled(false);
+    
     selectionLayout->addWidget(new QLabel(" "), 0, 0);
     selectionLayout->addWidget(selectFromLabel, 0, 1, Qt::AlignRight);
     selectionLayout->addWidget(selectFromButton, 0, 2);
@@ -313,6 +320,7 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     selectionLayout->addWidget(selectToLabel, 1, 1, Qt::AlignRight);
     selectionLayout->addWidget(selectToButton, 1, 2);
     selectionLayout->addWidget(m_selectTo, 1, 3);
+    selectionLayout->addWidget(m_resetSelectionButton, 1, 4);
     selectionLayout->setColumnStretch(3, 10);
 
     selectionGroupBox->setLayout(selectionLayout);
@@ -488,7 +496,12 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
             this, SLOT(viewManagerPlaybackFrameChanged(sv_frame_t)));
     
     m_showPropertyBoxesAction->trigger();
-    
+
+    connect(&m_session, SIGNAL(alignmentAccepted()),
+            this, SLOT(alignmentAccepted()));
+    connect(&m_session, SIGNAL(alignmentFrameIlluminated(sv_frame_t)),
+            this, SLOT(alignmentFrameIlluminated(sv_frame_t)));
+
     chooseScore(); // Added by YJ, Oct 5, 2021
 
     SVDEBUG << "MainWindow: Constructor done" << endl;
@@ -2272,7 +2285,7 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
 {
     m_scorePageDownButton->setEnabled(false);
     m_scorePageUpButton->setEnabled(false);
-    
+
     auto scores = ScoreFinder::getScoreNames();
     std::set<std::string> byName;
     for (auto s: scores) {
@@ -2403,46 +2416,6 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     }
 }
 
-bool
-MainWindow::isOnsetsLayer(Layer *layer) const
-{
-    auto tvl = qobject_cast<TimeValueLayer *>(layer);
-    if (!tvl) {
-        return false;
-    }
-    auto m = ModelById::getAs<SparseTimeValueModel>(tvl->getModel());
-    if (!m) {
-        return false;
-    }
-    if (tvl->getPlotStyle() != TimeValueLayer::PlotStyle::PlotSegmentation) {
-        return false;
-    }
-    return true;
-}
-
-TimeValueLayer *
-MainWindow::findOnsetsLayer(Pane **paneReturn) const
-{
-    if (!m_paneStack) return nullptr;
-
-    for (int i = 0; i < m_paneStack->getPaneCount(); ++i) {
-        Pane *pane = m_paneStack->getPane(i);
-        if (!pane) continue;
-        for (int j = 0; j < pane->getLayerCount(); ++j) {
-            Layer *layer = pane->getLayer(j);
-            if (!layer) continue;
-            if (isOnsetsLayer(layer)) {
-                TimeValueLayer *tvl = qobject_cast<TimeValueLayer *>(layer);
-                tvl->setPermitValueEditOfSegmentation(false);
-                if (paneReturn) *paneReturn = pane;
-                return tvl;
-            }
-        }
-    }
-
-    return nullptr;
-}
-
 void
 MainWindow::viewManagerPlaybackFrameChanged(sv_frame_t frame)
 {
@@ -2458,7 +2431,7 @@ MainWindow::highlightFrameInScore(sv_frame_t frame)
     // In MuseScore's spos file, 0.5 second = position value of 500.
     // The default tempo is quarter note = 120 bpm.
 
-    TimeValueLayer *targetLayer = findOnsetsLayer();
+    TimeValueLayer *targetLayer = m_session.getOnsetsLayer();
 
     // If the program is slow, might want to consider a different approach that can get rid of the loops.
     int position = 0;
@@ -2492,26 +2465,32 @@ MainWindow::highlightFrameInScore(sv_frame_t frame)
 }
 
 void
-MainWindow::scoreSelectionChanged(int start, bool atStart,
-                                  int end, bool atEnd)
+MainWindow::scoreSelectionChanged(int start, bool atStart, QString startLabel,
+                                  int end, bool atEnd, QString endLabel)
 {
     SVDEBUG << "MainWindow::scoreSelectionChanged: start = " << start
-            << ", atStart = " << atStart << ", end = " << end
-            << ", atEnd = " << atEnd << endl;
+            << ", atStart = " << atStart << ", startLabel = " << startLabel
+            << ", end = " << end << ", atEnd = " << atEnd << ", endLabel = "
+            << endLabel << endl;
 
     if (atStart) {
         m_selectFrom->setText(tr("Start"));
+    } else if (startLabel != "") {
+        m_selectFrom->setText(startLabel);
     } else {
         m_selectFrom->setText(QString("%1").arg(start));
     }
 
     if (atEnd) {
         m_selectTo->setText(tr("End"));
+    } else if (endLabel != "") {
+        m_selectTo->setText(endLabel);
     } else {
         m_selectTo->setText(QString("%1").arg(end));
     }
 
     m_subsetOfScoreSelected = (!atStart || !atEnd);
+    m_resetSelectionButton->setEnabled(m_subsetOfScoreSelected);
     updateAlignButtonText();
 }
 
@@ -2607,8 +2586,8 @@ MainWindow::actOnScorePosition(int position, ScoreWidget::InteractionMode mode,
     
     // See comments in highlightFrameInScore above
 
-    Pane *targetPane = nullptr;
-    TimeValueLayer *targetLayer = findOnsetsLayer(&targetPane);
+    TimeValueLayer *targetLayer = m_session.getOnsetsLayer();
+    Pane *targetPane = m_session.getPaneContainingOnsetsLayer();
 
     if (!targetLayer || !targetPane || position < 0 || !m_viewManager) {
         SVDEBUG << "MainWindow::actOnScorePosition: missing either target layer, position, or view manager" << endl;
@@ -2650,18 +2629,15 @@ MainWindow::actOnScorePosition(int position, ScoreWidget::InteractionMode mode,
 void
 MainWindow::scoreInteractionEnded(ScoreWidget::InteractionMode mode)
 {
-    TimeValueLayer *targetLayer = findOnsetsLayer();
+    TimeValueLayer *targetLayer = m_session.getOnsetsLayer();
     if (targetLayer) {
         targetLayer->removeOverrideHighlight();
     }
 }
 
 void
-MainWindow::frameIlluminated(sv_frame_t frame)
+MainWindow::alignmentFrameIlluminated(sv_frame_t frame)
 {
-    TimeValueLayer *targetLayer = findOnsetsLayer();
-    if (targetLayer != sender()) return;
-
     if (m_scoreWidget->getInteractionMode() ==
         ScoreWidget::InteractionMode::Edit) {
         highlightFrameInScore(frame);
@@ -2672,63 +2648,20 @@ void
 MainWindow::layerAdded(Layer *layer)
 {
     SVDEBUG << "MainWindow::layerAdded" << endl;
-    MainWindowBase::layerAdded(layer);
-
-    auto tvl = qobject_cast<TimeValueLayer *>(layer);
-    if (!tvl) return;
-
-    // If this is (going to be) the onsets layer, we want to be
-    // notified when it is complete so that we can export it
-    // automatically. This is surprisingly fiddly - the layer likely
-    // doesn't even have the right model yet, because the layer is
-    // added from the session template before the model is generated,
-    // and even when it gets the right model we still have to wait for
-    // the transform to finish before we can use it. So we attach to
-    // the layer's modelReplaced signal so as to pick up the right
-    // model and, if that model looks ok, we attach to its ready
-    // signal to pick up transform completion.
-    
-    connect(tvl,
-            &Layer::modelReplaced,
-            [=]() {
-                SVDEBUG << "MainWindow::layerAdded: model replaced in layer " << tvl << endl;
-                if (tvl->getPlotStyle() ==
-                    TimeValueLayer::PlotStyle::PlotSegmentation) {
-                    SVDEBUG << "MainWindow::layerAdded: it is the onsets layer" << endl;
-                    auto model = ModelById::getAs<SparseTimeValueModel>
-                        (layer->getModel());
-                    if (model) {
-                        if (model->isReady(nullptr)) {
-                            onsetsLayerCompleted();
-                        } else {
-                            connect(model.get(), SIGNAL(ready(ModelId)),
-                                    this, SLOT(onsetsLayerCompleted()));
-                            SVDEBUG << "MainWindow::layerAdded: connected ready signal" << endl;
-                        }
-                    }
-                }
-            });
-
-    connect(tvl, SIGNAL(frameIlluminated(sv_frame_t)),
-            this, SLOT(frameIlluminated(sv_frame_t)));
 }
 
 void
-MainWindow::onsetsLayerCompleted()
+MainWindow::alignmentAccepted()
 {
-    SVDEBUG << "MainWindow::onsetsLayerCompleted" << endl;
+    SVDEBUG << "MainWindow::alignmentAccepted" << endl;
 
-    // Naturally the chain of signals hasn't actually carried through
-    // the information about which layer it is
-
-    Pane *onsetsPane = nullptr;
-    TimeValueLayer *onsetsLayer = findOnsetsLayer(&onsetsPane);
+    TimeValueLayer *onsetsLayer = m_session.getOnsetsLayer();
+    Pane *onsetsPane = m_session.getPaneContainingOnsetsLayer();
     if (!onsetsLayer) {
-        SVDEBUG << "MainWindow::onsetsLayerCompleted: can't find an onsets layer!" << endl;
+        SVDEBUG << "MainWindow::alignmentAccepted: can't find an onsets layer!" << endl;
         return;
     }
 
-    onsetsLayer->setPermitValueEditOfSegmentation(false);
     m_paneStack->setCurrentLayer(onsetsPane, onsetsLayer);
 
     QDateTime now = QDateTime::currentDateTime();
