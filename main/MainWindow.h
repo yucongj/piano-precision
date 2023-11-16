@@ -138,7 +138,8 @@ protected slots:
     void scorePositionActivated(int, ScoreWidget::InteractionMode);
     void actOnScorePosition(int, ScoreWidget::InteractionMode, bool activated);
     void scoreInteractionEnded(ScoreWidget::InteractionMode);
-    void frameIlluminated(sv_frame_t);
+    void alignmentAccepted();
+    void alignmentFrameIlluminated(sv_frame_t);
     void highlightFrameInScore(sv_frame_t);
     void scoreSelectionChanged(int, bool, int, bool);
     void scorePageChanged(int page);
@@ -162,8 +163,6 @@ protected slots:
     void layerRemoved(Layer *) override;
     void layerInAView(Layer *, bool) override;
 
-    void onsetsLayerCompleted();
-    
     void mainModelChanged(ModelId) override;
     virtual void mainModelGainChanged(float);
     virtual void mainModelPanChanged(float);

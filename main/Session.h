@@ -53,7 +53,11 @@ public:
     
     TimeValueLayer *getTempoLayer();
     Pane *getPaneContainingTempoLayer();
-                                                        
+
+signals:
+    void alignmentAccepted();
+    void alignmentFrameIlluminated(sv_frame_t);
+                                       
 protected slots:
     void modelReady(ModelId);
     

@@ -494,7 +494,12 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
             this, SLOT(viewManagerPlaybackFrameChanged(sv_frame_t)));
     
     m_showPropertyBoxesAction->trigger();
-    
+
+    connect(&m_session, SIGNAL(alignmentAccepted()),
+            this, SLOT(alignmentAccepted()));
+    connect(&m_session, SIGNAL(alignmentFrameIlluminated(sv_frame_t)),
+            this, SLOT(alignmentFrameIlluminated(sv_frame_t)));
+
     chooseScore(); // Added by YJ, Oct 5, 2021
 
     SVDEBUG << "MainWindow: Constructor done" << endl;
@@ -2624,11 +2629,8 @@ MainWindow::scoreInteractionEnded(ScoreWidget::InteractionMode mode)
 }
 
 void
-MainWindow::frameIlluminated(sv_frame_t frame)
+MainWindow::alignmentFrameIlluminated(sv_frame_t frame)
 {
-    TimeValueLayer *targetLayer = m_session.getOnsetsLayer();
-    if (targetLayer != sender()) return;
-
     if (m_scoreWidget->getInteractionMode() ==
         ScoreWidget::InteractionMode::Edit) {
         highlightFrameInScore(frame);
@@ -2639,63 +2641,20 @@ void
 MainWindow::layerAdded(Layer *layer)
 {
     SVDEBUG << "MainWindow::layerAdded" << endl;
-    MainWindowBase::layerAdded(layer);
-
-    auto tvl = qobject_cast<TimeValueLayer *>(layer);
-    if (!tvl) return;
-
-    // If this is (going to be) the onsets layer, we want to be
-    // notified when it is complete so that we can export it
-    // automatically. This is surprisingly fiddly - the layer likely
-    // doesn't even have the right model yet, because the layer is
-    // added from the session template before the model is generated,
-    // and even when it gets the right model we still have to wait for
-    // the transform to finish before we can use it. So we attach to
-    // the layer's modelReplaced signal so as to pick up the right
-    // model and, if that model looks ok, we attach to its ready
-    // signal to pick up transform completion.
-    
-    connect(tvl,
-            &Layer::modelReplaced,
-            [=]() {
-                SVDEBUG << "MainWindow::layerAdded: model replaced in layer " << tvl << endl;
-                if (tvl->getPlotStyle() ==
-                    TimeValueLayer::PlotStyle::PlotSegmentation) {
-                    SVDEBUG << "MainWindow::layerAdded: it is the onsets layer" << endl;
-                    auto model = ModelById::getAs<SparseTimeValueModel>
-                        (layer->getModel());
-                    if (model) {
-                        if (model->isReady(nullptr)) {
-                            onsetsLayerCompleted();
-                        } else {
-                            connect(model.get(), SIGNAL(ready(ModelId)),
-                                    this, SLOT(onsetsLayerCompleted()));
-                            SVDEBUG << "MainWindow::layerAdded: connected ready signal" << endl;
-                        }
-                    }
-                }
-            });
-
-    connect(tvl, SIGNAL(frameIlluminated(sv_frame_t)),
-            this, SLOT(frameIlluminated(sv_frame_t)));
 }
 
 void
-MainWindow::onsetsLayerCompleted()
+MainWindow::alignmentAccepted()
 {
-    SVDEBUG << "MainWindow::onsetsLayerCompleted" << endl;
-
-    // Naturally the chain of signals hasn't actually carried through
-    // the information about which layer it is
+    SVDEBUG << "MainWindow::alignmentAccepted" << endl;
 
     TimeValueLayer *onsetsLayer = m_session.getOnsetsLayer();
     Pane *onsetsPane = m_session.getPaneContainingOnsetsLayer();
     if (!onsetsLayer) {
-        SVDEBUG << "MainWindow::onsetsLayerCompleted: can't find an onsets layer!" << endl;
+        SVDEBUG << "MainWindow::alignmentAccepted: can't find an onsets layer!" << endl;
         return;
     }
 
-    onsetsLayer->setPermitValueEditOfSegmentation(false);
     m_paneStack->setCurrentLayer(onsetsPane, onsetsLayer);
 
     QDateTime now = QDateTime::currentDateTime();

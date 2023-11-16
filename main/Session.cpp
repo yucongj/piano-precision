@@ -243,9 +243,14 @@ Session::beginPartialAlignment(int scorePositionStart,
         
         m_document->addLayerToView(pane, layer);
 
-        Model *model = ModelById::get(layer->getModel()).get();
-        connect(model, SIGNAL(ready(ModelId)),
-                this, SLOT(modelReady(ModelId)));
+        ModelId modelId = layer->getModel();
+        auto model = ModelById::get(modelId);
+        if (model->isReady(nullptr)) {
+            modelReady(modelId);
+        } else {
+            connect(model.get(), SIGNAL(ready(ModelId)),
+                    this, SLOT(modelReady(ModelId)));
+        }
     }
 
     // Hide the existing layers. This is only a temporary method of
@@ -263,7 +268,11 @@ Session::beginPartialAlignment(int scorePositionStart,
     m_pendingOnsetsLayer->setPlotStyle(TimeValueLayer::PlotSegmentation);
     m_pendingOnsetsLayer->setDrawSegmentDivisions(true);
     m_pendingOnsetsLayer->setFillSegments(false);
+    m_pendingOnsetsLayer->setPermitValueEditOfSegmentation(false);
 
+    connect(m_pendingOnsetsLayer, SIGNAL(frameIlluminated(sv_frame_t)),
+            this, SIGNAL(alignmentFrameIlluminated(sv_frame_t)));
+    
     m_pendingTempoLayer->setPlotStyle(TimeValueLayer::PlotLines);
     m_pendingTempoLayer->setBaseColour(cdb->getColourIndex(tr("Blue")));
 
@@ -343,6 +352,8 @@ Session::alignmentComplete()
     }
     m_tempoLayer = m_pendingTempoLayer;
     m_pendingTempoLayer = nullptr;
+
+    emit alignmentAccepted();
 }
 
 void
