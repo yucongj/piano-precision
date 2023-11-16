@@ -100,6 +100,13 @@ public slots:
      */
     void setInteractionMode(InteractionMode mode);
 
+    /**
+     * Clear the selection back to the default (everything
+     * selected). If a selection was present, also emit
+     * selectionChanged.
+     */
+    void clearSelection();
+
 signals:
     void loadFailed(QString scoreName, QString errorMessage);
     void interactionModeChanged(ScoreWidget::InteractionMode newMode);

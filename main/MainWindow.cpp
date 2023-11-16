@@ -306,6 +306,11 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
         }
     });
 
+    m_resetSelectionButton = new QPushButton(tr("Reset"));
+    connect(m_resetSelectionButton, SIGNAL(clicked()),
+            m_scoreWidget, SLOT(clearSelection()));
+    m_resetSelectionButton->setEnabled(false);
+    
     selectionLayout->addWidget(new QLabel(" "), 0, 0);
     selectionLayout->addWidget(selectFromLabel, 0, 1, Qt::AlignRight);
     selectionLayout->addWidget(selectFromButton, 0, 2);
@@ -313,6 +318,7 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     selectionLayout->addWidget(selectToLabel, 1, 1, Qt::AlignRight);
     selectionLayout->addWidget(selectToButton, 1, 2);
     selectionLayout->addWidget(m_selectTo, 1, 3);
+    selectionLayout->addWidget(m_resetSelectionButton, 1, 4);
     selectionLayout->setColumnStretch(3, 10);
 
     selectionGroupBox->setLayout(selectionLayout);
@@ -2272,7 +2278,7 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
 {
     m_scorePageDownButton->setEnabled(false);
     m_scorePageUpButton->setEnabled(false);
-    
+
     auto scores = ScoreFinder::getScoreNames();
     std::set<std::string> byName;
     for (auto s: scores) {
@@ -2512,6 +2518,7 @@ MainWindow::scoreSelectionChanged(int start, bool atStart,
     }
 
     m_subsetOfScoreSelected = (!atStart || !atEnd);
+    m_resetSelectionButton->setEnabled(m_subsetOfScoreSelected);
     updateAlignButtonText();
 }
 

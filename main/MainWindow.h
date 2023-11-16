@@ -212,6 +212,7 @@ protected:
     QLabel                  *m_scorePageLabel;
     QLabel                  *m_selectFrom;
     QLabel                  *m_selectTo;
+    QPushButton             *m_resetSelectionButton;
 
     bool                     m_mainMenusCreated;
     QMenu                   *m_paneMenu;

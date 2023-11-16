@@ -75,7 +75,10 @@ ScoreWidget::loadAScore(QString scoreName)
     if (!loadAScore(scoreName, errorString)) {
         emit loadFailed(scoreName, tr("Failed to load score %1: %2")
                         .arg(scoreName).arg(errorString));
+        return;
     }
+
+    clearSelection();
 }
 
 bool
@@ -231,6 +234,26 @@ ScoreWidget::mousePressEvent(QMouseEvent *e)
 #endif
         emit scorePositionActivated(m_mousePosition, m_mode);
     }
+}
+
+void
+ScoreWidget::clearSelection()
+{
+#ifdef DEBUG_SCORE_WIDGET
+    SVDEBUG << "ScoreWidget::clearSelection" << endl;
+#endif
+
+    if (m_selectStartPosition == -1 && m_selectEndPosition == -1) {
+        return;
+    }
+
+    m_selectStartPosition = -1;
+    m_selectEndPosition = -1;
+
+    emit selectionChanged(m_selectStartPosition, true,
+                          m_selectEndPosition, true);
+
+    update();
 }
 
 int
