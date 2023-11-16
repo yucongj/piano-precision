@@ -120,10 +120,16 @@ signals:
      * toEndOfScore flags are set if the start and/or end correspond
      * to the very start/end of the whole score, in which case the UI
      * may prefer to show the value using terms like "start" or "end"
-     * rather than positional values.
+     * rather than positional values. The labels contain any label
+     * found associated with the element at the given score position,
+     * but may be empty.
      */
-    void selectionChanged(int startPosition, bool toStartOfScore,
-                          int endPosition, bool toEndOfScore);
+    void selectionChanged(int startPosition,
+                          bool toStartOfScore,
+                          QString startLabel,
+                          int endPosition,
+                          bool toEndOfScore,
+                          QString endLabel);
     
     void pageChanged(int page);
 
@@ -161,6 +167,7 @@ private:
     QRectF rectForPosition(int pos);
     QRectF rectForElement(const ScoreElement &elt);
     int positionForPoint(QPoint point);
+    QString labelForPosition(int pos);
     
     ScoreElements m_elements;
     typedef std::multimap<int, ScoreElement> PositionElementMap;
