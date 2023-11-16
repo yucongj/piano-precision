@@ -352,9 +352,6 @@ protected:
 
     bool m_subsetOfScoreSelected;
     void updateAlignButtonText();
-    
-    bool isOnsetsLayer(Layer *) const;
-    TimeValueLayer *findOnsetsLayer(Pane ** = nullptr) const;
 };
 
 

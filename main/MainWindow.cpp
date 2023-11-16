@@ -2409,46 +2409,6 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     }
 }
 
-bool
-MainWindow::isOnsetsLayer(Layer *layer) const
-{
-    auto tvl = qobject_cast<TimeValueLayer *>(layer);
-    if (!tvl) {
-        return false;
-    }
-    auto m = ModelById::getAs<SparseTimeValueModel>(tvl->getModel());
-    if (!m) {
-        return false;
-    }
-    if (tvl->getPlotStyle() != TimeValueLayer::PlotStyle::PlotSegmentation) {
-        return false;
-    }
-    return true;
-}
-
-TimeValueLayer *
-MainWindow::findOnsetsLayer(Pane **paneReturn) const
-{
-    if (!m_paneStack) return nullptr;
-
-    for (int i = 0; i < m_paneStack->getPaneCount(); ++i) {
-        Pane *pane = m_paneStack->getPane(i);
-        if (!pane) continue;
-        for (int j = 0; j < pane->getLayerCount(); ++j) {
-            Layer *layer = pane->getLayer(j);
-            if (!layer) continue;
-            if (isOnsetsLayer(layer)) {
-                TimeValueLayer *tvl = qobject_cast<TimeValueLayer *>(layer);
-                tvl->setPermitValueEditOfSegmentation(false);
-                if (paneReturn) *paneReturn = pane;
-                return tvl;
-            }
-        }
-    }
-
-    return nullptr;
-}
-
 void
 MainWindow::viewManagerPlaybackFrameChanged(sv_frame_t frame)
 {
@@ -2464,7 +2424,7 @@ MainWindow::highlightFrameInScore(sv_frame_t frame)
     // In MuseScore's spos file, 0.5 second = position value of 500.
     // The default tempo is quarter note = 120 bpm.
 
-    TimeValueLayer *targetLayer = findOnsetsLayer();
+    TimeValueLayer *targetLayer = m_session.getOnsetsLayer();
 
     // If the program is slow, might want to consider a different approach that can get rid of the loops.
     int position = 0;
@@ -2614,8 +2574,8 @@ MainWindow::actOnScorePosition(int position, ScoreWidget::InteractionMode mode,
     
     // See comments in highlightFrameInScore above
 
-    Pane *targetPane = nullptr;
-    TimeValueLayer *targetLayer = findOnsetsLayer(&targetPane);
+    TimeValueLayer *targetLayer = m_session.getOnsetsLayer();
+    Pane *targetPane = m_session.getPaneContainingOnsetsLayer();
 
     if (!targetLayer || !targetPane || position < 0 || !m_viewManager) {
         SVDEBUG << "MainWindow::actOnScorePosition: missing either target layer, position, or view manager" << endl;
@@ -2657,7 +2617,7 @@ MainWindow::actOnScorePosition(int position, ScoreWidget::InteractionMode mode,
 void
 MainWindow::scoreInteractionEnded(ScoreWidget::InteractionMode mode)
 {
-    TimeValueLayer *targetLayer = findOnsetsLayer();
+    TimeValueLayer *targetLayer = m_session.getOnsetsLayer();
     if (targetLayer) {
         targetLayer->removeOverrideHighlight();
     }
@@ -2666,7 +2626,7 @@ MainWindow::scoreInteractionEnded(ScoreWidget::InteractionMode mode)
 void
 MainWindow::frameIlluminated(sv_frame_t frame)
 {
-    TimeValueLayer *targetLayer = findOnsetsLayer();
+    TimeValueLayer *targetLayer = m_session.getOnsetsLayer();
     if (targetLayer != sender()) return;
 
     if (m_scoreWidget->getInteractionMode() ==
@@ -2728,8 +2688,8 @@ MainWindow::onsetsLayerCompleted()
     // Naturally the chain of signals hasn't actually carried through
     // the information about which layer it is
 
-    Pane *onsetsPane = nullptr;
-    TimeValueLayer *onsetsLayer = findOnsetsLayer(&onsetsPane);
+    TimeValueLayer *onsetsLayer = m_session.getOnsetsLayer();
+    Pane *onsetsPane = m_session.getPaneContainingOnsetsLayer();
     if (!onsetsLayer) {
         SVDEBUG << "MainWindow::onsetsLayerCompleted: can't find an onsets layer!" << endl;
         return;
