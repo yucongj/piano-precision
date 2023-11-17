@@ -65,6 +65,8 @@ protected slots:
     virtual void exportAudio();
     virtual void exportAudioData();
     virtual void convertAudio();
+    virtual void loadScoreAlignment();
+    virtual void saveScoreAlignment();
     virtual void importLayer();
     virtual void exportLayer();
     virtual void exportImage();
