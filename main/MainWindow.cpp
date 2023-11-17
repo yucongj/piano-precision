@@ -3661,6 +3661,19 @@ void
 MainWindow::loadScoreAlignment()
 {
     SVDEBUG << "MainWindow::loadScoreAlignment" << endl;
+    
+    QString filename = getOpenFileName(FileFinder::CSVFile);
+    if (filename == "") {
+        // cancelled
+        return;
+    }
+
+    if (!m_session.importAlignmentFrom(filename)) {
+        QMessageBox::warning(this,
+                             tr("Failed to import alignment"),
+                             tr("Failed to import alignment. See log file for more information."),
+                             QMessageBox::Ok);
+    }
 }
 
 void
@@ -3674,21 +3687,23 @@ MainWindow::saveScoreAlignment()
         return;
     }
 
+    /*!!!
     QDateTime now = QDateTime::currentDateTime();
     QString nowString = now.toString("yyyyMMdd-HHmmss-zzz");
     QString filename = RecordDirectory::getRecordDirectory() +
         QString("/onsets-%1-unmodified.csv").arg(nowString);
-    
-    QString error;
-    if (!exportLayerToCSV(onsetsLayer, nullptr, nullptr, ",",
-                          DataExportIncludeHeader |
-                          DataExportAlwaysIncludeTimestamp |
-                          DataExportWriteTimeInFrames,
-                          filename,
-                          error)) {
+    */
+
+    QString filename = getSaveFileName(FileFinder::CSVFile);
+    if (filename == "") {
+        // cancelled
+        return;
+    }
+
+    if (!m_session.exportAlignmentTo(filename)) {
         QMessageBox::warning(this,
-                             tr("Failed to export onsets"),
-                             tr("Failed to export onsets file automatically. See log file for more information."),
+                             tr("Failed to export alignment"),
+                             tr("Failed to export alignment. See log file for more information."),
                              QMessageBox::Ok);
     }
 }

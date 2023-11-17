@@ -4,7 +4,7 @@
       "pin": "7df85ecf98d9477c1ac5a36f51807062e00d8695"
     },
     "svcore": {
-      "pin": "b6daf4f6d2e5326d1a0beb872474ea3faf1bc2e3"
+      "pin": "1706fe073070cbfcd2459a0cfd2b738997dcf85a"
     },
     "svgui": {
       "pin": "0e84e577c1c8eaa233d3ee7e687c9e9a18faa915"
@@ -49,7 +49,7 @@
       "pin": "2e4bd170f57f"
     },
     "piano-precision-aligner": {
-      "pin": "82d502d209123514b952b1a2828795e45fb3dc06"
+      "pin": "a860de286a01d9f26d4505d165c10e5fbc4bc3f7"
     }
   }
 }
