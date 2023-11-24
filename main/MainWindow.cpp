@@ -739,6 +739,22 @@ MainWindow::setupFileMenu()
 
     menu->addSeparator();
 
+    action = new QAction(tr("Load Score Alignment..."), this);
+    action->setStatusTip(tr("Import score alignment data from a previously-saved file"));
+    connect(action, SIGNAL(triggered()), this, SLOT(loadScoreAlignment()));
+    connect(this, SIGNAL(canImportLayer(bool)), action, SLOT(setEnabled(bool)));
+    m_keyReference->registerShortcut(action);
+    menu->addAction(action);
+
+    action = new QAction(tr("Save Score Alignment..."), this);
+    action->setStatusTip(tr("Export score alignment data to a file"));
+    connect(action, SIGNAL(triggered()), this, SLOT(saveScoreAlignment()));
+    connect(this, SIGNAL(canExportLayer(bool)), action, SLOT(setEnabled(bool)));
+    m_keyReference->registerShortcut(action);
+    menu->addAction(action);
+
+    menu->addSeparator();
+
     action = new QAction(tr("Import Annotation &Layer..."), this);
     action->setShortcut(tr("Ctrl+L"));
     action->setStatusTip(tr("Import layer data from an existing file"));
@@ -2663,24 +2679,6 @@ MainWindow::alignmentAccepted()
     }
 
     m_paneStack->setCurrentLayer(onsetsPane, onsetsLayer);
-
-    QDateTime now = QDateTime::currentDateTime();
-    QString nowString = now.toString("yyyyMMdd-HHmmss-zzz");
-    QString filename = RecordDirectory::getRecordDirectory() +
-        QString("/onsets-%1-unmodified.csv").arg(nowString);
-    
-    QString error;
-    if (!exportLayerToCSV(onsetsLayer, nullptr, nullptr, ",",
-                          DataExportIncludeHeader |
-                          DataExportAlwaysIncludeTimestamp |
-                          DataExportWriteTimeInFrames,
-                          filename,
-                          error)) {
-        QMessageBox::warning(this,
-                             tr("Failed to export onsets"),
-                             tr("Failed to export onsets file automatically. See log file for more information."),
-                             QMessageBox::Ok);
-    }
 }
 
 void
@@ -3656,6 +3654,57 @@ MainWindow::convertAudio()
         emit hideSplash();
         QMessageBox::critical(this, tr("Failed to open file"),
                               tr("<b>File open failed</b><p>Audio data file %1 could not be opened.").arg(path));
+    }
+}
+
+void
+MainWindow::loadScoreAlignment()
+{
+    SVDEBUG << "MainWindow::loadScoreAlignment" << endl;
+    
+    QString filename = getOpenFileName(FileFinder::CSVFile);
+    if (filename == "") {
+        // cancelled
+        return;
+    }
+
+    if (!m_session.importAlignmentFrom(filename)) {
+        QMessageBox::warning(this,
+                             tr("Failed to import alignment"),
+                             tr("Failed to import alignment. See log file for more information."),
+                             QMessageBox::Ok);
+    }
+}
+
+void
+MainWindow::saveScoreAlignment()
+{
+    SVDEBUG << "MainWindow::saveScoreAlignment" << endl;
+
+    TimeValueLayer *onsetsLayer = m_session.getOnsetsLayer();
+    if (!onsetsLayer) {
+        SVDEBUG << "MainWindow::saveScoreAlignment: can't find an onsets layer!" << endl;
+        return;
+    }
+
+    /*!!!
+    QDateTime now = QDateTime::currentDateTime();
+    QString nowString = now.toString("yyyyMMdd-HHmmss-zzz");
+    QString filename = RecordDirectory::getRecordDirectory() +
+        QString("/onsets-%1-unmodified.csv").arg(nowString);
+    */
+
+    QString filename = getSaveFileName(FileFinder::CSVFile);
+    if (filename == "") {
+        // cancelled
+        return;
+    }
+
+    if (!m_session.exportAlignmentTo(filename)) {
+        QMessageBox::warning(this,
+                             tr("Failed to export alignment"),
+                             tr("Failed to export alignment. See log file for more information."),
+                             QMessageBox::Ok);
     }
 }
 

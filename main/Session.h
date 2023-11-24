@@ -54,6 +54,9 @@ public:
     TimeValueLayer *getTempoLayer();
     Pane *getPaneContainingTempoLayer();
 
+    bool exportAlignmentTo(QString filename);
+    bool importAlignmentFrom(QString filename);
+    
 signals:
     void alignmentAccepted();
     void alignmentFrameIlluminated(sv_frame_t);

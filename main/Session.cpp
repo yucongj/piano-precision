@@ -17,7 +17,12 @@
 #include "layer/ColourDatabase.h"
 #include "layer/ColourMapper.h"
 
+#include "data/fileio/CSVFormat.h"
+#include "data/fileio/CSVFileReader.h"
+#include "data/fileio/CSVFileWriter.h"
+
 #include <QMessageBox>
+#include <QFileInfo>
 
 using namespace std;
 
@@ -376,6 +381,118 @@ Session::mergeLayers(TimeValueLayer *from, TimeValueLayer *to,
 
     for (auto e : beforeOverlap) toModel->add(e);
     for (auto e : afterOverlap) toModel->add(e);
+}
+
+bool
+Session::exportAlignmentTo(QString path)
+{
+    if (!m_onsetsLayer) {
+        SVDEBUG << "Session::exportAlignmentTo: Internal error: no onsets layer"
+                << endl;
+        return false;
+    }
+
+    if (QFileInfo(path).suffix() == "") {
+        path += ".csv";
+    }
+
+    auto model = ModelById::get(m_onsetsLayer->getModel());
+    if (!model) {
+        SVDEBUG << "Session::exportAlignmentTo: Internal error: unknown model"
+                << endl;
+        return false;
+    }
+
+    CSVFileWriter writer(path,
+                         model.get(),
+                         nullptr,
+                         ",",
+                         DataExportIncludeHeader |
+                         DataExportAlwaysIncludeTimestamp |
+                         DataExportWriteTimeInFrames);
+
+    writer.write();
+
+    if (!writer.isOK()) {
+        SVDEBUG << "Session::exportAlignmentTo: Failed to export alignment to "
+                << path << ": error is: " << writer.getError() << endl;
+        return false;
+    }
+
+    return true;
+}
+
+bool
+Session::importAlignmentFrom(QString path)
+{
+    if (m_mainModel.isNone() || !m_onsetsLayer) {
+        //!!! todo 1: create onsets layer here if it does not exist
+        //!!! todo 2: calculate tempo layer as well
+        return false;
+    }
+
+    auto mainModel = ModelById::get(m_mainModel);
+    if (!mainModel) {
+        SVDEBUG << "Session::importAlignmentFrom: No main model to refer to" << endl;
+        return false;
+    }
+    
+    auto existingModel = ModelById::getAs<SparseTimeValueModel>
+        (m_onsetsLayer->getModel());
+    if (!existingModel) {
+        SVDEBUG << "Session::importAlignmentFrom: No existing model to import to - this is not yet implemented" << endl;
+        return false;
+    }
+    
+    CSVFormat format;
+    
+    format.setSeparator(QChar(','));
+    format.setColumnCount(3);
+    format.setHeaderStatus(CSVFormat::HeaderPresent);
+    
+    format.setModelType(CSVFormat::TwoDimensionalModel);
+    format.setTimingType(CSVFormat::ExplicitTiming);
+    format.setTimeUnits(CSVFormat::TimeAudioFrames);
+
+    QList<CSVFormat::ColumnPurpose> purposes {
+        CSVFormat::ColumnStartTime,
+        CSVFormat::ColumnValue,
+        CSVFormat::ColumnLabel
+    };
+    format.setColumnPurposes(purposes);
+    
+    CSVFileReader reader(path, format, mainModel->getSampleRate(), nullptr);
+
+    if (!reader.isOK()) {
+        SVDEBUG << "Session::importAlignmentFrom: Failed to construct CSV reader: " << reader.getError() << endl;
+        return false;
+    }
+
+    Model *imported = reader.load();
+    if (!imported) {
+        SVDEBUG << "Session::importAlignmentFrom: Failed to import model from CSV file" << endl;
+        return false;
+    }
+
+    auto stvm = qobject_cast<SparseTimeValueModel *>(imported);
+    if (!stvm) {
+        SVDEBUG << "Session::importAlignmentFrom: Imported model is of the wrong type" << endl;
+        delete imported;
+        return false;
+    }
+
+    EventVector oldEvents = existingModel->getAllEvents();
+    EventVector newEvents = stvm->getAllEvents();
+    
+    for (auto e : oldEvents) {
+        existingModel->remove(e);
+    }
+    for (auto e : newEvents) {
+        existingModel->add(e);
+    }
+
+    delete imported;
+    return true;
 }
 
 
