@@ -215,6 +215,10 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
 
     SVDEBUG << "MainWindow: Creating main user interface layout" << endl;
 
+    // For Piano Precision, we want to constrain playback to selection
+    // by default
+    m_viewManager->setPlaySelectionMode(true);
+
     QFrame *frame = new QFrame;
     setCentralWidget(frame);
 
@@ -2887,7 +2891,7 @@ MainWindow::setupToolbars()
             m_recordAction, SLOT(setEnabled(bool)));
 
     toolbar = addToolBar(tr("Play Mode Toolbar"));
-
+    
     m_playSelectionAction = toolbar->addAction(il.load("playselection"),
                                                tr("Constrain Playback to Selection"));
     m_playSelectionAction->setCheckable(true);
