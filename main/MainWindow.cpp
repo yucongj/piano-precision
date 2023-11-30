@@ -253,6 +253,20 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
             this, SLOT(alignButtonClicked()));
     m_alignButton->setEnabled(false);
     m_subsetOfScoreSelected = false;
+
+    m_alignAcceptButton = new QPushButton(tr("Accept Alignment"));
+    connect(m_alignAcceptButton, SIGNAL(clicked()),
+            &m_session, SLOT(acceptAlignment()));
+
+    m_alignRejectButton = new QPushButton(tr("Reject Alignment"));
+    connect(m_alignRejectButton, SIGNAL(clicked()),
+            &m_session, SLOT(rejectAlignment()));
+
+    m_alignAcceptReject = new QWidget;
+    QHBoxLayout *aalayout = new QHBoxLayout;
+    aalayout->addWidget(m_alignAcceptButton);
+    aalayout->addWidget(m_alignRejectButton);
+    m_alignAcceptReject->setLayout(aalayout);
     
     m_scorePageDownButton = new QPushButton("<<");
     connect(m_scorePageDownButton, SIGNAL(clicked()),
@@ -267,6 +281,8 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     scoreWidgetLayout->setRowStretch(0, 10);
     
     scoreWidgetLayout->addWidget(m_alignButton, 1, 0, 1, 3, Qt::AlignHCenter);
+    scoreWidgetLayout->addWidget(m_alignAcceptReject, 1, 0, 1, 3, Qt::AlignHCenter);
+    m_alignAcceptReject->hide();
     scoreWidgetLayout->addWidget(m_scorePageDownButton, 2, 0);
     scoreWidgetLayout->addWidget(m_scorePageLabel, 2, 1);
     scoreWidgetLayout->addWidget(m_scorePageUpButton, 2, 2);
@@ -501,8 +517,12 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     
     m_showPropertyBoxesAction->trigger();
 
+    connect(&m_session, SIGNAL(alignmentReadyForReview()),
+            this, SLOT(alignmentReadyForReview()));
     connect(&m_session, SIGNAL(alignmentAccepted()),
             this, SLOT(alignmentAccepted()));
+    connect(&m_session, SIGNAL(alignmentRejected()),
+            this, SLOT(alignmentRejected()));
     connect(&m_session, SIGNAL(alignmentFrameIlluminated(sv_frame_t)),
             this, SLOT(alignmentFrameIlluminated(sv_frame_t)));
 
@@ -2556,6 +2576,8 @@ MainWindow::alignButtonClicked()
     if (!m_viewManager->getSelections().empty()) {
         m_viewManager->getSelection().getExtents(audioFrameStart, audioFrameEnd);
     }
+
+    m_alignButton->setEnabled(false);
     
     m_session.beginPartialAlignment(scorePositionStart, scorePositionEnd,
                                     audioFrameStart, audioFrameEnd);
@@ -2671,14 +2693,55 @@ MainWindow::layerAdded(Layer *layer)
 }
 
 void
+MainWindow::alignmentReadyForReview()
+{
+    SVDEBUG << "MainWindow::alignmentReadyForReview" << endl;
+
+    TimeValueLayer *onsetsLayer = m_session.getOnsetsLayer();
+    Pane *onsetsPane = m_session.getPaneContainingOnsetsLayer();
+    if (!onsetsLayer) {
+        SVDEBUG << "MainWindow::alignmentReadyForReview: can't find an onsets layer!" << endl;
+        return;
+    }
+
+    m_paneStack->setCurrentLayer(onsetsPane, onsetsLayer);
+
+    m_alignButton->hide();
+    m_alignAcceptReject->show();
+}
+
+void
 MainWindow::alignmentAccepted()
 {
     SVDEBUG << "MainWindow::alignmentAccepted" << endl;
+
+    m_alignAcceptReject->hide();
+    m_alignButton->show();
+    m_alignButton->setEnabled(true);
 
     TimeValueLayer *onsetsLayer = m_session.getOnsetsLayer();
     Pane *onsetsPane = m_session.getPaneContainingOnsetsLayer();
     if (!onsetsLayer) {
         SVDEBUG << "MainWindow::alignmentAccepted: can't find an onsets layer!" << endl;
+        return;
+    }
+
+    m_paneStack->setCurrentLayer(onsetsPane, onsetsLayer);
+}
+
+void
+MainWindow::alignmentRejected()
+{
+    SVDEBUG << "MainWindow::alignmentRejected" << endl;
+
+    m_alignAcceptReject->hide();
+    m_alignButton->show();
+    m_alignButton->setEnabled(true);
+
+    TimeValueLayer *onsetsLayer = m_session.getOnsetsLayer();
+    Pane *onsetsPane = m_session.getPaneContainingOnsetsLayer();
+    if (!onsetsLayer) {
+        SVDEBUG << "MainWindow::alignmentRejected: can't find an onsets layer!" << endl;
         return;
     }
 

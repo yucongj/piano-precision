@@ -32,6 +32,16 @@ public:
     Session();
     virtual ~Session();
 
+    TimeValueLayer *getOnsetsLayer();
+    Pane *getPaneContainingOnsetsLayer();
+    
+    TimeValueLayer *getTempoLayer();
+    Pane *getPaneContainingTempoLayer();
+
+    bool exportAlignmentTo(QString filename);
+    bool importAlignmentFrom(QString filename);
+
+public slots:
     void setDocument(Document *,
                      Pane *topPane,
                      Pane *bottomPane,
@@ -47,18 +57,13 @@ public:
                                int scorePositionEnd,
                                sv_frame_t audioFrameStart,
                                sv_frame_t audioFrameEnd);
-
-    TimeValueLayer *getOnsetsLayer();
-    Pane *getPaneContainingOnsetsLayer();
-    
-    TimeValueLayer *getTempoLayer();
-    Pane *getPaneContainingTempoLayer();
-
-    bool exportAlignmentTo(QString filename);
-    bool importAlignmentFrom(QString filename);
+    void acceptAlignment();
+    void rejectAlignment();
     
 signals:
+    void alignmentReadyForReview();
     void alignmentAccepted();
+    void alignmentRejected();
     void alignmentFrameIlluminated(sv_frame_t);
                                        
 protected slots:
@@ -80,11 +85,13 @@ private:
     sv_frame_t m_partialAlignmentAudioStart;
     sv_frame_t m_partialAlignmentAudioEnd;
     
-    TimeValueLayer *m_onsetsLayer;
+    TimeValueLayer *m_displayedOnsetsLayer;
+    TimeValueLayer *m_acceptedOnsetsLayer;
     TimeValueLayer *m_pendingOnsetsLayer;
     bool m_awaitingOnsetsLayer;
     
-    TimeValueLayer *m_tempoLayer;
+    TimeValueLayer *m_displayedTempoLayer;
+    TimeValueLayer *m_acceptedTempoLayer;
     TimeValueLayer *m_pendingTempoLayer;
     bool m_awaitingTempoLayer;
 

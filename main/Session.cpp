@@ -57,11 +57,13 @@ Session::setDocument(Document *doc,
     m_partialAlignmentAudioStart = -1;
     m_partialAlignmentAudioEnd = -1;
     
-    m_onsetsLayer = nullptr;
+    m_displayedOnsetsLayer = nullptr;
+    m_acceptedOnsetsLayer = nullptr;
     m_pendingOnsetsLayer = nullptr;
     m_awaitingOnsetsLayer = false;
     
-    m_tempoLayer = nullptr;
+    m_displayedTempoLayer = nullptr;
+    m_acceptedTempoLayer = nullptr;
     m_pendingTempoLayer = nullptr;
     m_awaitingTempoLayer = false;
 }
@@ -75,7 +77,7 @@ Session::unsetDocument()
 TimeValueLayer *
 Session::getOnsetsLayer()
 {
-    return m_onsetsLayer;
+    return m_displayedOnsetsLayer;
 }
 
 Pane *
@@ -87,7 +89,7 @@ Session::getPaneContainingOnsetsLayer()
 TimeValueLayer *
 Session::getTempoLayer()
 {
-    return m_tempoLayer;
+    return m_displayedTempoLayer;
 }
 
 Pane *
@@ -261,13 +263,18 @@ Session::beginPartialAlignment(int scorePositionStart,
     // Hide the existing layers. This is only a temporary method of
     // removing them, normally we would go through the document if we
     // wanted to delete them entirely
-    if (m_onsetsLayer) {
-        m_topPane->removeLayer(m_onsetsLayer);
+    if (m_displayedOnsetsLayer) {
+        m_acceptedOnsetsLayer = m_displayedOnsetsLayer;
+        m_topPane->removeLayer(m_displayedOnsetsLayer);
     }
-    if (m_tempoLayer) {
-        m_bottomPane->removeLayer(m_tempoLayer);
+    if (m_displayedTempoLayer) {
+        m_acceptedTempoLayer = m_displayedTempoLayer;
+        m_bottomPane->removeLayer(m_displayedTempoLayer);
     }
         
+    m_displayedOnsetsLayer = m_pendingOnsetsLayer;
+    m_displayedTempoLayer = m_pendingTempoLayer;
+
     ColourDatabase *cdb = ColourDatabase::getInstance();
     
     m_pendingOnsetsLayer->setPlotStyle(TimeValueLayer::PlotSegmentation);
@@ -310,52 +317,75 @@ Session::alignmentComplete()
 {
     SVDEBUG << "Session::alignmentComplete" << endl;
 
-    if (QMessageBox::question
-        (m_topPane, tr("Save alignment?"),
-         tr("<b>Alignment finished</b><p>Do you want to keep this alignment?"),
-         QMessageBox::Save | QMessageBox::Cancel,
-         QMessageBox::Save) !=
-        QMessageBox::Save) {
+    emit alignmentReadyForReview();
+}
 
-        SVDEBUG << "Session::alignmentComplete: Cancel chosen" << endl;
-        
-        m_document->deleteLayer(m_pendingOnsetsLayer, true);
-        m_pendingOnsetsLayer = nullptr;
-
-        m_document->deleteLayer(m_pendingTempoLayer, true);
-        m_pendingTempoLayer = nullptr;
-
-        if (m_onsetsLayer) {
-            m_topPane->addLayer(m_onsetsLayer);
-        }
-        if (m_tempoLayer) {
-            m_topPane->addLayer(m_tempoLayer);
-        }
-
+void
+Session::rejectAlignment()
+{
+    SVDEBUG << "Session::rejectAlignment" << endl;
+    
+    if (!m_pendingOnsetsLayer) {
+        SVDEBUG << "Session::rejectAlignment: No alignment waiting to be rejected" << endl;
         return;
-    }
-        
-    SVDEBUG << "Session::alignmentComplete: Save chosen" << endl;
+    }        
+    
+    m_document->deleteLayer(m_pendingOnsetsLayer, true);
+    m_pendingOnsetsLayer = nullptr;
 
-    if (m_onsetsLayer) {
-        mergeLayers(m_onsetsLayer, m_pendingOnsetsLayer,
+    m_document->deleteLayer(m_pendingTempoLayer, true);
+    m_pendingTempoLayer = nullptr;
+
+    if (m_acceptedOnsetsLayer) {
+        m_topPane->addLayer(m_acceptedOnsetsLayer);
+        m_displayedOnsetsLayer = m_acceptedOnsetsLayer;
+        m_acceptedOnsetsLayer = nullptr;
+    } else {
+        m_displayedOnsetsLayer = nullptr;
+    }
+    
+    if (m_acceptedTempoLayer) {
+        m_topPane->addLayer(m_acceptedTempoLayer);
+        m_displayedTempoLayer = m_acceptedTempoLayer;
+        m_acceptedTempoLayer = nullptr;
+    } else {
+        m_displayedTempoLayer = nullptr;
+    }
+
+    emit alignmentRejected();
+}
+
+void
+Session::acceptAlignment()
+{
+    SVDEBUG << "Session::acceptAlignment" << endl;
+    
+    if (!m_pendingOnsetsLayer) {
+        SVDEBUG << "Session::acceptAlignment: No alignment waiting to be accepted" << endl;
+        return;
+    }        
+        
+    if (m_acceptedOnsetsLayer) {
+        mergeLayers(m_acceptedOnsetsLayer, m_pendingOnsetsLayer,
                     m_partialAlignmentAudioStart, m_partialAlignmentAudioEnd);
     }
-    if (m_tempoLayer) {
-        mergeLayers(m_tempoLayer, m_pendingTempoLayer,
+    if (m_acceptedTempoLayer) {
+        mergeLayers(m_acceptedTempoLayer, m_pendingTempoLayer,
                     m_partialAlignmentAudioStart, m_partialAlignmentAudioEnd);
     }
     
-    if (m_onsetsLayer) {
-        m_document->deleteLayer(m_onsetsLayer, true);
+    if (m_acceptedOnsetsLayer) {
+        m_document->deleteLayer(m_acceptedOnsetsLayer, true);
+        m_acceptedOnsetsLayer = nullptr;
     }
-    m_onsetsLayer = m_pendingOnsetsLayer;
+    m_displayedOnsetsLayer = m_pendingOnsetsLayer;
     m_pendingOnsetsLayer = nullptr;
     
-    if (m_tempoLayer) {
-        m_document->deleteLayer(m_tempoLayer, true);
+    if (m_acceptedTempoLayer) {
+        m_document->deleteLayer(m_acceptedTempoLayer, true);
+        m_acceptedTempoLayer = nullptr;
     }
-    m_tempoLayer = m_pendingTempoLayer;
+    m_displayedTempoLayer = m_pendingTempoLayer;
     m_pendingTempoLayer = nullptr;
 
     emit alignmentAccepted();
@@ -386,7 +416,7 @@ Session::mergeLayers(TimeValueLayer *from, TimeValueLayer *to,
 bool
 Session::exportAlignmentTo(QString path)
 {
-    if (!m_onsetsLayer) {
+    if (!m_displayedOnsetsLayer) {
         SVDEBUG << "Session::exportAlignmentTo: Internal error: no onsets layer"
                 << endl;
         return false;
@@ -396,7 +426,7 @@ Session::exportAlignmentTo(QString path)
         path += ".csv";
     }
 
-    auto model = ModelById::get(m_onsetsLayer->getModel());
+    auto model = ModelById::get(m_displayedOnsetsLayer->getModel());
     if (!model) {
         SVDEBUG << "Session::exportAlignmentTo: Internal error: unknown model"
                 << endl;
@@ -425,7 +455,7 @@ Session::exportAlignmentTo(QString path)
 bool
 Session::importAlignmentFrom(QString path)
 {
-    if (m_mainModel.isNone() || !m_onsetsLayer) {
+    if (m_mainModel.isNone() || !m_displayedOnsetsLayer) {
         //!!! todo 1: create onsets layer here if it does not exist
         //!!! todo 2: calculate tempo layer as well
         return false;
@@ -438,7 +468,7 @@ Session::importAlignmentFrom(QString path)
     }
     
     auto existingModel = ModelById::getAs<SparseTimeValueModel>
-        (m_onsetsLayer->getModel());
+        (m_displayedOnsetsLayer->getModel());
     if (!existingModel) {
         SVDEBUG << "Session::importAlignmentFrom: No existing model to import to - this is not yet implemented" << endl;
         return false;
