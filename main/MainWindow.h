@@ -216,7 +216,9 @@ protected:
     QPushButton             *m_scorePageDownButton;
     QPushButton             *m_scorePageUpButton;
     QLabel                  *m_scorePageLabel;
+    QPushButton             *m_selectFromButton;
     QLabel                  *m_selectFrom;
+    QPushButton             *m_selectToButton;
     QLabel                  *m_selectTo;
     QPushButton             *m_resetSelectionButton;
 

@@ -295,20 +295,19 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     
     QLabel *selectFromLabel = new QLabel(tr("From:"));
     m_selectFrom = new QLabel(tr("Start"));
-    QPushButton *selectFromButton = new QPushButton(tr("Choose"));
-    selectFromButton->setCheckable(true);
-    selectGroup->addButton(selectFromButton);
+    m_selectFromButton = new QPushButton(tr("Choose"));
+    m_selectFromButton->setCheckable(true);
+    selectGroup->addButton(m_selectFromButton);
 
     QLabel *selectToLabel = new QLabel(tr("To:"));
     m_selectTo = new QLabel(tr("End"));
-    QPushButton *selectToButton = new QPushButton(tr("Choose"));
-    selectToButton->setCheckable(true);
-    selectGroup->addButton(selectToButton);
+    m_selectToButton = new QPushButton(tr("Choose"));
+    m_selectToButton->setCheckable(true);
+    selectGroup->addButton(m_selectToButton);
 
-    connect(selectFromButton, &QPushButton::toggled, [=] (bool checked) {
+    connect(m_selectFromButton, &QPushButton::toggled, [this] (bool checked) {
         SVDEBUG << "selectFromButton toggled: checked = " << checked << endl;
         if (checked) {
-            selectToButton->setChecked(false);
             m_scoreWidget->setInteractionMode
                 (ScoreWidget::InteractionMode::SelectStart);
         } else {
@@ -316,10 +315,9 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
                 (ScoreWidget::InteractionMode::Navigate);
         }
     });
-    connect(selectToButton, &QPushButton::toggled, [=] (bool checked) {
-        SVDEBUG << "selectToButton toggled: checked = " << checked << endl;
+    connect(m_selectToButton, &QPushButton::toggled, [this] (bool checked) {
+        SVDEBUG << "m_selectToButton toggled: checked = " << checked << endl;
         if (checked) {
-            selectFromButton->setChecked(false);
             m_scoreWidget->setInteractionMode
                 (ScoreWidget::InteractionMode::SelectEnd);
         } else {
@@ -335,10 +333,10 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     
     selectionLayout->addWidget(new QLabel(" "), 0, 0);
     selectionLayout->addWidget(selectFromLabel, 0, 1, Qt::AlignRight);
-    selectionLayout->addWidget(selectFromButton, 0, 2);
+    selectionLayout->addWidget(m_selectFromButton, 0, 2);
     selectionLayout->addWidget(m_selectFrom, 0, 3);
     selectionLayout->addWidget(selectToLabel, 1, 1, Qt::AlignRight);
-    selectionLayout->addWidget(selectToButton, 1, 2);
+    selectionLayout->addWidget(m_selectToButton, 1, 2);
     selectionLayout->addWidget(m_selectTo, 1, 3);
     selectionLayout->addWidget(m_resetSelectionButton, 1, 4);
     selectionLayout->setColumnStretch(3, 10);
@@ -2372,21 +2370,12 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
         return;
     }
 
+    m_scoreWidget->setInteractionMode(ScoreWidget::InteractionMode::Navigate);
+    
     m_scoreId = scoreName;
-/*!!!    
-    std::string templateFile =
-        ScoreFinder::getScoreFile(scoreName.toStdString(), "svt");
-    if (templateFile == "") {
-        QMessageBox::warning(this,
-                             tr("Unable to load score session template"),
-                             tr("Unable to load score session template: alignment and analysis will not be available. See log file for more information."),
-                             QMessageBox::Ok);
-        return;
-    }
-*/    
+
     QSettings settings;
     settings.beginGroup("MainWindow");
-//!!!    settings.setValue("sessiontemplate", QString::fromStdString(templateFile));
     settings.setValue("sessiontemplate", "");
     settings.endGroup();
     
@@ -2604,6 +2593,11 @@ MainWindow::scoreInteractionModeChanged(ScoreWidget::InteractionMode mode)
             break;
         }
     }
+
+    m_selectFromButton->setChecked
+        (mode == ScoreWidget::InteractionMode::SelectStart);
+    m_selectToButton->setChecked
+        (mode == ScoreWidget::InteractionMode::SelectEnd);
 }
 
 void
