@@ -13,7 +13,7 @@
       "pin": "a831622fe4f86b95390dfc4d4be7eeee388f4e4e"
     },
     "checker": {
-      "pin": "ed75cff475c72381aedad936c72b93b4f38157d3"
+      "pin": "4f7381d34a6a1d6de73e84ff564e6ac734986d40"
     },
     "sv-dependency-builds": {
       "pin": "f4eb0637efbbb54bdd909625640b245e606a8374"
@@ -49,7 +49,7 @@
       "pin": "2e4bd170f57f"
     },
     "piano-precision-aligner": {
-      "pin": "a860de286a01d9f26d4505d165c10e5fbc4bc3f7"
+      "pin": "113ffa80e662ba7d393360b2698e25819bda0cdd"
     }
   }
 }
