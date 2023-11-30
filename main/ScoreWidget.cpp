@@ -87,6 +87,8 @@ ScoreWidget::loadAScore(QString scoreName, QString &errorString)
     SVDEBUG << "ScoreWidget::loadAScore: Score \"" << scoreName
             << "\" requested" << endl;
 
+    clearSelection();
+    
     m_page = -1;
     
     string scorePath =

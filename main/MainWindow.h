@@ -140,7 +140,9 @@ protected slots:
     void scorePositionActivated(int, ScoreWidget::InteractionMode);
     void actOnScorePosition(int, ScoreWidget::InteractionMode, bool activated);
     void scoreInteractionEnded(ScoreWidget::InteractionMode);
+    void alignmentReadyForReview();
     void alignmentAccepted();
+    void alignmentRejected();
     void alignmentFrameIlluminated(sv_frame_t);
     void highlightFrameInScore(sv_frame_t);
     void scoreSelectionChanged(int, bool, QString, int, bool, QString);
@@ -208,10 +210,15 @@ protected:
     QScrollArea             *m_mainScroll;
     ScoreWidget             *m_scoreWidget; // Added Oct 6, 2021
     QPushButton             *m_alignButton;
+    QPushButton             *m_alignAcceptButton;
+    QPushButton             *m_alignRejectButton;
+    QWidget                 *m_alignAcceptReject;
     QPushButton             *m_scorePageDownButton;
     QPushButton             *m_scorePageUpButton;
     QLabel                  *m_scorePageLabel;
+    QPushButton             *m_selectFromButton;
     QLabel                  *m_selectFrom;
+    QPushButton             *m_selectToButton;
     QLabel                  *m_selectTo;
     QPushButton             *m_resetSelectionButton;
 

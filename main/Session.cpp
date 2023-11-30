@@ -57,13 +57,12 @@ Session::setDocument(Document *doc,
     m_partialAlignmentAudioStart = -1;
     m_partialAlignmentAudioEnd = -1;
     
-    m_onsetsLayer = nullptr;
+    m_displayedOnsetsLayer = nullptr;
+    m_acceptedOnsetsLayer = nullptr;
     m_pendingOnsetsLayer = nullptr;
     m_awaitingOnsetsLayer = false;
     
     m_tempoLayer = nullptr;
-    m_pendingTempoLayer = nullptr;
-    m_awaitingTempoLayer = false;
 }
 
 void
@@ -75,7 +74,7 @@ Session::unsetDocument()
 TimeValueLayer *
 Session::getOnsetsLayer()
 {
-    return m_onsetsLayer;
+    return m_displayedOnsetsLayer;
 }
 
 Pane *
@@ -161,9 +160,6 @@ Session::beginPartialAlignment(int scorePositionStart,
     vector<pair<QString, pair<Pane *, TimeValueLayer **>>> layerDefinitions {
         { "vamp:score-aligner:pianoaligner:chordonsets",
           { m_topPane, &m_pendingOnsetsLayer }
-        },
-        { "vamp:score-aligner:pianoaligner:eventtempo",
-          { m_bottomPane, &m_pendingTempoLayer }
         }
     };
 
@@ -261,15 +257,16 @@ Session::beginPartialAlignment(int scorePositionStart,
     // Hide the existing layers. This is only a temporary method of
     // removing them, normally we would go through the document if we
     // wanted to delete them entirely
-    if (m_onsetsLayer) {
-        m_topPane->removeLayer(m_onsetsLayer);
+    if (m_displayedOnsetsLayer) {
+        m_acceptedOnsetsLayer = m_displayedOnsetsLayer;
+        m_topPane->removeLayer(m_displayedOnsetsLayer);
     }
     if (m_tempoLayer) {
         m_bottomPane->removeLayer(m_tempoLayer);
     }
         
-    ColourDatabase *cdb = ColourDatabase::getInstance();
-    
+    m_displayedOnsetsLayer = m_pendingOnsetsLayer;
+
     m_pendingOnsetsLayer->setPlotStyle(TimeValueLayer::PlotSegmentation);
     m_pendingOnsetsLayer->setDrawSegmentDivisions(true);
     m_pendingOnsetsLayer->setFillSegments(false);
@@ -277,15 +274,11 @@ Session::beginPartialAlignment(int scorePositionStart,
 
     connect(m_pendingOnsetsLayer, SIGNAL(frameIlluminated(sv_frame_t)),
             this, SIGNAL(alignmentFrameIlluminated(sv_frame_t)));
-    
-    m_pendingTempoLayer->setPlotStyle(TimeValueLayer::PlotLines);
-    m_pendingTempoLayer->setBaseColour(cdb->getColourIndex(tr("Blue")));
 
     m_partialAlignmentAudioStart = audioFrameStart;
     m_partialAlignmentAudioEnd = audioFrameEnd;
     
     m_awaitingOnsetsLayer = true;
-    m_awaitingTempoLayer = true;
 }
 
 void
@@ -296,11 +289,8 @@ Session::modelReady(ModelId id)
     if (m_pendingOnsetsLayer && id == m_pendingOnsetsLayer->getModel()) {
         m_awaitingOnsetsLayer = false;
     }
-    if (m_pendingTempoLayer && id == m_pendingTempoLayer->getModel()) {
-        m_awaitingTempoLayer = false;
-    }
 
-    if (!m_awaitingOnsetsLayer && !m_awaitingTempoLayer) {
+    if (!m_awaitingOnsetsLayer) {
         alignmentComplete();
     }
 }
@@ -310,54 +300,65 @@ Session::alignmentComplete()
 {
     SVDEBUG << "Session::alignmentComplete" << endl;
 
-    if (QMessageBox::question
-        (m_topPane, tr("Save alignment?"),
-         tr("<b>Alignment finished</b><p>Do you want to keep this alignment?"),
-         QMessageBox::Save | QMessageBox::Cancel,
-         QMessageBox::Save) !=
-        QMessageBox::Save) {
-
-        SVDEBUG << "Session::alignmentComplete: Cancel chosen" << endl;
-        
-        m_document->deleteLayer(m_pendingOnsetsLayer, true);
-        m_pendingOnsetsLayer = nullptr;
-
-        m_document->deleteLayer(m_pendingTempoLayer, true);
-        m_pendingTempoLayer = nullptr;
-
-        if (m_onsetsLayer) {
-            m_topPane->addLayer(m_onsetsLayer);
-        }
-        if (m_tempoLayer) {
-            m_topPane->addLayer(m_tempoLayer);
-        }
-
-        return;
-    }
-        
-    SVDEBUG << "Session::alignmentComplete: Save chosen" << endl;
-
-    if (m_onsetsLayer) {
-        mergeLayers(m_onsetsLayer, m_pendingOnsetsLayer,
-                    m_partialAlignmentAudioStart, m_partialAlignmentAudioEnd);
-    }
     if (m_tempoLayer) {
-        mergeLayers(m_tempoLayer, m_pendingTempoLayer,
+        m_bottomPane->addLayer(m_tempoLayer);
+    }
+
+    recalculateTempoLayer();
+    
+    emit alignmentReadyForReview();
+}
+
+void
+Session::rejectAlignment()
+{
+    SVDEBUG << "Session::rejectAlignment" << endl;
+    
+    if (!m_pendingOnsetsLayer) {
+        SVDEBUG << "Session::rejectAlignment: No alignment waiting to be rejected" << endl;
+        return;
+    }        
+    
+    m_document->deleteLayer(m_pendingOnsetsLayer, true);
+    m_pendingOnsetsLayer = nullptr;
+
+    if (m_acceptedOnsetsLayer) {
+        m_topPane->addLayer(m_acceptedOnsetsLayer);
+        m_displayedOnsetsLayer = m_acceptedOnsetsLayer;
+        m_acceptedOnsetsLayer = nullptr;
+    } else {
+        m_displayedOnsetsLayer = nullptr;
+    }
+
+    recalculateTempoLayer();
+    
+    emit alignmentRejected();
+}
+
+void
+Session::acceptAlignment()
+{
+    SVDEBUG << "Session::acceptAlignment" << endl;
+    
+    if (!m_pendingOnsetsLayer) {
+        SVDEBUG << "Session::acceptAlignment: No alignment waiting to be accepted" << endl;
+        return;
+    }        
+        
+    if (m_acceptedOnsetsLayer) {
+        mergeLayers(m_acceptedOnsetsLayer, m_pendingOnsetsLayer,
                     m_partialAlignmentAudioStart, m_partialAlignmentAudioEnd);
     }
     
-    if (m_onsetsLayer) {
-        m_document->deleteLayer(m_onsetsLayer, true);
+    if (m_acceptedOnsetsLayer) {
+        m_document->deleteLayer(m_acceptedOnsetsLayer, true);
+        m_acceptedOnsetsLayer = nullptr;
     }
-    m_onsetsLayer = m_pendingOnsetsLayer;
+    m_displayedOnsetsLayer = m_pendingOnsetsLayer;
     m_pendingOnsetsLayer = nullptr;
     
-    if (m_tempoLayer) {
-        m_document->deleteLayer(m_tempoLayer, true);
-    }
-    m_tempoLayer = m_pendingTempoLayer;
-    m_pendingTempoLayer = nullptr;
-
+    recalculateTempoLayer();
+    
     emit alignmentAccepted();
 }
 
@@ -386,7 +387,7 @@ Session::mergeLayers(TimeValueLayer *from, TimeValueLayer *to,
 bool
 Session::exportAlignmentTo(QString path)
 {
-    if (!m_onsetsLayer) {
+    if (!m_displayedOnsetsLayer) {
         SVDEBUG << "Session::exportAlignmentTo: Internal error: no onsets layer"
                 << endl;
         return false;
@@ -396,7 +397,7 @@ Session::exportAlignmentTo(QString path)
         path += ".csv";
     }
 
-    auto model = ModelById::get(m_onsetsLayer->getModel());
+    auto model = ModelById::get(m_displayedOnsetsLayer->getModel());
     if (!model) {
         SVDEBUG << "Session::exportAlignmentTo: Internal error: unknown model"
                 << endl;
@@ -425,7 +426,7 @@ Session::exportAlignmentTo(QString path)
 bool
 Session::importAlignmentFrom(QString path)
 {
-    if (m_mainModel.isNone() || !m_onsetsLayer) {
+    if (m_mainModel.isNone() || !m_displayedOnsetsLayer) {
         //!!! todo 1: create onsets layer here if it does not exist
         //!!! todo 2: calculate tempo layer as well
         return false;
@@ -438,7 +439,7 @@ Session::importAlignmentFrom(QString path)
     }
     
     auto existingModel = ModelById::getAs<SparseTimeValueModel>
-        (m_onsetsLayer->getModel());
+        (m_displayedOnsetsLayer->getModel());
     if (!existingModel) {
         SVDEBUG << "Session::importAlignmentFrom: No existing model to import to - this is not yet implemented" << endl;
         return false;
@@ -493,6 +494,46 @@ Session::importAlignmentFrom(QString path)
 
     delete imported;
     return true;
+}
+
+void
+Session::recalculateTempoLayer()
+{
+    if (m_mainModel.isNone()) return;
+    sv_samplerate_t sampleRate = ModelById::get(m_mainModel)->getSampleRate();
+    auto newModel = make_shared<SparseTimeValueModel>(sampleRate, 1);
+    auto newModelId = ModelById::add(newModel);
+    m_document->addNonDerivedModel(newModelId);
+
+    if (!m_tempoLayer) {
+        m_tempoLayer = qobject_cast<TimeValueLayer *>
+            (m_document->createLayer(LayerFactory::TimeValues));
+        ColourDatabase *cdb = ColourDatabase::getInstance();
+        m_tempoLayer->setBaseColour(cdb->getColourIndex(tr("Blue")));
+        m_document->addLayerToView(m_bottomPane, m_tempoLayer);
+    }
+
+    if (!m_displayedOnsetsLayer) {
+        m_document->setModel(m_tempoLayer, newModelId);
+        return;
+    }
+
+    auto onsetsModel = ModelById::getAs<SparseTimeValueModel>
+        (m_displayedOnsetsLayer->getModel());
+    
+    auto onsets = onsetsModel->getAllEvents();
+
+    for (int i = 0; in_range_for(onsets, i + 1); ++i) {
+        auto thisFrame = onsets[i].getFrame();
+        auto nextFrame = onsets[i+1].getFrame();
+        auto thisSec = RealTime::frame2RealTime(thisFrame, sampleRate).toDouble();
+        auto nextSec = RealTime::frame2RealTime(nextFrame, sampleRate).toDouble();
+        double tempo = 60. / (nextSec - thisSec);
+        Event tempoEvent(thisFrame, float(tempo), QString());
+        newModel->add(tempoEvent);
+    }
+    
+    m_document->setModel(m_tempoLayer, newModelId);
 }
 
 
