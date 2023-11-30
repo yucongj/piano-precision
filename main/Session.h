@@ -90,14 +90,12 @@ private:
     TimeValueLayer *m_pendingOnsetsLayer;
     bool m_awaitingOnsetsLayer;
     
-    TimeValueLayer *m_displayedTempoLayer;
-    TimeValueLayer *m_acceptedTempoLayer;
-    TimeValueLayer *m_pendingTempoLayer;
-    bool m_awaitingTempoLayer;
+    TimeValueLayer *m_tempoLayer;
 
     void alignmentComplete();
     void mergeLayers(TimeValueLayer *from, TimeValueLayer *to,
                      sv_frame_t overlapStart, sv_frame_t overlapEnd);
+    void recalculateTempoLayer();
 };
 
 #endif
