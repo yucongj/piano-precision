@@ -192,7 +192,7 @@ protected slots:
     virtual void saveSessionAsTemplate();
     virtual void manageSavedTemplates();
 
-    virtual QString getDefaultSessionTemplate() const;
+    virtual QString getDefaultSessionTemplate() const override;
 
     virtual void website();
     virtual void help();
