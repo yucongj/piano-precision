@@ -1093,6 +1093,7 @@ sv_main_files = [
   'main/ScoreFinder.cpp',
   'main/ScorePositionReader.cpp',
   'main/ScoreWidget.cpp',
+  'piano-precision-aligner/Score.cpp',
 ]
 
 sv_main_moc_files = qt.preprocess(

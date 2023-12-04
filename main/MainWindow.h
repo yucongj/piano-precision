@@ -20,6 +20,7 @@
 
 #include "ScoreWidget.h"
 #include "Session.h"
+#include "piano-precision-aligner/Score.h"
 
 class VersionTester;
 class Surveyer;
@@ -30,6 +31,7 @@ class UnitConverter;
 class QFileSystemWatcher;
 class QScrollArea;
 class ScoreWidget; // Added Oct 6, 2021
+class Score;
 
 class TimeValueLayer;
 
@@ -132,7 +134,7 @@ protected slots:
     virtual void setupRecentFilesMenu();
     virtual void setupRecentTransformsMenu();
     virtual void setupTemplatesMenu();
-    virtual void chooseScore(); // Added by Yucong Jiang, Oct 5, 2021ß
+    virtual void chooseScore(); // Added by Yucong Jiang, Oct 5, 2021
 
     void viewManagerPlaybackFrameChanged(sv_frame_t);
     void scoreInteractionModeChanged(ScoreWidget::InteractionMode);
@@ -284,6 +286,7 @@ protected:
 
     QString                  m_scoreId;
     Session                  m_session;
+    Score                    m_score;
     
     struct LayerConfiguration {
         LayerConfiguration(LayerFactory::LayerType _layer
