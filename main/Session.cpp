@@ -122,14 +122,14 @@ Session::setMainModel(ModelId modelId, QString scoreId)
         (m_document->createLayer(LayerFactory::Waveform));
     m_waveformLayer->setBaseColour(cdb->getColourIndex(tr("Orange")));
     
-    m_document->addLayerToView(m_topPane, m_waveformLayer);
+    m_document->addLayerToView(m_bottomPane, m_waveformLayer);
     m_document->setModel(m_waveformLayer, modelId);
 
     m_spectrogramLayer = qobject_cast<SpectrogramLayer *>
         (m_document->createLayer(LayerFactory::MelodicRangeSpectrogram));
-    m_spectrogramLayer->setColourMap(ColourMapper::BlackOnWhite);
+    m_spectrogramLayer->setColourMap(ColourMapper::Green);
 
-    m_document->addLayerToView(m_bottomPane, m_spectrogramLayer);
+    m_document->addLayerToView(m_topPane, m_spectrogramLayer);
     m_document->setModel(m_spectrogramLayer, modelId);
 }
 

@@ -21,6 +21,7 @@
 #include "ScorePositionReader.h" // Added Oct 6, 2021
 #include "ScoreFinder.h"
 #include "Session.h"
+#include "piano-precision-aligner/Score.h"
 
 #include "view/Pane.h"
 #include "view/PaneStack.h"
@@ -2388,6 +2389,15 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     } else {
         m_scoreWidget->setElements(posReader.getElements());
     }
+
+    // Creating score structure
+    string scorePath = ScoreFinder::getUserScoreDirectory() + "/" + scoreName.toStdString() + "/" + scoreName.toStdString();
+    bool success = m_score.initialize(scorePath + ".solo");
+    if (success) success = m_score.readTempo(scorePath + ".tempo");
+    if (success) success = m_score.readMeter(scorePath + ".meter");
+    if (success)    m_score.calculateTicks();
+    if (success)    SVCERR<<"### Successfully created score structure!"<<endl;
+
 
     auto recordingDirectory =
         ScoreFinder::getUserRecordingDirectory(scoreName.toStdString());
