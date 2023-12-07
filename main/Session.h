@@ -24,6 +24,8 @@
 
 #include "data/model/Model.h"
 
+#include "piano-precision-aligner/Score.h"
+
 class Session : public QObject
 {
     Q_OBJECT
@@ -31,6 +33,15 @@ class Session : public QObject
 public:
     Session();
     virtual ~Session();
+
+    struct AlignmentEntry
+    {
+        string label;
+        float tick;
+        int frame;
+
+        AlignmentEntry(string l, float t, int f): label{l}, tick{t}, frame{f} { }
+    };
 
     TimeValueLayer *getOnsetsLayer();
     Pane *getPaneContainingOnsetsLayer();
@@ -40,6 +51,8 @@ public:
 
     bool exportAlignmentTo(QString filename);
     bool importAlignmentFrom(QString filename);
+
+    void setMusicalEvents(const Score::MusicalEventList *musicalEvents);
 
 public slots:
     void setDocument(Document *,
@@ -96,6 +109,8 @@ private:
     void mergeLayers(TimeValueLayer *from, TimeValueLayer *to,
                      sv_frame_t overlapStart, sv_frame_t overlapEnd);
     void recalculateTempoLayer();
+
+    const Score::MusicalEventList *m_musicalEvents; // I don't own this.
 };
 
 #endif

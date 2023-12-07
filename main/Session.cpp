@@ -397,15 +397,47 @@ Session::exportAlignmentTo(QString path)
         path += ".csv";
     }
 
-    auto model = ModelById::get(m_displayedOnsetsLayer->getModel());
+    //auto model = ModelById::get(m_displayedOnsetsLayer->getModel());
+    shared_ptr<SparseTimeValueModel> model =
+            ModelById::getAs<SparseTimeValueModel>(m_displayedOnsetsLayer->getModel());
     if (!model) {
         SVDEBUG << "Session::exportAlignmentTo: Internal error: unknown model"
                 << endl;
         return false;
     }
 
+    // Calculating the mapping from score musical events to entries in the csv file
+    vector<AlignmentEntry> entries;
+    for (auto &event : *m_musicalEvents) {
+        Score::MeasureInfo info = event.measureInfo;
+        std::string label = to_string(info.measureNumber);
+        label += "+" + to_string(info.measurePosition.numerator) + "/" + to_string(info.measurePosition.denominator);
+        entries.push_back(AlignmentEntry(label, event.tick, -1)); // -1 is placeholder
+    }
+    // Overwriting the frame values
+    auto onsets = model->getAllEvents();
+    for (auto onset : onsets) {
+        // finding the alignment entry with the same label
+        std::string target = onset.getLabel().toStdString();
+        bool found = false;
+        int i = 0;
+        while (!found && i < int(entries.size())) {
+            if (entries[i].label == target) found = true;
+            else    i++;
+        }
+        if (!found) {
+            SVCERR<<"ERROR: In Session::exportAlignmentTo, label not found!"<<endl;
+            return false;
+        }
+        entries[i].frame = onset.getFrame();
+    }
+
+    for (auto entry : entries) {
+        SVCERR<<"###" + entry.label <<" "<< entry.tick << " "<< entry.frame<<endl;
+    }
+
     CSVFileWriter writer(path,
-                         model.get(),
+                         model.get(), // needs to be replaced
                          nullptr,
                          ",",
                          DataExportIncludeHeader |
@@ -494,6 +526,12 @@ Session::importAlignmentFrom(QString path)
 
     delete imported;
     return true;
+}
+
+void
+Session::setMusicalEvents(const Score::MusicalEventList *musicalEvents)
+{
+    m_musicalEvents = musicalEvents;
 }
 
 void
