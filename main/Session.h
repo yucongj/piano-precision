@@ -36,7 +36,7 @@ public:
 
     struct AlignmentEntry
     {
-        string label;
+        std::string label;
         float tick;
         int frame;
 
@@ -109,6 +109,9 @@ private:
     void mergeLayers(TimeValueLayer *from, TimeValueLayer *to,
                      sv_frame_t overlapStart, sv_frame_t overlapEnd);
     void recalculateTempoLayer();
+
+    bool exportAlignmentEntriesTo(QString path,
+                                  const std::vector<AlignmentEntry> &entries);
 
     const Score::MusicalEventList *m_musicalEvents; // I don't own this.
 };
