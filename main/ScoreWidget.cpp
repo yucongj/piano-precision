@@ -25,7 +25,7 @@
 
 static QColor navigateHighlightColour("#59c4df");
 static QColor editHighlightColour("#ffbd00");
-static QColor selectHighlightColour("#913d88");
+static QColor selectHighlightColour(150, 150, 255);
 
 using std::vector;
 using std::pair;
@@ -535,7 +535,7 @@ ScoreWidget::paintEvent(QPaintEvent *e)
                 break;
             case InteractionMode::SelectStart:
             case InteractionMode::SelectEnd:
-                highlightColour = selectHighlightColour;
+                highlightColour = selectHighlightColour.darker();
                 break;
             default: // None already handled in conditional above
                 throw std::runtime_error("Unhandled case in mode switch");
@@ -565,7 +565,7 @@ ScoreWidget::paintEvent(QPaintEvent *e)
          (m_mode == InteractionMode::SelectStart ||
           m_mode == InteractionMode::SelectEnd))) {
 
-        QColor fillColour = selectHighlightColour.lighter();
+        QColor fillColour = selectHighlightColour;
         fillColour.setAlpha(100);
         paint.setPen(Qt::NoPen);
         paint.setBrush(fillColour);
