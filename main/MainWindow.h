@@ -46,6 +46,8 @@ public:
 signals:
     void canChangeSolo(bool);
     void canAlign(bool);
+    void canSaveScoreAlignment(bool);
+    void canLoadScoreAlignment(bool);
 
 public slots:
     void preferenceChanged(PropertyContainer::PropertyName) override;
