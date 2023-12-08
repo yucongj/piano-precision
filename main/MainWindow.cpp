@@ -2397,6 +2397,7 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     if (success) success = m_score.readMeter(scorePath + ".meter");
     if (success)    m_score.calculateTicks();
     if (success)    SVCERR<<"### Successfully created score structure!"<<endl;
+    m_session.setMusicalEvents(&(m_score.getMusicalEvents()));
 
 
     auto recordingDirectory =
