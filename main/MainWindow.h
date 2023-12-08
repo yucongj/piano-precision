@@ -46,6 +46,8 @@ public:
 signals:
     void canChangeSolo(bool);
     void canAlign(bool);
+    void canSaveScoreAlignment(bool);
+    void canLoadScoreAlignment(bool);
 
 public slots:
     void preferenceChanged(PropertyContainer::PropertyName) override;
@@ -194,7 +196,7 @@ protected slots:
     virtual void saveSessionAsTemplate();
     virtual void manageSavedTemplates();
 
-    virtual QString getDefaultSessionTemplate() const;
+    virtual QString getDefaultSessionTemplate() const override;
 
     virtual void website();
     virtual void help();

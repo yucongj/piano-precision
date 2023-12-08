@@ -765,14 +765,14 @@ MainWindow::setupFileMenu()
     action = new QAction(tr("Load Score Alignment..."), this);
     action->setStatusTip(tr("Import score alignment data from a previously-saved file"));
     connect(action, SIGNAL(triggered()), this, SLOT(loadScoreAlignment()));
-    connect(this, SIGNAL(canImportLayer(bool)), action, SLOT(setEnabled(bool)));
+    connect(this, SIGNAL(canLoadScoreAlignment(bool)), action, SLOT(setEnabled(bool)));
     m_keyReference->registerShortcut(action);
     menu->addAction(action);
 
     action = new QAction(tr("Save Score Alignment..."), this);
     action->setStatusTip(tr("Export score alignment data to a file"));
     connect(action, SIGNAL(triggered()), this, SLOT(saveScoreAlignment()));
-    connect(this, SIGNAL(canExportLayer(bool)), action, SLOT(setEnabled(bool)));
+    connect(this, SIGNAL(canSaveScoreAlignment(bool)), action, SLOT(setEnabled(bool)));
     m_keyReference->registerShortcut(action);
     menu->addAction(action);
 
@@ -2713,6 +2713,8 @@ MainWindow::alignmentReadyForReview()
 
     m_alignButton->hide();
     m_alignAcceptReject->show();
+
+    updateMenuStates();
 }
 
 void
@@ -2732,6 +2734,8 @@ MainWindow::alignmentAccepted()
     }
 
     m_paneStack->setCurrentLayer(onsetsPane, onsetsLayer);
+
+    updateMenuStates();
 }
 
 void
@@ -2751,6 +2755,8 @@ MainWindow::alignmentRejected()
     }
 
     m_paneStack->setCurrentLayer(onsetsPane, onsetsLayer);
+
+    updateMenuStates();
 }
 
 void
@@ -3311,6 +3317,17 @@ MainWindow::updateMenuStates()
         }
     }
 
+    bool haveMainModel =
+        (!getMainModelId().isNone());
+
+    emit canSaveScoreAlignment(haveMainModel &&
+                               m_scoreId != "" &&
+                               !m_alignAcceptReject->isVisible());
+
+    emit canLoadScoreAlignment(haveMainModel &&
+                               m_scoreId != "" &&
+                               !m_alignAcceptReject->isVisible());
+
     updateAlignButtonText();
 }
 
@@ -3752,19 +3769,6 @@ void
 MainWindow::saveScoreAlignment()
 {
     SVDEBUG << "MainWindow::saveScoreAlignment" << endl;
-
-    TimeValueLayer *onsetsLayer = m_session.getOnsetsLayer();
-    if (!onsetsLayer) {
-        SVDEBUG << "MainWindow::saveScoreAlignment: can't find an onsets layer!" << endl;
-        return;
-    }
-
-    /*!!!
-    QDateTime now = QDateTime::currentDateTime();
-    QString nowString = now.toString("yyyyMMdd-HHmmss-zzz");
-    QString filename = RecordDirectory::getRecordDirectory() +
-        QString("/onsets-%1-unmodified.csv").arg(nowString);
-    */
 
     QString filename = getSaveFileName(FileFinder::CSVFile);
     if (filename == "") {

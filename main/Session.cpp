@@ -21,6 +21,9 @@
 #include "data/fileio/CSVFileReader.h"
 #include "data/fileio/CSVFileWriter.h"
 
+#include "base/TempWriteFile.h"
+#include "base/StringBits.h"
+
 #include <QMessageBox>
 #include <QFileInfo>
 
@@ -43,6 +46,10 @@ Session::setDocument(Document *doc,
                      Layer *timeRuler)
 {
     SVDEBUG << "Session::setDocument(" << doc << ")" << endl;
+
+    if (m_pendingOnsetsLayer) {
+        emit alignmentRejected();
+    }
     
     m_document = doc;
     m_scoreId = "";
@@ -387,25 +394,10 @@ Session::mergeLayers(TimeValueLayer *from, TimeValueLayer *to,
 bool
 Session::exportAlignmentTo(QString path)
 {
-    if (!m_displayedOnsetsLayer) {
-        SVDEBUG << "Session::exportAlignmentTo: Internal error: no onsets layer"
-                << endl;
-        return false;
-    }
-
     if (QFileInfo(path).suffix() == "") {
         path += ".csv";
     }
-
-    //auto model = ModelById::get(m_displayedOnsetsLayer->getModel());
-    shared_ptr<SparseTimeValueModel> model =
-            ModelById::getAs<SparseTimeValueModel>(m_displayedOnsetsLayer->getModel());
-    if (!model) {
-        SVDEBUG << "Session::exportAlignmentTo: Internal error: unknown model"
-                << endl;
-        return false;
-    }
-
+    
     // Calculating the mapping from score musical events to entries in the csv file
     vector<AlignmentEntry> entries;
     for (auto &event : *m_musicalEvents) {
@@ -414,44 +406,74 @@ Session::exportAlignmentTo(QString path)
         label += "+" + to_string(info.measurePosition.numerator) + "/" + to_string(info.measurePosition.denominator);
         entries.push_back(AlignmentEntry(label, event.tick, -1)); // -1 is placeholder
     }
-    // Overwriting the frame values
-    auto onsets = model->getAllEvents();
-    for (auto onset : onsets) {
-        // finding the alignment entry with the same label
-        std::string target = onset.getLabel().toStdString();
-        bool found = false;
-        int i = 0;
-        while (!found && i < int(entries.size())) {
-            if (entries[i].label == target) found = true;
-            else    i++;
-        }
-        if (!found) {
-            SVCERR<<"ERROR: In Session::exportAlignmentTo, label not found!"<<endl;
-            return false;
-        }
-        entries[i].frame = onset.getFrame();
-    }
 
+    if (m_displayedOnsetsLayer) {
+
+        shared_ptr<SparseTimeValueModel> model =
+            ModelById::getAs<SparseTimeValueModel>(m_displayedOnsetsLayer->getModel());
+        if (model) {
+
+            // Overwriting the frame values
+            auto onsets = model->getAllEvents();
+            for (auto onset : onsets) {
+                // finding the alignment entry with the same label
+                std::string target = onset.getLabel().toStdString();
+                bool found = false;
+                int i = 0;
+                while (!found && i < int(entries.size())) {
+                    if (entries[i].label == target) found = true;
+                    else    i++;
+                }
+                if (!found) {
+                    SVCERR<<"ERROR: In Session::exportAlignmentTo, label not found!"<<endl;
+                    return false;
+                }
+                entries[i].frame = onset.getFrame();
+            }
+        }
+    }
+    
     for (auto entry : entries) {
         SVCERR<<"###" + entry.label <<" "<< entry.tick << " "<< entry.frame<<endl;
     }
 
-    CSVFileWriter writer(path,
-                         model.get(), // needs to be replaced
-                         nullptr,
-                         ",",
-                         DataExportIncludeHeader |
-                         DataExportAlwaysIncludeTimestamp |
-                         DataExportWriteTimeInFrames);
+    return exportAlignmentEntriesTo(path, entries);
+}
 
-    writer.write();
-
-    if (!writer.isOK()) {
-        SVDEBUG << "Session::exportAlignmentTo: Failed to export alignment to "
-                << path << ": error is: " << writer.getError() << endl;
+bool
+Session::exportAlignmentEntriesTo(QString path,
+                                  const vector<AlignmentEntry> &entries)
+{
+    // Write to a temporary file and then move it into place at the
+    // end, so as to avoid overwriting existing file if for any reason
+    // the write fails
+    
+    TempWriteFile temp(path);
+    QFile file(temp.getTemporaryFilename());
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        SVCERR << "Session::exportAlignmentEntriesTo: Failed to open file "
+               << temp.getTemporaryFilename() << " for writing" << endl;
         return false;
     }
+    
+    QTextStream out(&file);
 
+    out << "LABEL,TICK,FRAME\n";
+    
+    for (const auto &entry : entries) {
+        QVector<QString> columns;
+        columns << QString::fromStdString(entry.label)
+                << QString("%1").arg(entry.tick);
+        if (entry.frame < 0) {
+            columns << "N";
+        } else {
+            columns << QString("%1").arg(entry.frame);
+        }
+        out << StringBits::joinDelimited(columns, ",") << '\n';
+    }
+
+    file.close();
+    temp.moveToTarget();
     return true;
 }
 
