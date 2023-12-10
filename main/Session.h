@@ -53,6 +53,7 @@ public:
     bool importAlignmentFrom(QString filename);
 
     void setMusicalEvents(const Score::MusicalEventList *musicalEvents);
+    bool updateAlignmentEntries();
 
 public slots:
     void setDocument(Document *,
@@ -110,10 +111,10 @@ private:
                      sv_frame_t overlapStart, sv_frame_t overlapEnd);
     void recalculateTempoLayer();
 
-    bool exportAlignmentEntriesTo(QString path,
-                                  const std::vector<AlignmentEntry> &entries);
+    bool exportAlignmentEntriesTo(QString path);
 
     const Score::MusicalEventList *m_musicalEvents; // I don't own this.
+    vector<AlignmentEntry> m_alignmentEntries;
 };
 
 #endif

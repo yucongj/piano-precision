@@ -398,51 +398,13 @@ Session::exportAlignmentTo(QString path)
         path += ".csv";
     }
     
-    // Calculating the mapping from score musical events to entries in the csv file
-    vector<AlignmentEntry> entries;
-    for (auto &event : *m_musicalEvents) {
-        Score::MeasureInfo info = event.measureInfo;
-        std::string label = to_string(info.measureNumber);
-        label += "+" + to_string(info.measurePosition.numerator) + "/" + to_string(info.measurePosition.denominator);
-        entries.push_back(AlignmentEntry(label, event.tick, -1)); // -1 is placeholder
-    }
-
-    if (m_displayedOnsetsLayer) {
-
-        shared_ptr<SparseTimeValueModel> model =
-            ModelById::getAs<SparseTimeValueModel>(m_displayedOnsetsLayer->getModel());
-        if (model) {
-
-            // Overwriting the frame values
-            auto onsets = model->getAllEvents();
-            for (auto onset : onsets) {
-                // finding the alignment entry with the same label
-                std::string target = onset.getLabel().toStdString();
-                bool found = false;
-                int i = 0;
-                while (!found && i < int(entries.size())) {
-                    if (entries[i].label == target) found = true;
-                    else    i++;
-                }
-                if (!found) {
-                    SVCERR<<"ERROR: In Session::exportAlignmentTo, label not found!"<<endl;
-                    return false;
-                }
-                entries[i].frame = onset.getFrame();
-            }
-        }
-    }
-    
-    for (auto entry : entries) {
-        SVCERR<<"###" + entry.label <<" "<< entry.tick << " "<< entry.frame<<endl;
-    }
-
-    return exportAlignmentEntriesTo(path, entries);
+    bool success = updateAlignmentEntries();
+    if (success)    success = exportAlignmentEntriesTo(path);
+    return success;
 }
 
 bool
-Session::exportAlignmentEntriesTo(QString path,
-                                  const vector<AlignmentEntry> &entries)
+Session::exportAlignmentEntriesTo(QString path)
 {
     // Write to a temporary file and then move it into place at the
     // end, so as to avoid overwriting existing file if for any reason
@@ -460,7 +422,7 @@ Session::exportAlignmentEntriesTo(QString path,
 
     out << "LABEL,TICK,FRAME\n";
     
-    for (const auto &entry : entries) {
+    for (const auto &entry : m_alignmentEntries) {
         QVector<QString> columns;
         columns << QString::fromStdString(entry.label)
                 << QString("%1").arg(entry.tick);
@@ -554,6 +516,49 @@ void
 Session::setMusicalEvents(const Score::MusicalEventList *musicalEvents)
 {
     m_musicalEvents = musicalEvents;
+    updateAlignmentEntries();
+}
+
+bool
+Session::updateAlignmentEntries()
+{
+    if (int(m_alignmentEntries.size()) == 0) { // initialize only once
+        // Calculating the mapping from score musical events to m_alignmentEntries
+        for (auto &event : *m_musicalEvents) {
+            Score::MeasureInfo info = event.measureInfo;
+            std::string label = to_string(info.measureNumber);
+            label += "+" + to_string(info.measurePosition.numerator) + "/" + to_string(info.measurePosition.denominator);
+            m_alignmentEntries.push_back(AlignmentEntry(label, event.tick, -1)); // -1 is placeholder
+        }
+    }
+
+    if (m_displayedOnsetsLayer) {
+
+        shared_ptr<SparseTimeValueModel> model =
+                ModelById::getAs<SparseTimeValueModel>(m_displayedOnsetsLayer->getModel());
+        if (model) {
+
+            // Overwriting the frame values
+            auto onsets = model->getAllEvents();
+            for (auto onset : onsets) {
+                // finding the alignment entry with the same label
+                std::string target = onset.getLabel().toStdString();
+                bool found = false;
+                int i = 0;
+                while (!found && i < int(m_alignmentEntries.size())) {
+                    if (m_alignmentEntries[i].label == target) found = true;
+                    else    i++;
+                }
+                if (!found) {
+                    SVCERR<<"ERROR: In Session::updateAlignmentEntries, label not found!"<<endl;
+                    return false;
+                }
+                m_alignmentEntries[i].frame = onset.getFrame();
+            }
+        }
+    }
+
+    return true;
 }
 
 void
@@ -578,19 +583,37 @@ Session::recalculateTempoLayer()
         return;
     }
 
-    auto onsetsModel = ModelById::getAs<SparseTimeValueModel>
-        (m_displayedOnsetsLayer->getModel());
-    
-    auto onsets = onsetsModel->getAllEvents();
+    updateAlignmentEntries();
 
-    for (int i = 0; in_range_for(onsets, i + 1); ++i) {
-        auto thisFrame = onsets[i].getFrame();
-        auto nextFrame = onsets[i+1].getFrame();
-        auto thisSec = RealTime::frame2RealTime(thisFrame, sampleRate).toDouble();
-        auto nextSec = RealTime::frame2RealTime(nextFrame, sampleRate).toDouble();
-        double tempo = 60. / (nextSec - thisSec);
-        Event tempoEvent(thisFrame, float(tempo), QString());
-        newModel->add(tempoEvent);
+    int start = -1, end = -2;
+    bool stop = false;
+    while (!stop && end <= int(m_alignmentEntries.size()) - 4) {
+        start = end + 2;
+        while (m_alignmentEntries[start].frame < 0) {
+            start++;
+            if (start >= int(m_alignmentEntries.size()) - 1) {
+                stop = true; // no more aligned sections
+                break;
+            }
+        }
+        end = start;
+        while (!stop && m_alignmentEntries[end+1].frame >= 0) {
+            end++;
+            if (end >= int(m_alignmentEntries.size()) - 1) {
+                stop = true; // reached the last event
+                break;
+            }
+        }
+        for (int i = start; i < end; ++i) {
+            auto thisFrame = m_alignmentEntries[i].frame;
+            auto nextFrame = m_alignmentEntries[i+1].frame;
+            auto thisSec = RealTime::frame2RealTime(thisFrame, sampleRate).toDouble();
+            auto nextSec = RealTime::frame2RealTime(nextFrame, sampleRate).toDouble();
+            Fraction dur = (*m_musicalEvents)[i].duration;
+            double tempo = (4. * dur.numerator / dur.denominator) * 60. / (nextSec - thisSec); // num of quarter notes per minutes
+            Event tempoEvent(thisFrame, float(tempo), QString());
+            newModel->add(tempoEvent);
+        }
     }
     
     m_document->setModel(m_tempoLayer, newModelId);
