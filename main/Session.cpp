@@ -134,7 +134,10 @@ Session::setMainModel(ModelId modelId, QString scoreId)
 
     m_spectrogramLayer = qobject_cast<SpectrogramLayer *>
         (m_document->createLayer(LayerFactory::MelodicRangeSpectrogram));
+    m_spectrogramLayer->setBinScale(BinScale::Linear);
     m_spectrogramLayer->setColourMap(ColourMapper::Green);
+    m_spectrogramLayer->setColourScale(ColourScaleType::Log);
+    m_spectrogramLayer->setColourScaleMultiple(2.0);
 
     m_document->addLayerToView(m_topPane, m_spectrogramLayer);
     m_document->setModel(m_spectrogramLayer, modelId);
