@@ -3795,6 +3795,8 @@ MainWindow::loadScoreAlignment()
                              tr("Failed to import alignment"),
                              tr("Failed to import alignment. See log file for more information."),
                              QMessageBox::Ok);
+    } else {
+        m_scoreAlignmentModified = false;
     }
 }
 

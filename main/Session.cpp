@@ -277,18 +277,24 @@ Session::beginPartialAlignment(int scorePositionStart,
         
     m_displayedOnsetsLayer = m_pendingOnsetsLayer;
 
-    m_pendingOnsetsLayer->setPlotStyle(TimeValueLayer::PlotSegmentation);
-    m_pendingOnsetsLayer->setDrawSegmentDivisions(true);
-    m_pendingOnsetsLayer->setFillSegments(false);
-    m_pendingOnsetsLayer->setPermitValueEditOfSegmentation(false);
-
-    connect(m_pendingOnsetsLayer, SIGNAL(frameIlluminated(sv_frame_t)),
-            this, SIGNAL(alignmentFrameIlluminated(sv_frame_t)));
+    setOnsetsLayerProperties(m_pendingOnsetsLayer);
 
     m_partialAlignmentAudioStart = audioFrameStart;
     m_partialAlignmentAudioEnd = audioFrameEnd;
     
     m_awaitingOnsetsLayer = true;
+}
+
+void
+Session::setOnsetsLayerProperties(TimeValueLayer *onsetsLayer)
+{
+    onsetsLayer->setPlotStyle(TimeValueLayer::PlotSegmentation);
+    onsetsLayer->setDrawSegmentDivisions(true);
+    onsetsLayer->setFillSegments(false);
+    onsetsLayer->setPermitValueEditOfSegmentation(false);
+
+    connect(onsetsLayer, SIGNAL(frameIlluminated(sv_frame_t)),
+            this, SIGNAL(alignmentFrameIlluminated(sv_frame_t)));
 }
 
 void
@@ -445,39 +451,35 @@ Session::exportAlignmentEntriesTo(QString path)
 bool
 Session::importAlignmentFrom(QString path)
 {
-    if (m_mainModel.isNone() || !m_displayedOnsetsLayer) {
-        //!!! todo 1: create onsets layer here if it does not exist
-        //!!! todo 2: calculate tempo layer as well
-        return false;
-    }
+    SVDEBUG << "Session::importAlignmentFrom(" << path << ")" << endl;
 
     auto mainModel = ModelById::get(m_mainModel);
     if (!mainModel) {
-        SVDEBUG << "Session::importAlignmentFrom: No main model to refer to" << endl;
+        SVDEBUG << "Session::importAlignmentFrom: No main model, nothing for the alignment to be an alignment against" << endl;
         return false;
     }
     
-    auto existingModel = ModelById::getAs<SparseTimeValueModel>
-        (m_displayedOnsetsLayer->getModel());
-    if (!existingModel) {
-        SVDEBUG << "Session::importAlignmentFrom: No existing model to import to - this is not yet implemented" << endl;
-        return false;
-    }
+    // Our CSV format is LABEL,TICK,FRAME where LABEL is text, TICK is
+    // a number (not necessarily an integer), and FRAME is an integer
+    // audio sample frame number. We want to import to an onsets layer
+    // whose contents are time-value events indexed by audio sample
+    // frame, with a value corresponding to TICK and a label
+    // corresponding to LABEL.
     
     CSVFormat format;
     
     format.setSeparator(QChar(','));
     format.setColumnCount(3);
     format.setHeaderStatus(CSVFormat::HeaderPresent);
-    
+
     format.setModelType(CSVFormat::TwoDimensionalModel);
     format.setTimingType(CSVFormat::ExplicitTiming);
     format.setTimeUnits(CSVFormat::TimeAudioFrames);
 
     QList<CSVFormat::ColumnPurpose> purposes {
-        CSVFormat::ColumnStartTime,
+        CSVFormat::ColumnLabel,
         CSVFormat::ColumnValue,
-        CSVFormat::ColumnLabel
+        CSVFormat::ColumnStartTime
     };
     format.setColumnPurposes(purposes);
     
@@ -501,6 +503,21 @@ Session::importAlignmentFrom(QString path)
         return false;
     }
 
+    if (!m_displayedOnsetsLayer) {
+        m_displayedOnsetsLayer = dynamic_cast<TimeValueLayer *>
+            (m_document->createEmptyLayer(LayerFactory::TimeValues));
+        m_document->addLayerToView(m_topPane, m_displayedOnsetsLayer);
+        setOnsetsLayerProperties(m_displayedOnsetsLayer);
+    }
+    
+    auto existingModel = ModelById::getAs<SparseTimeValueModel>
+        (m_displayedOnsetsLayer->getModel());
+    if (!existingModel) {
+        SVDEBUG << "Session::importAlignmentFrom: Internal error: onsets layer has no model!" << endl;
+        delete imported;
+        return false;
+    }
+
     EventVector oldEvents = existingModel->getAllEvents();
     EventVector newEvents = stvm->getAllEvents();
     
@@ -512,6 +529,10 @@ Session::importAlignmentFrom(QString path)
     }
 
     delete imported;
+
+    recalculateTempoLayer();
+    emit alignmentAccepted();    
+
     return true;
 }
 
