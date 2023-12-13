@@ -668,6 +668,9 @@ MainWindow::setupFileMenu()
 
     IconLoader il;
 
+    QIcon icon;
+    QAction *action = nullptr;
+/*!!!    
     QIcon icon = il.load("filenew");
     QAction *action = new QAction(icon, tr("&New Session"), this);
     action->setShortcut(tr("Ctrl+N"));
@@ -676,7 +679,7 @@ MainWindow::setupFileMenu()
     m_keyReference->registerShortcut(action);
     menu->addAction(action);
     toolbar->addAction(action);
-
+*/
     // Added by YJ: Ocs 5, 2021
     icon = il.load("chooseScore");
     action = new QAction(icon, tr("&Choose Score..."), this);
@@ -688,6 +691,7 @@ MainWindow::setupFileMenu()
     toolbar->addAction(action);
     // end of YJ
 
+/*!!!
     icon = il.load("fileopen");
     action = new QAction(icon, tr("&Open..."), this);
     action->setShortcut(tr("Ctrl+O"));
@@ -696,7 +700,17 @@ MainWindow::setupFileMenu()
     m_keyReference->registerShortcut(action);
     toolbar->addAction(action);
     menu->addAction(action);
+*/
 
+    icon = il.load("fileopenaudio");
+    action = new QAction(icon, tr("&Open Recording..."), this);
+    action->setShortcut(tr("Ctrl+O"));
+    action->setStatusTip(tr("Open an audio recording"));
+    connect(action, SIGNAL(triggered()), this, SLOT(importAudio()));
+    m_keyReference->registerShortcut(action);
+    toolbar->addAction(action);
+    menu->addAction(action);
+/*!!!
     // We want this one to go on the toolbar now, if we add it at all,
     // but on the menu later
     QAction *iaction = new QAction(tr("&Import More Audio..."), this);
@@ -712,7 +726,7 @@ MainWindow::setupFileMenu()
     raction->setStatusTip(tr("Replace the main audio file of the session with a different file"));
     connect(raction, SIGNAL(triggered()), this, SLOT(replaceMainAudio()));
     connect(this, SIGNAL(canReplaceMainAudio(bool)), raction, SLOT(setEnabled(bool)));
-
+*/
     action = new QAction(tr("Open Lo&cation..."), this);
     action->setShortcut(tr("Ctrl+Shift+O"));
     action->setStatusTip(tr("Open or import a file from a remote URL"));
@@ -727,7 +741,7 @@ MainWindow::setupFileMenu()
             this, SLOT(setupRecentFilesMenu()));
 
     menu->addSeparator();
-
+/*!!!
     icon = il.load("filesave");
     action = new QAction(icon, tr("&Save Session"), this);
     action->setShortcut(tr("Ctrl+S"));
@@ -761,19 +775,32 @@ MainWindow::setupFileMenu()
     menu->addAction(action);
 
     menu->addSeparator();
-
-    action = new QAction(tr("Load Score Alignment..."), this);
+*/
+    icon = il.load("fileopen");
+    action = new QAction(icon, tr("Load Score Alignment..."), this);
     action->setStatusTip(tr("Import score alignment data from a previously-saved file"));
     connect(action, SIGNAL(triggered()), this, SLOT(loadScoreAlignment()));
     connect(this, SIGNAL(canLoadScoreAlignment(bool)), action, SLOT(setEnabled(bool)));
     m_keyReference->registerShortcut(action);
+    toolbar->addAction(action);
     menu->addAction(action);
 
-    action = new QAction(tr("Save Score Alignment..."), this);
-    action->setStatusTip(tr("Export score alignment data to a file"));
+    icon = il.load("filesave");
+    action = new QAction(icon, tr("Save Score Alignment"), this);
+    action->setStatusTip(tr("Save score alignment data"));
     connect(action, SIGNAL(triggered()), this, SLOT(saveScoreAlignment()));
     connect(this, SIGNAL(canSaveScoreAlignment(bool)), action, SLOT(setEnabled(bool)));
     m_keyReference->registerShortcut(action);
+    toolbar->addAction(action);
+    menu->addAction(action);
+
+    icon = il.load("filesaveas");
+    action = new QAction(icon, tr("Save Score Alignment As..."), this);
+    action->setStatusTip(tr("Save score alignment data to a new file"));
+    connect(action, SIGNAL(triggered()), this, SLOT(saveScoreAlignmentAs()));
+    connect(this, SIGNAL(canSaveScoreAlignment(bool)), action, SLOT(setEnabled(bool)));
+    m_keyReference->registerShortcut(action);
+    toolbar->addAction(action);
     menu->addAction(action);
 
     menu->addSeparator();
@@ -2398,7 +2425,6 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     if (success)    m_score.calculateTicks();
     if (success)    SVCERR<<"### Successfully created score structure!"<<endl;
     m_session.setMusicalEvents(&(m_score.getMusicalEvents()));
-
 
     auto recordingDirectory =
         ScoreFinder::getUserRecordingDirectory(scoreName.toStdString());
