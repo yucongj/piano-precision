@@ -519,6 +519,8 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
 
     connect(&m_session, SIGNAL(alignmentReadyForReview()),
             this, SLOT(alignmentReadyForReview()));
+    connect(&m_session, SIGNAL(alignmentModified()),
+            this, SLOT(alignmentModified()));
     connect(&m_session, SIGNAL(alignmentAccepted()),
             this, SLOT(alignmentAccepted()));
     connect(&m_session, SIGNAL(alignmentRejected()),
@@ -2743,6 +2745,15 @@ MainWindow::alignmentReadyForReview()
     m_alignButton->hide();
     m_alignAcceptReject->show();
 
+    updateMenuStates();
+}
+
+void
+MainWindow::alignmentModified()
+{
+    SVDEBUG << "MainWindow::alignmentModified" << endl;
+
+    m_scoreAlignmentModified = true;
     updateMenuStates();
 }
 

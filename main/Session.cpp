@@ -312,6 +312,17 @@ Session::modelReady(ModelId id)
 }
 
 void
+Session::modelChanged(ModelId id)
+{
+    SVDEBUG << "Session::modelChanged: model is " << id << endl;
+
+    if (m_displayedOnsetsLayer && id == m_displayedOnsetsLayer->getModel()) {
+        recalculateTempoLayer();
+        emit alignmentModified();
+    }
+}
+
+void
 Session::alignmentComplete()
 {
     SVDEBUG << "Session::alignmentComplete" << endl;
@@ -376,6 +387,9 @@ Session::acceptAlignment()
     recalculateTempoLayer();
     
     emit alignmentAccepted();
+
+    connect(ModelById::get(m_displayedOnsetsLayer->getModel()).get(),
+            SIGNAL(modelChanged(ModelId)), this, SLOT(modelChanged(ModelId)));
 }
 
 void
@@ -503,11 +517,14 @@ Session::importAlignmentFrom(QString path)
         return false;
     }
 
+    bool existingModelIsNew = false;
+    
     if (!m_displayedOnsetsLayer) {
         m_displayedOnsetsLayer = dynamic_cast<TimeValueLayer *>
             (m_document->createEmptyLayer(LayerFactory::TimeValues));
         m_document->addLayerToView(m_topPane, m_displayedOnsetsLayer);
         setOnsetsLayerProperties(m_displayedOnsetsLayer);
+        existingModelIsNew = true;
     }
     
     auto existingModel = ModelById::getAs<SparseTimeValueModel>
@@ -518,6 +535,9 @@ Session::importAlignmentFrom(QString path)
         return false;
     }
 
+    disconnect(existingModel.get(), SIGNAL(modelChanged(ModelId)),
+               this, nullptr);
+    
     EventVector oldEvents = existingModel->getAllEvents();
     EventVector newEvents = stvm->getAllEvents();
     
@@ -532,6 +552,9 @@ Session::importAlignmentFrom(QString path)
 
     recalculateTempoLayer();
     emit alignmentAccepted();    
+
+    connect(existingModel.get(), SIGNAL(modelChanged(ModelId)),
+            this, SLOT(modelChanged(ModelId)));
 
     return true;
 }
