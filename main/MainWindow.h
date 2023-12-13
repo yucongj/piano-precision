@@ -47,6 +47,7 @@ signals:
     void canChangeSolo(bool);
     void canAlign(bool);
     void canSaveScoreAlignment(bool);
+    void canSaveScoreAlignmentAs(bool);
     void canLoadScoreAlignment(bool);
 
 public slots:
@@ -71,6 +72,7 @@ protected slots:
     virtual void convertAudio();
     virtual void loadScoreAlignment();
     virtual void saveScoreAlignment();
+    virtual void saveScoreAlignmentAs();
     virtual void importLayer();
     virtual void exportLayer();
     virtual void exportImage();
@@ -289,6 +291,8 @@ protected:
     QString                  m_scoreId;
     Session                  m_session;
     Score                    m_score;
+    QString                  m_scoreAlignmentFile;
+    bool                     m_scoreAlignmentModified;
     
     struct LayerConfiguration {
         LayerConfiguration(LayerFactory::LayerType _layer

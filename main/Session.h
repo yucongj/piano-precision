@@ -106,6 +106,7 @@ private:
     
     TimeValueLayer *m_tempoLayer;
 
+    void setOnsetsLayerProperties(TimeValueLayer *);
     void alignmentComplete();
     void mergeLayers(TimeValueLayer *from, TimeValueLayer *to,
                      sv_frame_t overlapStart, sv_frame_t overlapEnd);

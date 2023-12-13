@@ -185,7 +185,8 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     m_unitConverter(new UnitConverter()),
     m_keyReference(new KeyReference()),
     m_templateWatcher(nullptr),
-    m_shouldStartOSCQueue(false)
+    m_shouldStartOSCQueue(false),
+    m_scoreAlignmentModified(false)
 {
     Profiler profiler("MainWindow::MainWindow");
 
@@ -668,6 +669,9 @@ MainWindow::setupFileMenu()
 
     IconLoader il;
 
+    QIcon icon;
+    QAction *action = nullptr;
+/*!!!    
     QIcon icon = il.load("filenew");
     QAction *action = new QAction(icon, tr("&New Session"), this);
     action->setShortcut(tr("Ctrl+N"));
@@ -676,7 +680,7 @@ MainWindow::setupFileMenu()
     m_keyReference->registerShortcut(action);
     menu->addAction(action);
     toolbar->addAction(action);
-
+*/
     // Added by YJ: Ocs 5, 2021
     icon = il.load("chooseScore");
     action = new QAction(icon, tr("&Choose Score..."), this);
@@ -688,6 +692,7 @@ MainWindow::setupFileMenu()
     toolbar->addAction(action);
     // end of YJ
 
+/*!!!
     icon = il.load("fileopen");
     action = new QAction(icon, tr("&Open..."), this);
     action->setShortcut(tr("Ctrl+O"));
@@ -696,7 +701,17 @@ MainWindow::setupFileMenu()
     m_keyReference->registerShortcut(action);
     toolbar->addAction(action);
     menu->addAction(action);
+*/
 
+    icon = il.load("fileopenaudio");
+    action = new QAction(icon, tr("&Open Recording..."), this);
+    action->setShortcut(tr("Ctrl+O"));
+    action->setStatusTip(tr("Open an audio recording"));
+    connect(action, SIGNAL(triggered()), this, SLOT(importAudio()));
+    m_keyReference->registerShortcut(action);
+    toolbar->addAction(action);
+    menu->addAction(action);
+/*!!!
     // We want this one to go on the toolbar now, if we add it at all,
     // but on the menu later
     QAction *iaction = new QAction(tr("&Import More Audio..."), this);
@@ -712,7 +727,7 @@ MainWindow::setupFileMenu()
     raction->setStatusTip(tr("Replace the main audio file of the session with a different file"));
     connect(raction, SIGNAL(triggered()), this, SLOT(replaceMainAudio()));
     connect(this, SIGNAL(canReplaceMainAudio(bool)), raction, SLOT(setEnabled(bool)));
-
+*/
     action = new QAction(tr("Open Lo&cation..."), this);
     action->setShortcut(tr("Ctrl+Shift+O"));
     action->setStatusTip(tr("Open or import a file from a remote URL"));
@@ -727,7 +742,7 @@ MainWindow::setupFileMenu()
             this, SLOT(setupRecentFilesMenu()));
 
     menu->addSeparator();
-
+/*!!!
     icon = il.load("filesave");
     action = new QAction(icon, tr("&Save Session"), this);
     action->setShortcut(tr("Ctrl+S"));
@@ -761,19 +776,32 @@ MainWindow::setupFileMenu()
     menu->addAction(action);
 
     menu->addSeparator();
-
-    action = new QAction(tr("Load Score Alignment..."), this);
+*/
+    icon = il.load("fileopen");
+    action = new QAction(icon, tr("Load Score Alignment..."), this);
     action->setStatusTip(tr("Import score alignment data from a previously-saved file"));
     connect(action, SIGNAL(triggered()), this, SLOT(loadScoreAlignment()));
     connect(this, SIGNAL(canLoadScoreAlignment(bool)), action, SLOT(setEnabled(bool)));
     m_keyReference->registerShortcut(action);
+    toolbar->addAction(action);
     menu->addAction(action);
 
-    action = new QAction(tr("Save Score Alignment..."), this);
-    action->setStatusTip(tr("Export score alignment data to a file"));
+    icon = il.load("filesave");
+    action = new QAction(icon, tr("Save Score Alignment"), this);
+    action->setStatusTip(tr("Save modified score alignment data to the same file as previously"));
     connect(action, SIGNAL(triggered()), this, SLOT(saveScoreAlignment()));
     connect(this, SIGNAL(canSaveScoreAlignment(bool)), action, SLOT(setEnabled(bool)));
     m_keyReference->registerShortcut(action);
+    toolbar->addAction(action);
+    menu->addAction(action);
+
+    icon = il.load("filesaveas");
+    action = new QAction(icon, tr("Save Score Alignment As..."), this);
+    action->setStatusTip(tr("Save score alignment data to a new file"));
+    connect(action, SIGNAL(triggered()), this, SLOT(saveScoreAlignmentAs()));
+    connect(this, SIGNAL(canSaveScoreAlignmentAs(bool)), action, SLOT(setEnabled(bool)));
+    m_keyReference->registerShortcut(action);
+    toolbar->addAction(action);
     menu->addAction(action);
 
     menu->addSeparator();
@@ -2390,6 +2418,10 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
         m_scoreWidget->setElements(posReader.getElements());
     }
 
+    newSession();
+    m_scoreAlignmentFile = "";
+    m_scoreAlignmentModified = false;
+
     // Creating score structure
     string scorePath = ScoreFinder::getUserScoreDirectory() + "/" + scoreName.toStdString() + "/" + scoreName.toStdString();
     bool success = m_score.initialize(scorePath + ".solo");
@@ -2398,7 +2430,6 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     if (success)    m_score.calculateTicks();
     if (success)    SVCERR<<"### Successfully created score structure!"<<endl;
     m_session.setMusicalEvents(&(m_score.getMusicalEvents()));
-
 
     auto recordingDirectory =
         ScoreFinder::getUserRecordingDirectory(scoreName.toStdString());
@@ -2439,8 +2470,6 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
             }
         }
     }
-
-    m_sessionFile = "";
 
     settings.beginGroup("FileFinder");
     settings.remove("audiopath");
@@ -2734,6 +2763,8 @@ MainWindow::alignmentAccepted()
     }
 
     m_paneStack->setCurrentLayer(onsetsPane, onsetsLayer);
+
+    m_scoreAlignmentModified = true;
 
     updateMenuStates();
 }
@@ -3320,13 +3351,15 @@ MainWindow::updateMenuStates()
     bool haveMainModel =
         (!getMainModelId().isNone());
 
-    emit canSaveScoreAlignment(haveMainModel &&
-                               m_scoreId != "" &&
-                               !m_alignAcceptReject->isVisible());
-
-    emit canLoadScoreAlignment(haveMainModel &&
-                               m_scoreId != "" &&
-                               !m_alignAcceptReject->isVisible());
+    bool scoreAlignmentOK =
+        haveMainModel && m_scoreId != "" && !m_alignAcceptReject->isVisible();
+    
+    emit canSaveScoreAlignment(scoreAlignmentOK &&
+                               m_scoreAlignmentFile != "" &&
+                               m_scoreAlignmentModified);
+    
+    emit canSaveScoreAlignmentAs(scoreAlignmentOK);
+    emit canLoadScoreAlignment(scoreAlignmentOK);
 
     updateAlignButtonText();
 }
@@ -3762,6 +3795,8 @@ MainWindow::loadScoreAlignment()
                              tr("Failed to import alignment"),
                              tr("Failed to import alignment. See log file for more information."),
                              QMessageBox::Ok);
+    } else {
+        m_scoreAlignmentModified = false;
     }
 }
 
@@ -3769,6 +3804,29 @@ void
 MainWindow::saveScoreAlignment()
 {
     SVDEBUG << "MainWindow::saveScoreAlignment" << endl;
+
+    if (m_scoreAlignmentFile != "") {
+    
+        if (!m_session.exportAlignmentTo(m_scoreAlignmentFile)) {
+            QMessageBox::warning(this,
+                                 tr("Failed to export alignment"),
+                                 tr("Failed to export alignment. See log file for more information."),
+                                 QMessageBox::Ok);
+        } else {
+            m_scoreAlignmentModified = false;
+        }
+        
+    } else {
+        saveScoreAlignmentAs();
+    }
+
+    updateMenuStates();
+}
+
+void
+MainWindow::saveScoreAlignmentAs()
+{
+    SVDEBUG << "MainWindow::saveScoreAlignmentAs" << endl;
 
     QString filename = getSaveFileName(FileFinder::CSVFile);
     if (filename == "") {
@@ -3781,7 +3839,13 @@ MainWindow::saveScoreAlignment()
                              tr("Failed to export alignment"),
                              tr("Failed to export alignment. See log file for more information."),
                              QMessageBox::Ok);
+        m_scoreAlignmentFile = "";
+    } else {
+        m_scoreAlignmentFile = filename;
+        m_scoreAlignmentModified = false;
     }
+
+    updateMenuStates();
 }
 
 void
@@ -4176,6 +4240,9 @@ MainWindow::documentReplaced()
     Pane *topPane = m_paneStack->addPane();
     Pane *bottomPane = m_paneStack->addPane();
 
+    topPane->setSelectionSnapToFeatures(false);
+    bottomPane->setSelectionSnapToFeatures(false);
+    
     connect(topPane, SIGNAL(contextHelpChanged(const QString &)),
             this, SLOT(contextHelpChanged(const QString &)));
 
@@ -5704,6 +5771,9 @@ MainWindow::mainModelChanged(ModelId modelId)
     zoomToFit();
     rewindStart();
 
+    m_scoreAlignmentFile = "";
+    m_scoreAlignmentModified = false;
+    
     SVDEBUG << "MainWindow::mainModelChanged: Now calling m_session.setMainModel" << endl;
 
     m_session.setMainModel(modelId, m_scoreId);
