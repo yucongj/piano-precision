@@ -185,7 +185,8 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     m_unitConverter(new UnitConverter()),
     m_keyReference(new KeyReference()),
     m_templateWatcher(nullptr),
-    m_shouldStartOSCQueue(false)
+    m_shouldStartOSCQueue(false),
+    m_scoreAlignmentModified(false)
 {
     Profiler profiler("MainWindow::MainWindow");
 
@@ -787,7 +788,7 @@ MainWindow::setupFileMenu()
 
     icon = il.load("filesave");
     action = new QAction(icon, tr("Save Score Alignment"), this);
-    action->setStatusTip(tr("Save score alignment data"));
+    action->setStatusTip(tr("Save modified score alignment data to the same file as previously"));
     connect(action, SIGNAL(triggered()), this, SLOT(saveScoreAlignment()));
     connect(this, SIGNAL(canSaveScoreAlignment(bool)), action, SLOT(setEnabled(bool)));
     m_keyReference->registerShortcut(action);
@@ -798,7 +799,7 @@ MainWindow::setupFileMenu()
     action = new QAction(icon, tr("Save Score Alignment As..."), this);
     action->setStatusTip(tr("Save score alignment data to a new file"));
     connect(action, SIGNAL(triggered()), this, SLOT(saveScoreAlignmentAs()));
-    connect(this, SIGNAL(canSaveScoreAlignment(bool)), action, SLOT(setEnabled(bool)));
+    connect(this, SIGNAL(canSaveScoreAlignmentAs(bool)), action, SLOT(setEnabled(bool)));
     m_keyReference->registerShortcut(action);
     toolbar->addAction(action);
     menu->addAction(action);
@@ -2418,6 +2419,8 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     }
 
     newSession();
+    m_scoreAlignmentFile = "";
+    m_scoreAlignmentModified = false;
 
     // Creating score structure
     string scorePath = ScoreFinder::getUserScoreDirectory() + "/" + scoreName.toStdString() + "/" + scoreName.toStdString();
@@ -2760,6 +2763,8 @@ MainWindow::alignmentAccepted()
     }
 
     m_paneStack->setCurrentLayer(onsetsPane, onsetsLayer);
+
+    m_scoreAlignmentModified = true;
 
     updateMenuStates();
 }
@@ -3346,13 +3351,12 @@ MainWindow::updateMenuStates()
     bool haveMainModel =
         (!getMainModelId().isNone());
 
-    emit canSaveScoreAlignment(haveMainModel &&
-                               m_scoreId != "" &&
-                               !m_alignAcceptReject->isVisible());
-
-    emit canLoadScoreAlignment(haveMainModel &&
-                               m_scoreId != "" &&
-                               !m_alignAcceptReject->isVisible());
+    bool scoreAlignmentOK =
+        haveMainModel && m_scoreId != "" && !m_alignAcceptReject->isVisible();
+    
+    emit canSaveScoreAlignment(scoreAlignmentOK && m_scoreAlignmentModified);
+    emit canSaveScoreAlignmentAs(scoreAlignmentOK);
+    emit canLoadScoreAlignment(scoreAlignmentOK);
 
     updateAlignButtonText();
 }
@@ -3796,6 +3800,29 @@ MainWindow::saveScoreAlignment()
 {
     SVDEBUG << "MainWindow::saveScoreAlignment" << endl;
 
+    if (m_scoreAlignmentFile != "") {
+    
+        if (!m_session.exportAlignmentTo(m_scoreAlignmentFile)) {
+            QMessageBox::warning(this,
+                                 tr("Failed to export alignment"),
+                                 tr("Failed to export alignment. See log file for more information."),
+                                 QMessageBox::Ok);
+        } else {
+            m_scoreAlignmentModified = false;
+        }
+        
+    } else {
+        saveScoreAlignmentAs();
+    }
+
+    updateMenuStates();
+}
+
+void
+MainWindow::saveScoreAlignmentAs()
+{
+    SVDEBUG << "MainWindow::saveScoreAlignmentAs" << endl;
+
     QString filename = getSaveFileName(FileFinder::CSVFile);
     if (filename == "") {
         // cancelled
@@ -3807,7 +3834,13 @@ MainWindow::saveScoreAlignment()
                              tr("Failed to export alignment"),
                              tr("Failed to export alignment. See log file for more information."),
                              QMessageBox::Ok);
+        m_scoreAlignmentFile = "";
+    } else {
+        m_scoreAlignmentFile = filename;
+        m_scoreAlignmentModified = false;
     }
+
+    updateMenuStates();
 }
 
 void
@@ -5733,6 +5766,9 @@ MainWindow::mainModelChanged(ModelId modelId)
     zoomToFit();
     rewindStart();
 
+    m_scoreAlignmentFile = "";
+    m_scoreAlignmentModified = false;
+    
     SVDEBUG << "MainWindow::mainModelChanged: Now calling m_session.setMainModel" << endl;
 
     m_session.setMainModel(modelId, m_scoreId);
