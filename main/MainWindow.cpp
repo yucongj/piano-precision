@@ -3354,7 +3354,10 @@ MainWindow::updateMenuStates()
     bool scoreAlignmentOK =
         haveMainModel && m_scoreId != "" && !m_alignAcceptReject->isVisible();
     
-    emit canSaveScoreAlignment(scoreAlignmentOK && m_scoreAlignmentModified);
+    emit canSaveScoreAlignment(scoreAlignmentOK &&
+                               m_scoreAlignmentFile != "" &&
+                               m_scoreAlignmentModified);
+    
     emit canSaveScoreAlignmentAs(scoreAlignmentOK);
     emit canLoadScoreAlignment(scoreAlignmentOK);
 
