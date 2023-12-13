@@ -4202,6 +4202,9 @@ MainWindow::documentReplaced()
     Pane *topPane = m_paneStack->addPane();
     Pane *bottomPane = m_paneStack->addPane();
 
+    topPane->setSelectionSnapToFeatures(false);
+    bottomPane->setSelectionSnapToFeatures(false);
+    
     connect(topPane, SIGNAL(contextHelpChanged(const QString &)),
             this, SLOT(contextHelpChanged(const QString &)));
 

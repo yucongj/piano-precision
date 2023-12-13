@@ -553,7 +553,8 @@ Session::updateAlignmentEntries()
                     else    i++;
                 }
                 if (!found) {
-                    SVCERR<<"ERROR: In Session::updateAlignmentEntries, label not found!"<<endl;
+                    SVCERR<<"ERROR: In Session::updateAlignmentEntries, label "
+                          << target << " not found!"<<endl;
                     return false;
                 }
                 m_alignmentEntries[i].frame = onset.getFrame();
