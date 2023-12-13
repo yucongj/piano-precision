@@ -78,9 +78,11 @@ signals:
     void alignmentReadyForReview();
     void alignmentAccepted();
     void alignmentRejected();
+    void alignmentModified();
     void alignmentFrameIlluminated(sv_frame_t);
                                        
 protected slots:
+    void modelChanged(ModelId);
     void modelReady(ModelId);
     
 private:

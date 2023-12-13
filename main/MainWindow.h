@@ -147,6 +147,7 @@ protected slots:
     void actOnScorePosition(int, ScoreWidget::InteractionMode, bool activated);
     void scoreInteractionEnded(ScoreWidget::InteractionMode);
     void alignmentReadyForReview();
+    void alignmentModified();
     void alignmentAccepted();
     void alignmentRejected();
     void alignmentFrameIlluminated(sv_frame_t);
