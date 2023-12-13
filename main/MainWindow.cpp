@@ -2417,6 +2417,8 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
         m_scoreWidget->setElements(posReader.getElements());
     }
 
+    newSession();
+
     // Creating score structure
     string scorePath = ScoreFinder::getUserScoreDirectory() + "/" + scoreName.toStdString() + "/" + scoreName.toStdString();
     bool success = m_score.initialize(scorePath + ".solo");
@@ -2465,8 +2467,6 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
             }
         }
     }
-
-    m_sessionFile = "";
 
     settings.beginGroup("FileFinder");
     settings.remove("audiopath");
