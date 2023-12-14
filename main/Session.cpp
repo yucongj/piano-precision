@@ -563,22 +563,19 @@ void
 Session::setMusicalEvents(const Score::MusicalEventList *musicalEvents)
 {
     m_musicalEvents = musicalEvents;
-    updateAlignmentEntries();
+    m_alignmentEntries.clear();
+    // Calculating the mapping from score musical events to m_alignmentEntries
+    for (auto &event : *m_musicalEvents) {
+        Score::MeasureInfo info = event.measureInfo;
+        std::string label = to_string(info.measureNumber);
+        label += "+" + to_string(info.measurePosition.numerator) + "/" + to_string(info.measurePosition.denominator);
+        m_alignmentEntries.push_back(AlignmentEntry(label, event.tick, -1)); // -1 is placeholder
+    }
 }
 
 bool
 Session::updateAlignmentEntries()
 {
-    if (int(m_alignmentEntries.size()) == 0) { // initialize only once
-        // Calculating the mapping from score musical events to m_alignmentEntries
-        for (auto &event : *m_musicalEvents) {
-            Score::MeasureInfo info = event.measureInfo;
-            std::string label = to_string(info.measureNumber);
-            label += "+" + to_string(info.measurePosition.numerator) + "/" + to_string(info.measurePosition.denominator);
-            m_alignmentEntries.push_back(AlignmentEntry(label, event.tick, -1)); // -1 is placeholder
-        }
-    }
-
     if (m_displayedOnsetsLayer) {
 
         shared_ptr<SparseTimeValueModel> model =

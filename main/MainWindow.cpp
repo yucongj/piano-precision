@@ -2383,7 +2383,7 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     bool ok = false;
     QString scoreName = ListInputDialog::getItem
         (this, tr("Select a score"),
-         tr("Which score do you want to practice?"),
+         tr("Please select the score of your recording:"),
          items, 0, &ok);
 
     if (!ok) {
@@ -2423,6 +2423,7 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     newSession();
     m_scoreAlignmentFile = "";
     m_scoreAlignmentModified = false;
+    m_score = Score();
 
     // Creating score structure
     string scorePath = ScoreFinder::getUserScoreDirectory() + "/" + scoreName.toStdString() + "/" + scoreName.toStdString();
@@ -2430,7 +2431,10 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     if (success) success = m_score.readTempo(scorePath + ".tempo");
     if (success) success = m_score.readMeter(scorePath + ".meter");
     if (success)    m_score.calculateTicks();
-    if (success)    SVCERR<<"### Successfully created score structure!"<<endl;
+    if (!success) {
+        SVCERR<<"ERROR: In MainWindow::chooseScore, failed to create score structure"<<endl;
+        return;
+    }
     m_session.setMusicalEvents(&(m_score.getMusicalEvents()));
 
     auto recordingDirectory =
