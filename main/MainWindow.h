@@ -161,6 +161,7 @@ protected slots:
     virtual void playSpeedChanged(int);
     void playSoloToggled() override;
     virtual void alignToggled();
+    void followScoreToggled();
 
     void currentPaneChanged(Pane *) override;
 
@@ -294,6 +295,7 @@ protected:
     Score                    m_score;
     QString                  m_scoreAlignmentFile;
     bool                     m_scoreAlignmentModified;
+    bool                     m_followScore;
     
     struct LayerConfiguration {
         LayerConfiguration(LayerFactory::LayerType _layer

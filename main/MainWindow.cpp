@@ -186,7 +186,8 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     m_keyReference(new KeyReference()),
     m_templateWatcher(nullptr),
     m_shouldStartOSCQueue(false),
-    m_scoreAlignmentModified(false)
+    m_scoreAlignmentModified(false),
+    m_followScore(true)
 {
     Profiler profiler("MainWindow::MainWindow");
 
@@ -2494,7 +2495,9 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
 void
 MainWindow::viewManagerPlaybackFrameChanged(sv_frame_t frame)
 {
-    highlightFrameInScore(frame);
+    if (m_followScore) {
+        highlightFrameInScore(frame);
+    }
 }
 
 void
@@ -2572,6 +2575,7 @@ MainWindow::scoreSelectionChanged(int start, bool atStart, QString startLabel,
 void
 MainWindow::scorePageChanged(int page)
 {
+    SVDEBUG << "MainWindow::scorePageChanged(" << page << ")" << endl;
     int n = m_scoreWidget->getPageCount();
     m_scorePageDownButton->setEnabled(page > 0);
     m_scorePageUpButton->setEnabled(page + 1 < n);
@@ -2661,6 +2665,15 @@ MainWindow::scorePositionActivated(int position,
 }
 
 void
+MainWindow::followScoreToggled()
+{
+    QAction *a = qobject_cast<QAction *>(sender());
+    if (a) {
+        m_followScore = a->isChecked();
+    }
+}
+
+void
 MainWindow::actOnScorePosition(int position, ScoreWidget::InteractionMode mode,
                                bool activated)
 {
@@ -2697,12 +2710,12 @@ MainWindow::actOnScorePosition(int position, ScoreWidget::InteractionMode mode,
         }
     }
 
-    SVDEBUG << "MainWindow::scoreClicked: mapped position " << position
+    SVDEBUG << "MainWindow::actOnScorePosition: mapped position " << position
             << " to frame " << frame << endl;
 
     targetLayer->overrideHighlightForPointsAt(frame);
     
-    if (activated) {
+    if (activated && m_followScore) {
         m_viewManager->setGlobalCentreFrame(frame);
         m_viewManager->setPlaybackFrame(frame);
     }
@@ -3045,24 +3058,21 @@ MainWindow::setupToolbars()
             m_soloAction, SLOT(setChecked(bool)));
     connect(m_soloAction, SIGNAL(triggered()), this, SLOT(playSoloToggled()));
     connect(this, SIGNAL(canChangeSolo(bool)), m_soloAction, SLOT(setEnabled(bool)));
-/*!!! Not in Piano Precision, we have our own align button elsewhere
+
     QAction *alAction = toolbar->addAction(il.load("align"),
-                                           tr("Align File Timelines"));
+                                           tr("Link Audio and Score Positions"));
     alAction->setCheckable(true);
-    alAction->setChecked(m_viewManager->getAlignMode());
-    alAction->setStatusTip(tr("Treat multiple audio files as versions of the same work, and align their timelines"));
-    alAction->setEnabled(false); // until canAlign emitted
-    connect(m_viewManager, SIGNAL(alignModeChanged(bool)),
-            alAction, SLOT(setChecked(bool)));
-    connect(alAction, SIGNAL(triggered()), this, SLOT(alignToggled()));
-    connect(this, SIGNAL(canAlign(bool)), alAction, SLOT(setEnabled(bool)));
-*/
+    alAction->setChecked(m_followScore);
+    alAction->setStatusTip(tr("Track the score position in the audio panes"));
+    alAction->setEnabled(true);
+    connect(alAction, SIGNAL(triggered()), this, SLOT(followScoreToggled()));
+
     m_keyReference->registerShortcut(m_playAction);
     m_keyReference->registerShortcut(m_recordAction);
     m_keyReference->registerShortcut(m_playSelectionAction);
     m_keyReference->registerShortcut(m_playLoopAction);
     m_keyReference->registerShortcut(m_soloAction);
-//!!!    m_keyReference->registerShortcut(alAction);
+    m_keyReference->registerShortcut(alAction);
     m_keyReference->registerShortcut(m_rwdAction);
     m_keyReference->registerShortcut(m_ffwdAction);
     m_keyReference->registerShortcut(m_rwdSimilarAction);
@@ -3075,7 +3085,7 @@ MainWindow::setupToolbars()
     menu->addAction(m_playSelectionAction);
     menu->addAction(m_playLoopAction);
     menu->addAction(m_soloAction);
-//!!!    menu->addAction(alAction);
+    menu->addAction(alAction);
     menu->addSeparator();
     menu->addAction(m_rwdAction);
     menu->addAction(m_ffwdAction);
@@ -3093,7 +3103,7 @@ MainWindow::setupToolbars()
     m_rightButtonPlaybackMenu->addAction(m_playSelectionAction);
     m_rightButtonPlaybackMenu->addAction(m_playLoopAction);
     m_rightButtonPlaybackMenu->addAction(m_soloAction);
-//!!!    if (alAction) m_rightButtonPlaybackMenu->addAction(alAction);
+    m_rightButtonPlaybackMenu->addAction(alAction);
     m_rightButtonPlaybackMenu->addSeparator();
     m_rightButtonPlaybackMenu->addAction(m_rwdAction);
     m_rightButtonPlaybackMenu->addAction(m_ffwdAction);
