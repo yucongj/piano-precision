@@ -403,7 +403,7 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     m_mainLevelPan->setImageSize((overviewHeight * 3) / 4);
     m_mainLevelPan->setBigImageSize(overviewHeight * 3);
 
-    m_playControlsSpacer = new QFrame;
+//!!!    m_playControlsSpacer = new QFrame;
 
     layout->setSpacing(m_viewManager->scalePixelSize(4));
     // Commented out Oct 6, 2021
@@ -420,7 +420,7 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     layout->addWidget(m_mainScroll, 0, 1, 1, 4);
     layout->addWidget(m_overview, 1, 1);
     layout->addWidget(m_playSpeed, 1, 2);
-    layout->addWidget(m_playControlsSpacer, 1, 3);
+//    layout->addWidget(m_playControlsSpacer, 1, 3);
     layout->addWidget(m_mainLevelPan, 1, 4);
     // Added end
 
@@ -429,7 +429,7 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
 
     m_paneStack->setPropertyStackMinWidth(m_playControlsWidth
                                           + 2 + layout->spacing());
-    m_playControlsSpacer->setFixedSize(QSize(2, 2));
+//    m_playControlsSpacer->setFixedSize(QSize(2, 2));
 
     // Commented out Oct 6, 2021
     /*
