@@ -655,9 +655,11 @@ Session::recalculateTempoLayer()
             auto thisSec = RealTime::frame2RealTime(thisFrame, sampleRate).toDouble();
             auto nextSec = RealTime::frame2RealTime(nextFrame, sampleRate).toDouble();
             Fraction dur = (*m_musicalEvents)[i].duration;
-            double tempo = (4. * dur.numerator / dur.denominator) * 60. / (nextSec - thisSec); // num of quarter notes per minutes
-            Event tempoEvent(thisFrame, float(tempo), QString());
-            newModel->add(tempoEvent);
+            if (abs(nextSec - thisSec) > 0) {
+                double tempo = (4. * dur.numerator / dur.denominator) * 60. / (nextSec - thisSec); // num of quarter notes per minutes
+                Event tempoEvent(thisFrame, float(tempo), QString());
+                newModel->add(tempoEvent);
+            }
         }
     }
     
