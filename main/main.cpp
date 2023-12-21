@@ -516,10 +516,8 @@ main(int argc, char **argv)
     QScreen *screen = QApplication::primaryScreen();
     QRect available = screen->availableGeometry();
 
-    int width = (available.width() * 2) / 3;
-    int height = available.height() / 2;
-    if (height < 450) height = (available.height() * 2) / 3;
-    if (width > height * 2) width = height * 2;
+    int width = (available.width() * 3) / 4;
+    int height = (available.height() * 2) / 3;
 
     settings.beginGroup("MainWindow");
 
