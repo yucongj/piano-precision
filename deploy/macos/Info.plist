@@ -9,7 +9,7 @@
 	<key>CFBundleExecutable</key>
 	<string>@NAME@</string>
 	<key>CFBundleIconFile</key>
-	<string>sv-macicon.icns</string>
+	<string>piano-precision-macicon.icns</string>
 	<key>CFBundleIdentifier</key>
 	<string>@IDENT@</string>
 	<key>CFBundleShortVersionString</key>
