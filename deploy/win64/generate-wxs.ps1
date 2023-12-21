@@ -56,12 +56,12 @@ $scorespec = $scores.foreach{
     $score = $_
     if (!($score.Name -match $suppress_re)) {
         $score.Name | Out-Host
-        $id = $score.Name -Replace "[ .,-]", ""
+        $id = $score.Name -Replace "[ .,()-]", ""
         $files = Get-ChildItem -path "$scoredir\$score\*" -File -Include "$score*"
         $xfrags = $files.foreach{
             $file = $_
             $fxml = [xml] '<File Id="" Name="" Source=""/>'
-            $fxml.File.Id = $file.Name -Replace "[ .,-]",""
+            $fxml.File.Id = $file.Name -Replace "[ .,()-]",""
             $fxml.File.Name = $file.Name
             $fxml.File.Source = $file.FullName
             $fxml.OuterXml
@@ -96,7 +96,7 @@ $recordingspec = $recordings.foreach{
     </Component>
   </Directory>
 "@
-        $id = $recording.Name -Replace "[ .,-]", ""
+        $id = $recording.Name -Replace "[ .,()-]", ""
         $did = "RECD_$id"
         $cid = "RECC_$id"
         $fid = "RECF_$id"
