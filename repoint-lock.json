@@ -28,7 +28,7 @@
       "pin": "57b4521fd8f5dc465ee09c62bb83e57dbf22d2de"
     },
     "dataquay": {
-      "pin": "6e94b6858cb6"
+      "pin": "9c424243e78a"
     },
     "bqvec": {
       "pin": "291cde50db9d"
@@ -40,10 +40,10 @@
       "pin": "38c3e524416a"
     },
     "bqaudioio": {
-      "pin": "e85272f8a6ad"
+      "pin": "88520ab5b8e5"
     },
     "bqaudiostream": {
-      "pin": "1ac3beeccf36"
+      "pin": "8b3eb99f88e5"
     },
     "bqthingfactory": {
       "pin": "2e4bd170f57f"
