@@ -499,7 +499,7 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
 
         SVDEBUG << "MainWindow: Creating version tester" << endl;
         m_versionTester = new VersionTester
-            ("sonicvisualiser.org", "latest-version.txt", SV_VERSION);
+            ("sonicvisualiser.org", "latest-pp-version.txt", SV_VERSION);
         connect(m_versionTester, SIGNAL(newerVersionAvailable(QString)),
                 this, SLOT(newerVersionAvailable(QString)));
     } else {
