@@ -499,7 +499,7 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
 
         SVDEBUG << "MainWindow: Creating version tester" << endl;
         m_versionTester = new VersionTester
-            ("sonicvisualiser.org", "latest-version.txt", SV_VERSION);
+            ("sonicvisualiser.org", "latest-pp-version.txt", SV_VERSION);
         connect(m_versionTester, SIGNAL(newerVersionAvailable(QString)),
                 this, SLOT(newerVersionAvailable(QString)));
     } else {
@@ -2427,15 +2427,23 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     m_score = Score();
 
     // Creating score structure
-    string scorePath = ScoreFinder::getUserScoreDirectory() + "/" + scoreName.toStdString() + "/" + scoreName.toStdString();
-    bool success = m_score.initialize(scorePath + ".solo");
-    if (success) success = m_score.readTempo(scorePath + ".tempo");
-    if (success) success = m_score.readMeter(scorePath + ".meter");
-    if (success)    m_score.calculateTicks();
-    if (!success) {
-        SVCERR<<"ERROR: In MainWindow::chooseScore, failed to create score structure"<<endl;
+    string sname = scoreName.toStdString();
+    string soloPath = ScoreFinder::getScoreFile(sname, "solo");
+    string tempoPath = ScoreFinder::getScoreFile(sname, "tempo");
+    string meterPath = ScoreFinder::getScoreFile(sname, "meter");
+    if (!m_score.initialize(soloPath)) {
+        SVCERR << "MainWindow::chooseScore: Failed to load score data from " << soloPath << endl;
         return;
     }
+    if (!m_score.readTempo(tempoPath)) {
+        SVCERR << "MainWindow::chooseScore: Failed to load tempo data from " << tempoPath << endl;
+        return;
+    }
+    if (!m_score.readMeter(meterPath)) {
+        SVCERR << "MainWindow::chooseScore: Failed to load meter data from " << meterPath << endl;
+        return;
+    }
+    m_score.calculateTicks();
     m_session.setMusicalEvents(&(m_score.getMusicalEvents()));
 
     auto recordingDirectory =
@@ -2453,6 +2461,7 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     auto bundledRecordingDirectory =
         ScoreFinder::getBundledRecordingDirectory(scoreName.toStdString());
     if (bundledRecordingDirectory == "") {
+        SVDEBUG << "MainWindow::chooseScore: Note: no bundled recording directory returned for score " << scoreName << endl;
         return;
     }
 
@@ -2483,6 +2492,11 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     settings.remove("lastpath");
     settings.endGroup();
 
+    SVDEBUG << "MainWindow::chooseScore: haveUserRecordings = "
+            << haveUserRecordings << ", recordingDirectory = "
+            << recordingDirectory << ", bundledRecordingDirectory = "
+            << bundledRecordingDirectory << endl;
+    
     // These aren't files, but they work anyway with the current file
     // finder
     if (haveUserRecordings) {

@@ -9,7 +9,7 @@ if [ -z "$app" ]; then
 	exit 2
 fi
 
-frameworks="QtCore QtNetwork QtGui QtXml QtSvg QtPdf QtWidgets QtPrintSupport QtDBus"
+frameworks="QtCore QtNetwork QtGui QtXml QtSvg QtTest QtPdf QtWidgets QtPrintSupport QtDBus"
 
 plugins="gif icns ico jpeg tga tiff wbmp webp cocoa minimal offscreen macstyle"
 

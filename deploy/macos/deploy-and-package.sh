@@ -70,7 +70,7 @@ for builddir in $builddirs; do
 		grep -i 'found' |
 		head -1 |
 		sed 's/Found qmake: //' |
-		sed 's/qmake found: YES (//' |
+		sed 's/qmake[0-9]* found: YES (//' |
 		sed 's,/bin/qmake.*,,')
     if [ -z "$qtdir" ]; then
 	echo "Unable to discover QTDIR from build dir $builddir"

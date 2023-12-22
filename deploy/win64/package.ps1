@@ -26,7 +26,10 @@ if (! (Test-Path -Path $wixdir -PathType Container)) {
    exit 2
 }
 
-& "deploy\win64\generate-wxs.ps1"
+if (! (& "deploy\win64\generate-wxs.ps1")) {
+  "ERROR: WiX file generation failed"
+  exit 2
+}
 
 $name = "Christopher Cannam"
 
