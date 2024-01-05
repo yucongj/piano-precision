@@ -20,7 +20,9 @@ jobs:
     - name: test
       run: meson test -C build
     - name: deploy-app
-      run: QTDIR=/usr/local/opt/qt6 ./deploy/macos/deploy.sh build
+      run: |
+        ls -lR /usr/local/opt/qt6/plugins
+        QTDIR=/usr/local/opt/qt6 ./deploy/macos/deploy.sh build
     - name: check
       run: |
         otool -L ./"Piano Precision.app/Contents/MacOS/Piano Precision"
