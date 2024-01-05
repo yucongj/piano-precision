@@ -545,7 +545,6 @@ MainWindow::~MainWindow()
     delete m_layerTreeDialog;
     delete m_versionTester;
     delete m_surveyer;
-    Profiles::getInstance()->dump();
 //    SVDEBUG << "MainWindow::~MainWindow finishing" << endl;
 }
 

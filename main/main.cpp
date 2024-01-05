@@ -609,7 +609,7 @@ main(int argc, char **argv)
     {
         char *cwisdom = fftwf_export_wisdom_to_string();
         if (cwisdom) {
-            settings.setValue("wisdom", cwisdom);
+            settings.setValue("wisdom", QString::fromLocal8Bit(cwisdom));
             free(cwisdom);
         }
     }
@@ -618,7 +618,7 @@ main(int argc, char **argv)
     {
         char *cwisdom = fftw_export_wisdom_to_string();
         if (cwisdom) {
-            settings.setValue("wisdom_d", cwisdom);
+            settings.setValue("wisdom_d", QString::fromLocal8Bit(cwisdom));
             free(cwisdom);
         }
     }
@@ -626,6 +626,7 @@ main(int argc, char **argv)
     settings.endGroup();
 
     FileSource::debugReport();
+    Profiles::getInstance()->dump();
     
     delete gui;
 
