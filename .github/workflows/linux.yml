@@ -25,7 +25,9 @@ jobs:
     - name: repoint
       run: ./repoint install
     - name: configure
-      run: meson setup build --buildtype release
+      run: |
+        qtchooser -install qt6 $(which qmake6)
+        QT_SELECT=qt6 meson setup build --buildtype release
     - name: make
       run: ninja -C build
     - name: test
