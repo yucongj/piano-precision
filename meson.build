@@ -2,7 +2,7 @@
 project(
   'Piano Precision',
   'c', 'cpp',
-  version: '0.3',
+  version: '0.5',
   license: 'GPL-2.0-or-later',
   default_options: [
     'cpp_std=c++17',
@@ -10,17 +10,17 @@ project(
     'buildtype=release',
     'b_ndebug=if-release',
   ],
-  meson_version: '>= 0.56.0'
+  meson_version: '>= 0.57.0'
 )
 
 conf = configuration_data()
 conf.set('version', meson.project_version())
 configure_file(input: 'version.h.in', output: 'version.h', configuration: conf)
 
-qt = import('qt5')
+qt = import('qt6')
 
 qt_dep = dependency(
-  'qt5',
+  'qt6',
   modules: [
     'Core', 'Gui', 'Widgets', 'Xml', 'Network', 'Svg', 'Test', 'Pdf',
   ],
@@ -30,21 +30,23 @@ qt_dep = dependency(
 system = host_machine.system()
 architecture = host_machine.cpu_family()
 compiler = meson.get_compiler('cpp').get_id()
+buildtype = get_option('buildtype')
 
 general_defines = [
   '-DHAVE_PIPER',
   '-DHAVE_PLUGIN_CHECKER_HELPER',
-  '-DQT_DEPRECATED_WARNINGS_SINCE=0x050A00',
 ]
 
 general_link_args = []
 
-config_summary = { 'Compiler': compiler,
-		   'Architecture': architecture,
-		   'System': system }
+config_summary = {
+  'Compiler': compiler,
+  'Architecture': architecture,
+  'System': system,
+  'Build type': buildtype
+}
 
-if get_option('buildtype').startswith('release')
-  config_summary += { 'Build type': 'release' }
+if buildtype.startswith('release')
   general_defines += [
     '-DNO_TIMING',
     '-DNO_HIT_COUNTS',
@@ -64,14 +66,11 @@ if get_option('buildtype').startswith('release')
       '-Zc:twoPhase-', # work around incompatibility with some SDKs (CI only)
     ]
   endif # compiler
-else # buildtype
-  config_summary += { 'Build type': 'debug' }
-  if compiler == 'msvc'
-    general_defines += [
-      '-DNO_TIMING', # no sys/time.h
-      '-DNO_HIT_COUNTS', # logs uselessly to stderr only
-    ]
-  endif
+elif buildtype.startswith('debug')
+  general_defines += [
+    '-DWANT_TIMING',
+    '-DWANT_HIT_COUNTS',
+  ]
 endif # get_option('buildtype')
 
 svcore_moc_args = []
@@ -634,6 +633,7 @@ svcore_files = [
   'svcore/base/EventSeries.cpp',
   'svcore/base/Exceptions.cpp',
   'svcore/base/HelperExecPath.cpp',
+  'svcore/base/HitCount.cpp',
   'svcore/base/LogRange.cpp',
   'svcore/base/Pitch.cpp',
   'svcore/base/PlayParameterRepository.cpp',
@@ -958,7 +958,6 @@ svgui_files = [
   'svgui/widgets/SubdividingMenu.cpp',
   'svgui/widgets/TextAbbrev.cpp',
   'svgui/widgets/Thumbwheel.cpp',
-  'svgui/widgets/TipDialog.cpp',
   'svgui/widgets/TransformFinder.cpp',
   'svgui/widgets/UnitConverter.cpp',
   'svgui/widgets/WindowShapePreview.cpp',
@@ -1032,7 +1031,6 @@ svgui_moc_files = qt.preprocess(
   'svgui/widgets/SelectableLabel.h',
   'svgui/widgets/SubdividingMenu.h',
   'svgui/widgets/Thumbwheel.h',
-  'svgui/widgets/TipDialog.h',
   'svgui/widgets/TransformFinder.h',
   'svgui/widgets/UnitConverter.h',
   'svgui/widgets/WindowShapePreview.h',

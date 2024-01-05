@@ -24,7 +24,6 @@
 #include "base/Preferences.h"
 #include "base/HelperExecPath.h"
 #include "data/fileio/FileSource.h"
-#include "widgets/TipDialog.h"
 #include "widgets/InteractiveFileFinder.h"
 #include "framework/TransformUserConfigurator.h"
 #include "transform/TransformFactory.h"
@@ -192,7 +191,7 @@ signalHandler(int /* signal */)
 {
     // Avoid this happening more than once across threads
 
-    cerr << "signalHandler: cleaning up and exiting" << endl;
+    std::cerr << "signalHandler: cleaning up and exiting" << std::endl;
 
     if (cleanupMutex.tryLock(5000)) {
         if (!cleanedUp) {
@@ -248,7 +247,7 @@ main(int argc, char **argv)
 {
     if (argc == 2 && (QString(argv[1]) == "--version" ||
                       QString(argv[1]) == "-v")) {
-        cerr << SV_VERSION << endl;
+        std::cerr << SV_VERSION << std::endl;
         exit(0);
     }
     
@@ -319,8 +318,6 @@ main(int argc, char **argv)
     }
     
     args = parser.positionalArguments();
-
-    QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 
     signal(SIGINT,  signalHandler);
     signal(SIGTERM, signalHandler);
@@ -472,9 +469,12 @@ main(int argc, char **argv)
     QTranslator svTranslator;
     QString svTrName = QString("sonic-visualiser_%1").arg(language);
     SVDEBUG << "Loading " << svTrName << "... ";
-    svTranslator.load(svTrName, ":i18n");
-    SVDEBUG << "Done" << endl;
-    application.installTranslator(&svTranslator);
+    if (svTranslator.load(svTrName, ":i18n")) {
+        SVDEBUG << "Done" << endl;
+        application.installTranslator(&svTranslator);
+    } else {
+        SVDEBUG << "Unable to load" << endl;
+    }
 
     StoreStartupLocale();
 

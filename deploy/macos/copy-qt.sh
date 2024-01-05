@@ -11,7 +11,7 @@ fi
 
 frameworks="QtCore QtNetwork QtGui QtXml QtSvg QtTest QtPdf QtWidgets QtPrintSupport QtDBus"
 
-plugins="gif icns ico jpeg tga tiff wbmp webp cocoa minimal offscreen macstyle"
+plugins="gif ico jpeg pdf svg cocoa minimal offscreen macstyle"
 
 qtdir="$QTDIR"
 

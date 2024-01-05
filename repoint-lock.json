@@ -4,13 +4,13 @@
       "pin": "7df85ecf98d9477c1ac5a36f51807062e00d8695"
     },
     "svcore": {
-      "pin": "de7e095d81e72ee20a342094f399cb05d3728caf"
+      "pin": "f6f4716c0017bb04690b1f793389e928a228a8a8"
     },
     "svgui": {
-      "pin": "ef0e579917c0c9aed151df7cae3506130ea55a05"
+      "pin": "794dfaba79705d8dc96d27cdcb8eea6671a86cb0"
     },
     "svapp": {
-      "pin": "a831622fe4f86b95390dfc4d4be7eeee388f4e4e"
+      "pin": "f43b17ff1ad52661120cda0e1b9033791b6fd257"
     },
     "checker": {
       "pin": "4f7381d34a6a1d6de73e84ff564e6ac734986d40"
@@ -25,10 +25,10 @@
       "pin": "3a742c556ac1f2bf9823f30b937c71c690e1f6ae"
     },
     "piper-vamp-cpp": {
-      "pin": "57b4521fd8f5dc465ee09c62bb83e57dbf22d2de"
+      "pin": "c6519fcb8c926c8331f5e6deb351d738da48600a"
     },
     "dataquay": {
-      "pin": "9c424243e78a"
+      "pin": "79623fb778da"
     },
     "bqvec": {
       "pin": "291cde50db9d"

@@ -100,23 +100,24 @@ ScoreWidget::loadAScore(QString scoreName, QString &errorString)
     }
 
     QString filename = scorePath.c_str();
-    auto result = m_document->load(filename);
+    QPdfDocument::Error result = m_document->load(filename);
     
     SVDEBUG << "ScoreWidget::loadAScore: Asked to load pdf file \""
             << filename << "\" for score \"" << scoreName
-            << "\", result is " << result << endl;
+            << "\", result is " << int(result) << endl;
 
     QString error;
     switch (result) {
-    case QPdfDocument::NoError:
+    case QPdfDocument::Error::None:
         break;
-    case QPdfDocument::FileNotFoundError:
+    case QPdfDocument::Error::FileNotFound:
         errorString = tr("File not found");
         break;
-    case QPdfDocument::InvalidFileFormatError:
+    case QPdfDocument::Error::InvalidFileFormat:
         errorString = tr("File is in the wrong format");
         break;
-    case QPdfDocument::IncorrectPasswordError:
+    case QPdfDocument::Error::IncorrectPassword:
+    case QPdfDocument::Error::UnsupportedSecurityScheme:
         errorString = tr("File is password-protected");
         break;
     default:
@@ -159,7 +160,7 @@ ScoreWidget::resizeEvent(QResizeEvent *)
 }
 
 void
-ScoreWidget::enterEvent(QEvent *)
+ScoreWidget::enterEvent(QEnterEvent *)
 {
     m_mouseActive = true;
     update();
@@ -635,7 +636,7 @@ ScoreWidget::showPage(int page)
     }
     
     QSize mySize = contentsRect().size();
-    QSizeF pageSize = m_document->pageSize(page);
+    QSizeF pageSize = m_document->pagePointSize(page);
     
     SVDEBUG << "ScoreWidget::showPage: Rendering page " << page
             << " of " << pages << " (my size = " << mySize.width()

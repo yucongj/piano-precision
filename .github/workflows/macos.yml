@@ -10,7 +10,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: deps
-      run: brew install polyml qt5 meson ninja capnp mercurial
+      run: brew install polyml qt6 meson ninja capnp mercurial
     - name: repoint
       run: ./repoint install
     - name: configure
@@ -20,7 +20,7 @@ jobs:
     - name: test
       run: meson test -C build
     - name: deploy-app
-      run: QTDIR=/usr/local/opt/qt5 ./deploy/macos/deploy.sh build
+      run: QTDIR=/usr/local/opt/qt6 ./deploy/macos/deploy.sh build
     - name: check
       run: |
         otool -L ./"Piano Precision.app/Contents/MacOS/Piano Precision"

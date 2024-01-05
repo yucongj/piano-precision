@@ -23,7 +23,7 @@
 using std::map;
 using std::string;
 
-static std::ostream &operator<<(std::ostream &o, const QStringRef &r) {
+static std::ostream &operator<<(std::ostream &o, const QStringView &r) {
     return o << r.toString();
 }
 

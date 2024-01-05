@@ -156,7 +156,7 @@ PreferencesDialog::PreferencesDialog(QWidget *parent) :
         QString qcolorName =
             settings.value("overview-colour", m_overviewColour.name())
             .toString();
-        m_overviewColour.setNamedColor(qcolorName);
+        m_overviewColour = QColor::fromString(qcolorName);
         m_overviewColourIsSet = true;
         SVCERR << "loaded colour " << m_overviewColour.name() << " from settings" << endl;
     }
@@ -339,7 +339,7 @@ PreferencesDialog::PreferencesDialog(QWidget *parent) :
     if (userLocale == "") {
         locale->setCurrentIndex(0);
     }
-    foreach (QString f, localeFiles) {
+    for (QString f : localeFiles) {
         QString f0 = f;
         f.replace("sonic-visualiser_", "").replace(".qm", "");
         if (f == f0) { // our expectations about filename format were not met
@@ -541,11 +541,11 @@ PreferencesDialog::PreferencesDialog(QWidget *parent) :
     QStringList templates = ResourceFinder().getResourceFiles("templates", "svt");
 
     set<QString> byName;
-    foreach (QString t, templates) {
+    for (QString t : templates) {
         byName.insert(QFileInfo(t).baseName());
     }
 
-    foreach (QString t, byName) {
+    for (QString t : byName) {
         if (t.toLower() == "default") continue;
         m_templates.push_back(t);
         lw->addItem(t);
