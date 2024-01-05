@@ -21,7 +21,7 @@ jobs:
       run: meson test -C build
     - name: deploy-app
       run: |
-        ls -lR /usr/local/opt/qt6
+        ls -lR /usr/local/opt/qt6/
         QTDIR=/usr/local/opt/qt6 ./deploy/macos/deploy.sh build
     - name: check
       run: |
