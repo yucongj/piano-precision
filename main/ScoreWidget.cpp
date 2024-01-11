@@ -412,9 +412,9 @@ ScoreWidget::rectForElement(const ScoreElement &elt)
     QSize mySize = size();
     QSize imageSize = m_image.size();
 
-    int dpr = devicePixelRatio();
-    int xorigin = (mySize.width() - imageSize.width() / dpr) / 2;
-    int yorigin = (mySize.height() - imageSize.height() / dpr) / 2;
+    double dpr = devicePixelRatio();
+    int xorigin = round((mySize.width() - imageSize.width() / dpr) / 2);
+    int yorigin = round((mySize.height() - imageSize.height() / dpr) / 2);
 
     double xratio = double(imageSize.width()) / (35716.5 * dpr);
     double yratio = double(imageSize.height()) / (50513.4 * dpr);
@@ -438,9 +438,9 @@ ScoreWidget::positionForPoint(QPoint point)
     QSize mySize = size();
     QSize imageSize = m_image.size();
 
-    int dpr = devicePixelRatio();
-    int xorigin = (mySize.width() - imageSize.width() / dpr) / 2;
-    int yorigin = (mySize.height() - imageSize.height() / dpr) / 2;
+    double dpr = devicePixelRatio();
+    int xorigin = round((mySize.width() - imageSize.width() / dpr) / 2);
+    int yorigin = round((mySize.height() - imageSize.height() / dpr) / 2);
 
     double xratio = double(imageSize.width()) / (35716.5 * dpr);
     double yratio = double(imageSize.height()) / (50513.4 * dpr);
@@ -507,10 +507,10 @@ ScoreWidget::paintEvent(QPaintEvent *e)
         return;
     }
     
-    int dpr = devicePixelRatio();
+    double dpr = devicePixelRatio();
 
-    int xorigin = (mySize.width() - imageSize.width() / dpr) / 2;
-    int yorigin = (mySize.height() - imageSize.height() / dpr) / 2;
+    int xorigin = round((mySize.width() - imageSize.width() / dpr) / 2);
+    int yorigin = round((mySize.height() - imageSize.height() / dpr) / 2);
 
     // Show a highlight bar under the mouse if the interaction mode is
     // anything other than None - the colour depends on the mode
@@ -614,6 +614,14 @@ ScoreWidget::paintEvent(QPaintEvent *e)
             prevY = elt.y;
         }
     }
+
+#ifdef DEBUG_SCORE_WIDGET
+    SVDEBUG << "ScoreWidget::paint: have image of size " << imageSize.width()
+            << " x " << imageSize.height() << ", painting to widget of size "
+            << mySize.width() << " x " << mySize.height() << ", xorigin = "
+            << xorigin << ", yorigin = " << yorigin << ", devicePixelRatio = "
+            << dpr << endl;
+#endif
     
     paint.drawImage
         (QRect(xorigin, yorigin,
@@ -635,6 +643,7 @@ ScoreWidget::showPage(int page)
         return;
     }
     
+    double dpr = devicePixelRatio();
     QSize mySize = contentsRect().size();
     QSizeF pageSize = m_document->pagePointSize(page);
     
@@ -649,13 +658,14 @@ ScoreWidget::showPage(int page)
         return;
     }
 
-    float scale = std::min(mySize.width() / pageSize.width(),
-                           mySize.height() / pageSize.height());
-    QSize scaled(pageSize.width() * scale * devicePixelRatio(),
-                 pageSize.height() * scale * devicePixelRatio());
+    double scale = std::min(mySize.width() / pageSize.width(),
+                            mySize.height() / pageSize.height());
+    QSize scaled(round(pageSize.width() * scale * dpr),
+                 round(pageSize.height() * scale * dpr));
 
     SVDEBUG << "ScoreWidget::showPage: Using scaled size "
-            << scaled.width() << " x " << scaled.height() << endl;
+            << scaled.width() << " x " << scaled.height()
+            << " (devicePixelRatio = " << dpr << ")" <<  endl;
 
     QImage rendered = m_document->render(page, scaled);
 
