@@ -42,6 +42,8 @@
 #define NOW (QTime::currentTime().toString(Qt::ISODate))
 #endif
 
+using namespace sv;
+
 void
 MainWindow::handleOSCMessage(const OSCMessage &message)
 {

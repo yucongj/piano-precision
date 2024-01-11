@@ -28,6 +28,7 @@
 #include <QFileInfo>
 
 using namespace std;
+using namespace sv;
 
 Session::Session()
 {

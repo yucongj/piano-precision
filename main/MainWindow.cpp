@@ -145,6 +145,7 @@ using std::vector;
 using std::map;
 using std::set;
 
+using namespace sv;
 
 MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSupport) :
     MainWindowBase(audioMode, midiMode, int(PaneStack::Option::Default)),

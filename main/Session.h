@@ -43,11 +43,11 @@ public:
         AlignmentEntry(string l, float t, int f): label{l}, tick{t}, frame{f} { }
     };
 
-    TimeValueLayer *getOnsetsLayer();
-    Pane *getPaneContainingOnsetsLayer();
+    sv::TimeValueLayer *getOnsetsLayer();
+    sv::Pane *getPaneContainingOnsetsLayer();
     
-    TimeValueLayer *getTempoLayer();
-    Pane *getPaneContainingTempoLayer();
+    sv::TimeValueLayer *getTempoLayer();
+    sv::Pane *getPaneContainingTempoLayer();
 
     bool exportAlignmentTo(QString filename);
     bool importAlignmentFrom(QString filename);
@@ -56,21 +56,21 @@ public:
     bool updateAlignmentEntries();
 
 public slots:
-    void setDocument(Document *,
-                     Pane *topPane,
-                     Pane *bottomPane,
-                     Layer *timeRuler);
+    void setDocument(sv::Document *,
+                     sv::Pane *topPane,
+                     sv::Pane *bottomPane,
+                     sv::Layer *timeRuler);
 
     void unsetDocument();
     
-    void setMainModel(ModelId modelId, QString scoreId);
+    void setMainModel(sv::ModelId modelId, QString scoreId);
 
     void beginAlignment();
 
     void beginPartialAlignment(int scorePositionStart,
                                int scorePositionEnd,
-                               sv_frame_t audioFrameStart,
-                               sv_frame_t audioFrameEnd);
+                               sv::sv_frame_t audioFrameStart,
+                               sv::sv_frame_t audioFrameEnd);
     void acceptAlignment();
     void rejectAlignment();
     
@@ -79,45 +79,45 @@ signals:
     void alignmentAccepted();
     void alignmentRejected();
     void alignmentModified();
-    void alignmentFrameIlluminated(sv_frame_t);
+    void alignmentFrameIlluminated(sv::sv_frame_t);
                                        
 protected slots:
-    void modelChanged(ModelId);
-    void modelReady(ModelId);
+    void modelChanged(sv::ModelId);
+    void modelReady(sv::ModelId);
     
 private:
     // I don't own any of these. The SV main window owns the document
     // and panes; the document owns the layers and models
-    Document *m_document;
+    sv::Document *m_document;
     QString m_scoreId;
-    ModelId m_mainModel;
+    sv::ModelId m_mainModel;
 
-    Pane *m_topPane;
-    Pane *m_bottomPane;
-    Layer *m_timeRulerLayer;
-    WaveformLayer *m_waveformLayer;
-    SpectrogramLayer *m_spectrogramLayer;
+    sv::Pane *m_topPane;
+    sv::Pane *m_bottomPane;
+    sv::Layer *m_timeRulerLayer;
+    sv::WaveformLayer *m_waveformLayer;
+    sv::SpectrogramLayer *m_spectrogramLayer;
 
-    sv_frame_t m_partialAlignmentAudioStart;
-    sv_frame_t m_partialAlignmentAudioEnd;
+    sv::sv_frame_t m_partialAlignmentAudioStart;
+    sv::sv_frame_t m_partialAlignmentAudioEnd;
     
-    TimeValueLayer *m_displayedOnsetsLayer;
-    TimeValueLayer *m_acceptedOnsetsLayer;
-    TimeValueLayer *m_pendingOnsetsLayer;
+    sv::TimeValueLayer *m_displayedOnsetsLayer;
+    sv::TimeValueLayer *m_acceptedOnsetsLayer;
+    sv::TimeValueLayer *m_pendingOnsetsLayer;
     bool m_awaitingOnsetsLayer;
     
-    TimeValueLayer *m_tempoLayer;
+    sv::TimeValueLayer *m_tempoLayer;
 
-    void setOnsetsLayerProperties(TimeValueLayer *);
+    void setOnsetsLayerProperties(sv::TimeValueLayer *);
     void alignmentComplete();
-    void mergeLayers(TimeValueLayer *from, TimeValueLayer *to,
-                     sv_frame_t overlapStart, sv_frame_t overlapEnd);
+    void mergeLayers(sv::TimeValueLayer *from, sv::TimeValueLayer *to,
+                     sv::sv_frame_t overlapStart, sv::sv_frame_t overlapEnd);
     void recalculateTempoLayer();
 
     bool exportAlignmentEntriesTo(QString path);
 
     const Score::MusicalEventList *m_musicalEvents; // I don't own this.
-    vector<AlignmentEntry> m_alignmentEntries;
+    std::vector<AlignmentEntry> m_alignmentEntries;
 };
 
 #endif
