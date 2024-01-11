@@ -68,3 +68,4 @@ squashfs-root
 *.dmg
 deploy/win64/piano-precision.wxs
 *.stackdump
+verovio

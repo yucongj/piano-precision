@@ -61,6 +61,12 @@
             "service": "sourcehut",
             "owner": "breakfastquay"
         },
+        "verovio": {
+            "vcs": "git",
+            "service": "github",
+            "owner": "rism-digital",
+            "tag": "version-4.1.0"
+        },
         "bqvec": {
             "vcs": "hg",
             "service": "sourcehut",

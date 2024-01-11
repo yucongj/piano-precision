@@ -50,6 +50,9 @@
     },
     "piano-precision-aligner": {
       "pin": "113ffa80e662ba7d393360b2698e25819bda0cdd"
+    },
+    "verovio": {
+      "pin": "c482e357cfbe42c76f41a37485740f66bcb39637"
     }
   }
 }
