@@ -15,6 +15,7 @@
 
 #include <QPainter>
 #include <QMouseEvent>
+#include <QSvgRenderer>
 
 #include "base/Debug.h"
 
@@ -34,7 +35,8 @@ using std::pair;
 using std::string;
 
 ScoreWidgetMEI::ScoreWidgetMEI(QWidget *parent) :
-    QFrame(parent),
+    ScoreWidgetBase(parent),
+    m_currentPageRenderer(nullptr),
     m_page(-1),
     m_mode(ScoreInteractionMode::None),
     m_scorePosition(-1),
@@ -44,6 +46,47 @@ ScoreWidgetMEI::ScoreWidgetMEI(QWidget *parent) :
     setFrameStyle(Panel | Plain);
     setMinimumSize(QSize(100, 100));
     setMouseTracking(true);
+
+    if (!m_tempDir.isValid()) {
+        SVCERR << "ScoreWidgetMEI: Temporary directory is not valid! Can't unbundle resources; rendering will fail" << endl;
+    } else {
+        bool success = true;
+        m_tempDir.setAutoRemove(true);
+        QDir sourceRoot(":verovio/data/");
+        QDir targetRoot(QDir(m_tempDir.path()).filePath("verovio"));
+        QStringList names = sourceRoot.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        names.push_back(".");
+        for (auto name: names) {
+            QDir sourceDir(sourceRoot.filePath(name));
+            QDir targetDir(targetRoot.filePath(name));
+            if (!QDir().mkpath(targetDir.path())) {
+                SVCERR << "ScoreWidgetMEI: Failed to create directory \""
+                       << targetDir.path() << "\"" << endl;
+                success = false;
+                break;
+            }
+            SVCERR << "ScoreWidgetMEI: scanning dir \"" << sourceDir.path()
+                   << "\"..." << endl;
+            for (auto f: sourceDir.entryInfoList(QDir::Files)) {
+                QString sourcePath(f.filePath());
+                SVCERR << "ScoreWidgetMEI: found \"" << sourcePath
+                       << "\"..." << endl;
+                QString targetPath(targetDir.filePath(f.fileName()));
+                if (!QFile(sourcePath).copy(targetPath)) {
+                    SVCERR << "ScoreWidgetMEI: Failed to copy file from \""
+                           << sourcePath << "\" to \"" << targetPath << "\""
+                           << endl;
+                    success = false;
+                    break;
+                }
+            }
+        }
+        if (success) {
+            m_verovioResourcePath = targetRoot.canonicalPath();
+            SVDEBUG << "ScoreWidgetMEI: Unbundled Verovio resources to \""
+                    << m_verovioResourcePath << "\"" << endl;
+        }
+    }
 }
 
 ScoreWidgetMEI::~ScoreWidgetMEI()
@@ -66,8 +109,7 @@ ScoreWidgetMEI::getCurrentPage() const
 int
 ScoreWidgetMEI::getPageCount() const
 {
-//!!!
-    return 1;
+    return m_svgPages.size();
 }
 
 void
@@ -89,10 +131,13 @@ ScoreWidgetMEI::loadAScore(QString scoreName, QString &errorString)
     SVDEBUG << "ScoreWidgetMEI::loadAScore: Score \"" << scoreName
             << "\" requested" << endl;
 
-    vrv::Toolkit toolkit;
+    if (m_verovioResourcePath == QString()) {
+        SVDEBUG << "ScoreWidgetMEI::loadAScore: No Verovio resource path available" << endl;
+        return false;
+    }
     
     clearSelection();
-    
+    m_svgPages.clear();
     m_page = -1;
     
     string scorePath =
@@ -102,29 +147,41 @@ ScoreWidgetMEI::loadAScore(QString scoreName, QString &errorString)
         SVDEBUG << "ScoreWidgetMEI::loadAScore: " << errorString << endl;
         return false;
     }
-
-    QString filename = scorePath.c_str();
-
-
-    int result = 1;//!!!
-    QString error = "unimplemented";//!!!
     
     SVDEBUG << "ScoreWidgetMEI::loadAScore: Asked to load MEI file \""
-            << filename << "\" for score \"" << scoreName
-            << "\", result is " << int(result) << endl;
+            << scorePath << "\" for score \"" << scoreName << "\"" << endl;
 
-
-    if (error == "") {
-        m_scoreName = scoreName;
-        m_scoreFilename = filename;
-        SVDEBUG << "ScoreWidgetMEI::loadAScore: Load successful, showing first page"
-                << endl;
-        showPage(0);
-        return true;
-    } else {
-        SVDEBUG << "ScoreWidgetMEI::loadAScore: " << errorString << endl;
+    vrv::Toolkit toolkit(false);
+    if (!toolkit.SetResourcePath(m_verovioResourcePath.toStdString())) {
+        SVDEBUG << "ScoreWidgetMEI::loadAScore: Failed to set Verovio resource path" << endl;
         return false;
     }
+    if (!toolkit.LoadFile(scorePath)) {
+        SVDEBUG << "ScoreWidgetMEI::loadAScore: Load failed in Verovio toolkit" << endl;
+        return false;
+    }
+
+    int pp = toolkit.GetPageCount();
+    for (int p = 0; p < pp; ++p) {
+        // For the first cut, just store the SVG texts for each page
+        // here. Two alternative extremes are (i) convert them to Qt's
+        // internal format by loading to QSvgRenderer and store those,
+        // or (ii) store only the MEI toolkit object and render to SVG
+        // on demand (useful for reflow?)
+        std::string rendered = toolkit.RenderToSVG(p + 1); // (verovio 1-based)
+        std::cout << "RenderToSVG returned:" << std::endl;
+        std::cout << rendered << std::endl;
+        std::cout << "RenderToSVG ends" << std::endl;
+        m_svgPages.push_back(QByteArray::fromStdString(rendered));
+    }
+    
+    m_scoreName = scoreName;
+    m_scoreFilename = QString::fromStdString(scorePath);
+
+    SVDEBUG << "ScoreWidgetMEI::loadAScore: Load successful, showing first page"
+            << endl;
+    showPage(0);
+    return true;
 }
 
 void
@@ -384,7 +441,8 @@ ScoreWidgetMEI::positionForPoint(QPoint point)
     // should pull it out
 
     QSize mySize = size();
-    QSize imageSize = m_image.size();
+//!!!    QSize imageSize = m_image.size();
+    QSize imageSize = mySize;
 
     double dpr = devicePixelRatio();
     int xorigin = round((mySize.width() - imageSize.width() / dpr) / 2);
@@ -445,10 +503,16 @@ void
 ScoreWidgetMEI::paintEvent(QPaintEvent *e)
 {
     QFrame::paintEvent(e);
+
+    if (!m_currentPageRenderer) {
+        SVDEBUG << "ScoreWidgetMEI::paintEvent: No page renderer, painting nothing" << endl;
+        return;
+    }
     
     QPainter paint(this);
     QSize mySize = size();
-    QSize imageSize = m_image.size();
+//!!!    QSize imageSize = m_image.size();
+    QSize imageSize = mySize;
 
     if (!mySize.width() || !mySize.height() ||
         !imageSize.width() || !imageSize.height()) {
@@ -548,9 +612,9 @@ ScoreWidgetMEI::paintEvent(QPaintEvent *e)
             }
             if (elt.y != prevY) {
                 rect.setX(0);
-                rect.setWidth(m_image.width());
+//!!!                rect.setWidth(m_image.width());
             } else {
-                rect.setWidth(m_image.width() - rect.x());
+//!!!                rect.setWidth(m_image.width() - rect.x());
             }
             if (j != m_elementsByPosition.end() && j->second.y == elt.y) {
                 QRectF nextRect = rectForElement(j->second);
@@ -570,21 +634,42 @@ ScoreWidgetMEI::paintEvent(QPaintEvent *e)
             << xorigin << ", yorigin = " << yorigin << ", devicePixelRatio = "
             << dpr << endl;
 #endif
+
+    SVDEBUG << "ScoreWidgetMEI: have renderer of defaultSize "
+            << m_currentPageRenderer->defaultSize().width() << " x "
+            << m_currentPageRenderer->defaultSize().height() << endl;
+
+    paint.scale(mySize.width() / m_currentPageRenderer->defaultSize().width(),
+                mySize.height() / m_currentPageRenderer->defaultSize().height());
+
+    paint.setPen(Qt::black);
+    paint.setBrush(Qt::black);
     
+    m_currentPageRenderer->render(&paint);
+    
+/*!!!    
     paint.drawImage
         (QRect(xorigin, yorigin,
                imageSize.width() / dpr,
                imageSize.height() / dpr),
          m_image,
          QRect(0, 0, imageSize.width(), imageSize.height()));
+*/
 }
 
 void
 ScoreWidgetMEI::showPage(int page)
 {
-    //!!!
-    SVCERR << "ScoreWidgetMEI::showPage: unimplemented" << endl;
-        
+    if (page < 0 || page >= getPageCount()) {
+        SVDEBUG << "ScoreWidgetMEI::showPage: page number " << page
+                << " out of range; have " << getPageCount() << " pages" << endl;
+        return;
+    }
+
+    QByteArray svgText = m_svgPages[page];
+    m_currentPageRenderer = std::make_unique<QSvgRenderer>(svgText);
+    
+    
     m_page = page;
     emit pageChanged(m_page);
     update();

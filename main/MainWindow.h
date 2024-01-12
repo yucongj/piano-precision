@@ -22,7 +22,7 @@
 #include "PreferencesDialog.h"
 #include "Surveyer.h"
 
-#include "ScoreWidgetPDF.h"
+#include "ScoreWidgetBase.h"
 #include "Session.h"
 #include "piano-precision-aligner/Score.h"
 
@@ -218,7 +218,7 @@ protected:
     sv::WaveformLayer           *m_panLayer;
     
     QScrollArea             *m_mainScroll;
-    ScoreWidgetPDF          *m_scoreWidget; // Added Oct 6, 2021
+    ScoreWidgetBase         *m_scoreWidget;
     QPushButton             *m_alignButton;
     QPushButton             *m_alignAcceptButton;
     QPushButton             *m_alignRejectButton;

@@ -1427,6 +1427,7 @@ pp_main_moc_files = qt.preprocess(
   'main/SVSplash.h',
   'main/PreferencesDialog.h',
   'main/Session.h',
+  'main/ScoreWidgetBase.h',
   'main/ScoreWidgetPDF.h',
   'main/ScoreWidgetMEI.h',
 ])

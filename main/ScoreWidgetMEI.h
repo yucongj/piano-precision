@@ -13,83 +13,74 @@
 #ifndef SV_SCORE_WIDGET_MEI_H
 #define SV_SCORE_WIDGET_MEI_H
 
-#include "ScoreElement.h"
-
-#include <QFrame>
-#include <QString>
-
+#include "ScoreWidgetBase.h"
 #include <map>
-    
-/**
- * Mode for mouse interaction.
- */
-enum class ScoreInteractionMode {
-    None,
-    Navigate,
-    Edit,
-    SelectStart,
-    SelectEnd
-};
 
-class ScoreWidgetMEI : public QFrame
+#include <QTemporaryDir>
+
+class QSvgRenderer;
+
+class ScoreWidgetMEI : public ScoreWidgetBase
 {
     Q_OBJECT
 
 public:
     ScoreWidgetMEI(QWidget *parent);
-    ~ScoreWidgetMEI();
+    virtual ~ScoreWidgetMEI();
     
     /** 
      * Load the named score. If loading fails, return false and set
      * the error string accordingly.
      */
-    bool loadAScore(QString name, QString &error);
+    bool loadAScore(QString name, QString &error) override;
 
     /** 
      * Set the page coord/position elements for the current score,
      * containing correspondences between coordinate and position in
      * time for the notes etc in the score.
      */
-    void setElements(ScoreElements elements);
+    void setElements(ScoreElements elements) override;
 
     /** 
      * Return the current score name, or an empty string if none
      * loaded.
      */
-    QString getCurrentScore() const;
+    QString getCurrentScore() const override;
 
     /**
      * Return the current page number.
      */
-    int getCurrentPage() const;
+    int getCurrentPage() const override;
 
     /**
      * Return the total number of pages, or 0 if no score is loaded.
      */
-    int getPageCount() const;
+    int getPageCount() const override;
 
     /**
      * Return the start and end score positions of the current
      * selection, or -1 if there is no constraint at either end.
      */
-    void getSelection(int &start, int &end) const;
+    void getSelection(int &start, int &end) const override;
 
     /**
      * Return the current interaction mode.
      */
-    ScoreInteractionMode getInteractionMode() const { return m_mode; }
+    ScoreInteractionMode getInteractionMode() const override {
+        return m_mode;
+    }
                                                  
 public slots:
     /** 
      * Load the named score. If loading fails, emit the loadFailed
      * signal.
      */
-    void loadAScore(QString name);
+    void loadAScore(QString name) override;
 
     /**
      * Set the current page number and update the widget.
      */
-    void showPage(int page);
+    void showPage(int page) override;
 
     /**
      * Set the current position to be highlighted, as the element on
@@ -97,45 +88,19 @@ public slots:
      * the current set of score elements. The type of highlighting
      * will depend on the current interaction mode.
      */
-    void setScorePosition(int scorePosition);
+    void setScorePosition(int scorePosition) override;
 
     /**
      * Select an interaction mode.
      */
-    void setInteractionMode(ScoreInteractionMode mode);
+    void setInteractionMode(ScoreInteractionMode mode) override;
 
     /**
      * Clear the selection back to the default (everything
      * selected). If a selection was present, also emit
      * selectionChanged.
      */
-    void clearSelection();
-
-signals:
-    void loadFailed(QString scoreName, QString errorMessage);
-    void interactionModeChanged(ScoreInteractionMode newMode);
-    void scorePositionHighlighted(int, ScoreInteractionMode);
-    void scorePositionActivated(int, ScoreInteractionMode);
-    void interactionEnded(ScoreInteractionMode); // e.g. because mouse left widget
-
-    /**
-     * Emitted when the selected region of score changes. The start
-     * and end are given using score positions. The toStartOfScore and
-     * toEndOfScore flags are set if the start and/or end correspond
-     * to the very start/end of the whole score, in which case the UI
-     * may prefer to show the value using terms like "start" or "end"
-     * rather than positional values. The labels contain any label
-     * found associated with the element at the given score position,
-     * but may be empty.
-     */
-    void selectionChanged(int startPosition,
-                          bool toStartOfScore,
-                          QString startLabel,
-                          int endPosition,
-                          bool toEndOfScore,
-                          QString endLabel);
-    
-    void pageChanged(int page);
+    void clearSelection() override;
 
 protected:
     void resizeEvent(QResizeEvent *) override;
@@ -149,8 +114,11 @@ protected:
 private:
     QString m_scoreName;
     QString m_scoreFilename;
+    QTemporaryDir m_tempDir;
+    QString m_verovioResourcePath;
+    std::vector<QByteArray> m_svgPages;
+    std::unique_ptr<QSvgRenderer> m_currentPageRenderer;
     int m_page;
-    QImage m_image;
 
     ScoreInteractionMode m_mode;
     int m_scorePosition;

@@ -17,8 +17,9 @@
 
 #include "MainWindow.h"
 #include "PreferencesDialog.h"
-#include "ScoreWidgetPDF.h" // Added Oct 6, 2021
-#include "ScorePositionReader.h" // Added Oct 6, 2021
+#include "ScoreWidgetPDF.h"
+#include "ScoreWidgetMEI.h"
+#include "ScorePositionReader.h"
 #include "ScoreFinder.h"
 #include "Session.h"
 #include "piano-precision-aligner/Score.h"
@@ -233,8 +234,7 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     QWidget *scoreWidgetContainer = new QWidget(this);
     QGridLayout *scoreWidgetLayout = new QGridLayout;
     
-    // Added Oct 6, 2021
-    m_scoreWidget = new ScoreWidgetPDF(this);
+    m_scoreWidget = new ScoreWidgetMEI(this);
     m_scoreWidget->setInteractionMode(ScoreInteractionMode::Navigate);
     connect(m_scoreWidget, SIGNAL(scorePositionHighlighted(int, ScoreInteractionMode)),
             this, SLOT(scorePositionHighlighted(int, ScoreInteractionMode)));
@@ -4550,8 +4550,8 @@ MainWindow::paneAdded(Pane *pane)
 {
     if (m_overview) m_overview->registerView(pane);
     if (pane) {
-        connect(pane, SIGNAL(cancelButtonPressed(Layer *)),
-                this, SLOT(paneCancelButtonPressed(Layer *)));
+        connect(pane, &Pane::cancelButtonPressed,
+                this, &MainWindow::paneCancelButtonPressed);
     }
 }    
 

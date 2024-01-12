@@ -32,7 +32,7 @@ using std::pair;
 using std::string;
 
 ScoreWidgetPDF::ScoreWidgetPDF(QWidget *parent) :
-    QFrame(parent),
+    ScoreWidgetBase(parent),
     m_document(new QPdfDocument(this)),
     m_page(-1),
     m_mode(ScoreInteractionMode::None),
