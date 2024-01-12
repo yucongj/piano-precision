@@ -17,7 +17,7 @@
 
 #include "MainWindow.h"
 #include "PreferencesDialog.h"
-#include "ScoreWidget.h" // Added Oct 6, 2021
+#include "ScoreWidgetPDF.h" // Added Oct 6, 2021
 #include "ScorePositionReader.h" // Added Oct 6, 2021
 #include "ScoreFinder.h"
 #include "Session.h"
@@ -234,16 +234,16 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     QGridLayout *scoreWidgetLayout = new QGridLayout;
     
     // Added Oct 6, 2021
-    m_scoreWidget = new ScoreWidget(this);
-    m_scoreWidget->setInteractionMode(ScoreWidget::InteractionMode::Navigate);
-    connect(m_scoreWidget, SIGNAL(scorePositionHighlighted(int, ScoreWidget::InteractionMode)),
-            this, SLOT(scorePositionHighlighted(int, ScoreWidget::InteractionMode)));
-    connect(m_scoreWidget, SIGNAL(scorePositionActivated(int, ScoreWidget::InteractionMode)),
-            this, SLOT(scorePositionActivated(int, ScoreWidget::InteractionMode)));
-    connect(m_scoreWidget, SIGNAL(interactionModeChanged(ScoreWidget::InteractionMode)),
-            this, SLOT(scoreInteractionModeChanged(ScoreWidget::InteractionMode)));
-    connect(m_scoreWidget, SIGNAL(interactionEnded(ScoreWidget::InteractionMode)),
-            this, SLOT(scoreInteractionEnded(ScoreWidget::InteractionMode)));
+    m_scoreWidget = new ScoreWidgetPDF(this);
+    m_scoreWidget->setInteractionMode(ScoreInteractionMode::Navigate);
+    connect(m_scoreWidget, SIGNAL(scorePositionHighlighted(int, ScoreInteractionMode)),
+            this, SLOT(scorePositionHighlighted(int, ScoreInteractionMode)));
+    connect(m_scoreWidget, SIGNAL(scorePositionActivated(int, ScoreInteractionMode)),
+            this, SLOT(scorePositionActivated(int, ScoreInteractionMode)));
+    connect(m_scoreWidget, SIGNAL(interactionModeChanged(ScoreInteractionMode)),
+            this, SLOT(scoreInteractionModeChanged(ScoreInteractionMode)));
+    connect(m_scoreWidget, SIGNAL(interactionEnded(ScoreInteractionMode)),
+            this, SLOT(scoreInteractionEnded(ScoreInteractionMode)));
     connect(m_scoreWidget,
             SIGNAL(selectionChanged(int, bool, QString, int, bool, QString)),
             this,
@@ -313,20 +313,20 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
         SVDEBUG << "selectFromButton toggled: checked = " << checked << endl;
         if (checked) {
             m_scoreWidget->setInteractionMode
-                (ScoreWidget::InteractionMode::SelectStart);
+                (ScoreInteractionMode::SelectStart);
         } else {
             m_scoreWidget->setInteractionMode
-                (ScoreWidget::InteractionMode::Navigate);
+                (ScoreInteractionMode::Navigate);
         }
     });
     connect(m_selectToButton, &QPushButton::toggled, [this] (bool checked) {
         SVDEBUG << "m_selectToButton toggled: checked = " << checked << endl;
         if (checked) {
             m_scoreWidget->setInteractionMode
-                (ScoreWidget::InteractionMode::SelectEnd);
+                (ScoreInteractionMode::SelectEnd);
         } else {
             m_scoreWidget->setInteractionMode
-                (ScoreWidget::InteractionMode::Navigate);
+                (ScoreInteractionMode::Navigate);
         }
     });
 
@@ -2402,7 +2402,7 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
         return;
     }
 
-    m_scoreWidget->setInteractionMode(ScoreWidget::InteractionMode::Navigate);
+    m_scoreWidget->setInteractionMode(ScoreInteractionMode::Navigate);
     
     m_scoreId = scoreName;
 
@@ -2637,17 +2637,17 @@ MainWindow::alignButtonClicked()
 }
 
 void
-MainWindow::scoreInteractionModeChanged(ScoreWidget::InteractionMode mode)
+MainWindow::scoreInteractionModeChanged(ScoreInteractionMode mode)
 {
     SVDEBUG << "MainWindow::scoreInteractionModeChanged: mode = " << int(mode)
             << endl;
     
     ViewManager::ToolMode toolMode = ViewManager::NavigateMode;
     
-    if (mode == ScoreWidget::InteractionMode::Edit) {
+    if (mode == ScoreInteractionMode::Edit) {
         toolMode = ViewManager::EditMode;
-    } else if (mode == ScoreWidget::InteractionMode::SelectStart ||
-               mode == ScoreWidget::InteractionMode::SelectEnd) {
+    } else if (mode == ScoreInteractionMode::SelectStart ||
+               mode == ScoreInteractionMode::SelectEnd) {
         toolMode = ViewManager::SelectMode;
     }
     
@@ -2659,21 +2659,21 @@ MainWindow::scoreInteractionModeChanged(ScoreWidget::InteractionMode mode)
     }
 
     m_selectFromButton->setChecked
-        (mode == ScoreWidget::InteractionMode::SelectStart);
+        (mode == ScoreInteractionMode::SelectStart);
     m_selectToButton->setChecked
-        (mode == ScoreWidget::InteractionMode::SelectEnd);
+        (mode == ScoreInteractionMode::SelectEnd);
 }
 
 void
 MainWindow::scorePositionHighlighted(int position,
-                                     ScoreWidget::InteractionMode mode)
+                                     ScoreInteractionMode mode)
 {
     actOnScorePosition(position, mode, false);
 }
 
 void
 MainWindow::scorePositionActivated(int position,
-                                   ScoreWidget::InteractionMode mode)
+                                   ScoreInteractionMode mode)
 {
     actOnScorePosition(position, mode, true);
 }
@@ -2688,7 +2688,7 @@ MainWindow::followScoreToggled()
 }
 
 void
-MainWindow::actOnScorePosition(int position, ScoreWidget::InteractionMode mode,
+MainWindow::actOnScorePosition(int position, ScoreInteractionMode mode,
                                bool activated)
 {
     SVDEBUG << "MainWindow::actOnScorePosition(" << position << ", " << int(mode) << ", " << activated << ")" << endl;
@@ -2736,7 +2736,7 @@ MainWindow::actOnScorePosition(int position, ScoreWidget::InteractionMode mode,
 }
 
 void
-MainWindow::scoreInteractionEnded(ScoreWidget::InteractionMode mode)
+MainWindow::scoreInteractionEnded(ScoreInteractionMode mode)
 {
     TimeValueLayer *targetLayer = m_session.getOnsetsLayer();
     if (targetLayer) {
@@ -2748,7 +2748,7 @@ void
 MainWindow::alignmentFrameIlluminated(sv_frame_t frame)
 {
     if (m_scoreWidget->getInteractionMode() ==
-        ScoreWidget::InteractionMode::Edit) {
+        ScoreInteractionMode::Edit) {
         highlightFrameInScore(frame);
     }
 }
@@ -3452,7 +3452,7 @@ MainWindow::toolNavigateSelected()
 {
     SVDEBUG << "MainWindow::toolNavigateSelected" << endl;
     m_viewManager->setToolMode(ViewManager::NavigateMode);
-    m_scoreWidget->setInteractionMode(ScoreWidget::InteractionMode::Navigate);
+    m_scoreWidget->setInteractionMode(ScoreInteractionMode::Navigate);
 }
 
 void
@@ -3467,7 +3467,7 @@ MainWindow::toolEditSelected()
 {
     SVDEBUG << "MainWindow::toolEditSelected" << endl;
     m_viewManager->setToolMode(ViewManager::EditMode);
-    m_scoreWidget->setInteractionMode(ScoreWidget::InteractionMode::Edit);
+    m_scoreWidget->setInteractionMode(ScoreInteractionMode::Edit);
 }
 
 void

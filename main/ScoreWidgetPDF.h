@@ -10,8 +10,8 @@
     COPYING included with this distribution for more information.
 */
 
-#ifndef SV_SCORE_WIDGET_H
-#define SV_SCORE_WIDGET_H
+#ifndef SV_SCORE_WIDGET_PDF_H
+#define SV_SCORE_WIDGET_PDF_H
 
 #include "ScoreElement.h"
 
@@ -21,14 +21,25 @@
 #include <map>
 
 class QPdfDocument;
+    
+/**
+ * Mode for mouse interaction.
+ */
+enum class ScoreInteractionMode {
+    None,
+    Navigate,
+    Edit,
+    SelectStart,
+    SelectEnd
+};
 
-class ScoreWidget : public QFrame
+class ScoreWidgetPDF : public QFrame
 {
     Q_OBJECT
 
 public:
-    ScoreWidget(QWidget *parent);
-    ~ScoreWidget();
+    ScoreWidgetPDF(QWidget *parent);
+    ~ScoreWidgetPDF();
     
     /** 
      * Load the named score. If loading fails, return false and set
@@ -64,22 +75,11 @@ public:
      * selection, or -1 if there is no constraint at either end.
      */
     void getSelection(int &start, int &end) const;
-    
-    /**
-     * Mode for mouse interaction.
-     */
-    enum class InteractionMode {
-        None,
-        Navigate,
-        Edit,
-        SelectStart,
-        SelectEnd
-    };
 
     /**
      * Return the current interaction mode.
      */
-    InteractionMode getInteractionMode() const { return m_mode; }
+    ScoreInteractionMode getInteractionMode() const { return m_mode; }
                                                  
 public slots:
     /** 
@@ -104,7 +104,7 @@ public slots:
     /**
      * Select an interaction mode.
      */
-    void setInteractionMode(InteractionMode mode);
+    void setInteractionMode(ScoreInteractionMode mode);
 
     /**
      * Clear the selection back to the default (everything
@@ -115,10 +115,10 @@ public slots:
 
 signals:
     void loadFailed(QString scoreName, QString errorMessage);
-    void interactionModeChanged(ScoreWidget::InteractionMode newMode);
-    void scorePositionHighlighted(int, ScoreWidget::InteractionMode);
-    void scorePositionActivated(int, ScoreWidget::InteractionMode);
-    void interactionEnded(ScoreWidget::InteractionMode); // e.g. because mouse left widget
+    void interactionModeChanged(ScoreInteractionMode newMode);
+    void scorePositionHighlighted(int, ScoreInteractionMode);
+    void scorePositionActivated(int, ScoreInteractionMode);
+    void interactionEnded(ScoreInteractionMode); // e.g. because mouse left widget
 
     /**
      * Emitted when the selected region of score changes. The start
@@ -155,7 +155,7 @@ private:
     int m_page;
     QImage m_image;
 
-    InteractionMode m_mode;
+    ScoreInteractionMode m_mode;
     int m_scorePosition;
     int m_mousePosition;
     int m_selectStartPosition;

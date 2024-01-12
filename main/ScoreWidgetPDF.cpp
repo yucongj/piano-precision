@@ -10,7 +10,7 @@
     COPYING included with this distribution for more information.
 */
 
-#include "ScoreWidget.h"
+#include "ScoreWidgetPDF.h"
 #include "ScoreFinder.h"
 
 #include <QPdfDocument>
@@ -31,11 +31,11 @@ using std::vector;
 using std::pair;
 using std::string;
 
-ScoreWidget::ScoreWidget(QWidget *parent) :
+ScoreWidgetPDF::ScoreWidgetPDF(QWidget *parent) :
     QFrame(parent),
     m_document(new QPdfDocument(this)),
     m_page(-1),
-    m_mode(InteractionMode::None),
+    m_mode(ScoreInteractionMode::None),
     m_scorePosition(-1),
     m_mousePosition(-1),
     m_mouseActive(false)
@@ -45,31 +45,31 @@ ScoreWidget::ScoreWidget(QWidget *parent) :
     setMouseTracking(true);
 }
 
-ScoreWidget::~ScoreWidget()
+ScoreWidgetPDF::~ScoreWidgetPDF()
 {
     delete m_document;
 }
 
 QString
-ScoreWidget::getCurrentScore() const
+ScoreWidgetPDF::getCurrentScore() const
 {
     return m_scoreName;
 }
 
 int
-ScoreWidget::getCurrentPage() const
+ScoreWidgetPDF::getCurrentPage() const
 {
     return m_page;
 }
 
 int
-ScoreWidget::getPageCount() const
+ScoreWidgetPDF::getPageCount() const
 {
     return m_document->pageCount();
 }
 
 void
-ScoreWidget::loadAScore(QString scoreName)
+ScoreWidgetPDF::loadAScore(QString scoreName)
 {
     QString errorString;
     if (!loadAScore(scoreName, errorString)) {
@@ -82,9 +82,9 @@ ScoreWidget::loadAScore(QString scoreName)
 }
 
 bool
-ScoreWidget::loadAScore(QString scoreName, QString &errorString)
+ScoreWidgetPDF::loadAScore(QString scoreName, QString &errorString)
 {
-    SVDEBUG << "ScoreWidget::loadAScore: Score \"" << scoreName
+    SVDEBUG << "ScoreWidgetPDF::loadAScore: Score \"" << scoreName
             << "\" requested" << endl;
 
     clearSelection();
@@ -95,14 +95,14 @@ ScoreWidget::loadAScore(QString scoreName, QString &errorString)
         ScoreFinder::getScoreFile(scoreName.toStdString(), "pdf");
     if (scorePath == "") {
         errorString = "Score file (.pdf) not found!";
-        SVDEBUG << "ScoreWidget::loadAScore: " << errorString << endl;
+        SVDEBUG << "ScoreWidgetPDF::loadAScore: " << errorString << endl;
         return false;
     }
 
     QString filename = scorePath.c_str();
     QPdfDocument::Error result = m_document->load(filename);
     
-    SVDEBUG << "ScoreWidget::loadAScore: Asked to load pdf file \""
+    SVDEBUG << "ScoreWidgetPDF::loadAScore: Asked to load pdf file \""
             << filename << "\" for score \"" << scoreName
             << "\", result is " << int(result) << endl;
 
@@ -127,18 +127,18 @@ ScoreWidget::loadAScore(QString scoreName, QString &errorString)
     if (error == "") {
         m_scoreName = scoreName;
         m_scoreFilename = filename;
-        SVDEBUG << "ScoreWidget::loadAScore: Load successful, showing first page"
+        SVDEBUG << "ScoreWidgetPDF::loadAScore: Load successful, showing first page"
                 << endl;
         showPage(0);
         return true;
     } else {
-        SVDEBUG << "ScoreWidget::loadAScore: " << errorString << endl;
+        SVDEBUG << "ScoreWidgetPDF::loadAScore: " << errorString << endl;
         return false;
     }
 }
 
 void
-ScoreWidget::setElements(ScoreElements elements)
+ScoreWidgetPDF::setElements(ScoreElements elements)
 {
     m_elements = elements;
 
@@ -152,7 +152,7 @@ ScoreWidget::setElements(ScoreElements elements)
 }
 
 void
-ScoreWidget::resizeEvent(QResizeEvent *)
+ScoreWidgetPDF::resizeEvent(QResizeEvent *)
 {
     if (m_page >= 0) {
         showPage(m_page);
@@ -160,14 +160,14 @@ ScoreWidget::resizeEvent(QResizeEvent *)
 }
 
 void
-ScoreWidget::enterEvent(QEnterEvent *)
+ScoreWidgetPDF::enterEvent(QEnterEvent *)
 {
     m_mouseActive = true;
     update();
 }
 
 void
-ScoreWidget::leaveEvent(QEvent *)
+ScoreWidgetPDF::leaveEvent(QEvent *)
 {
     if (m_mouseActive) {
         emit interactionEnded(m_mode);
@@ -177,7 +177,7 @@ ScoreWidget::leaveEvent(QEvent *)
 }
 
 void
-ScoreWidget::mouseMoveEvent(QMouseEvent *e)
+ScoreWidgetPDF::mouseMoveEvent(QMouseEvent *e)
 {
     if (!m_mouseActive) return;
 
@@ -186,14 +186,14 @@ ScoreWidget::mouseMoveEvent(QMouseEvent *e)
 
     if (m_mousePosition >= 0) {
 #ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidget::mouseMoveEvent: Emitting scorePositionHighlighted at " << m_mousePosition << endl;
+        SVDEBUG << "ScoreWidgetPDF::mouseMoveEvent: Emitting scorePositionHighlighted at " << m_mousePosition << endl;
 #endif
         emit scorePositionHighlighted(m_mousePosition, m_mode);
     }
 }
 
 void
-ScoreWidget::mousePressEvent(QMouseEvent *e)
+ScoreWidgetPDF::mousePressEvent(QMouseEvent *e)
 {
     if (e->button() != Qt::LeftButton) {
         return;
@@ -202,10 +202,10 @@ ScoreWidget::mousePressEvent(QMouseEvent *e)
     mouseMoveEvent(e);
 
     if (!m_elements.empty() && m_mousePosition >= 0 &&
-        (m_mode == InteractionMode::SelectStart ||
-         m_mode == InteractionMode::SelectEnd)) {
+        (m_mode == ScoreInteractionMode::SelectStart ||
+         m_mode == ScoreInteractionMode::SelectEnd)) {
 
-        if (m_mode == InteractionMode::SelectStart) {
+        if (m_mode == ScoreInteractionMode::SelectStart) {
             m_selectStartPosition = m_mousePosition;
             if (m_selectEndPosition <= m_selectStartPosition) {
                 m_selectEndPosition = -1;
@@ -218,7 +218,7 @@ ScoreWidget::mousePressEvent(QMouseEvent *e)
         }
         
 #ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidget::mousePressEvent: Set select start to "
+        SVDEBUG << "ScoreWidgetPDF::mousePressEvent: Set select start to "
                 << m_selectStartPosition << " and end to "
                 << m_selectEndPosition << endl;
 #endif
@@ -237,17 +237,17 @@ ScoreWidget::mousePressEvent(QMouseEvent *e)
     
     if (m_mousePosition >= 0) {
 #ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidget::mousePressEvent: Emitting scorePositionActivated at " << m_mousePosition << endl;
+        SVDEBUG << "ScoreWidgetPDF::mousePressEvent: Emitting scorePositionActivated at " << m_mousePosition << endl;
 #endif
         emit scorePositionActivated(m_mousePosition, m_mode);
     }
 }
 
 void
-ScoreWidget::clearSelection()
+ScoreWidgetPDF::clearSelection()
 {
 #ifdef DEBUG_SCORE_WIDGET
-    SVDEBUG << "ScoreWidget::clearSelection" << endl;
+    SVDEBUG << "ScoreWidgetPDF::clearSelection" << endl;
 #endif
 
     if (m_selectStartPosition == -1 && m_selectEndPosition == -1) {
@@ -268,7 +268,7 @@ ScoreWidget::clearSelection()
 }
 
 int
-ScoreWidget::getStartPosition() const
+ScoreWidgetPDF::getStartPosition() const
 {
     if (m_elementsByPosition.empty()) {
         return 0;
@@ -277,7 +277,7 @@ ScoreWidget::getStartPosition() const
 }
 
 bool
-ScoreWidget::isSelectedFromStart() const
+ScoreWidgetPDF::isSelectedFromStart() const
 {
     return (m_elementsByPosition.empty() ||
             m_selectStartPosition < 0 ||
@@ -285,7 +285,7 @@ ScoreWidget::isSelectedFromStart() const
 }
 
 int
-ScoreWidget::getEndPosition() const
+ScoreWidgetPDF::getEndPosition() const
 {
     if (m_elementsByPosition.empty()) {
         return 0;
@@ -294,7 +294,7 @@ ScoreWidget::getEndPosition() const
 }
 
 bool
-ScoreWidget::isSelectedToEnd() const
+ScoreWidgetPDF::isSelectedToEnd() const
 {
     return (m_elementsByPosition.empty() ||
             m_selectEndPosition < 0 ||
@@ -302,42 +302,42 @@ ScoreWidget::isSelectedToEnd() const
 }
 
 bool
-ScoreWidget::isSelectedAll() const
+ScoreWidgetPDF::isSelectedAll() const
 {
     return isSelectedFromStart() && isSelectedToEnd();
 }
 
 void
-ScoreWidget::getSelection(int &start, int &end) const
+ScoreWidgetPDF::getSelection(int &start, int &end) const
 {
     start = m_selectStartPosition;
     end = m_selectEndPosition;
 }
 
 void
-ScoreWidget::mouseDoubleClickEvent(QMouseEvent *e)
+ScoreWidgetPDF::mouseDoubleClickEvent(QMouseEvent *e)
 {
     if (e->button() != Qt::LeftButton) {
         return;
     }
 
 #ifdef DEBUG_SCORE_WIDGET
-    SVDEBUG << "ScoreWidget::mouseDoubleClickEvent" << endl;
+    SVDEBUG << "ScoreWidgetPDF::mouseDoubleClickEvent" << endl;
 #endif
         
-    if (m_mode == InteractionMode::Navigate) {
-        setInteractionMode(InteractionMode::Edit);
+    if (m_mode == ScoreInteractionMode::Navigate) {
+        setInteractionMode(ScoreInteractionMode::Edit);
     }
 
     mousePressEvent(e);
 }
     
 QRectF
-ScoreWidget::rectForPosition(int pos)
+ScoreWidgetPDF::rectForPosition(int pos)
 {
     if (pos < 0) {
 #ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidget::rectForPosition: No position" << endl;
+        SVDEBUG << "ScoreWidgetPDF::rectForPosition: No position" << endl;
 #endif
         return {};
     }
@@ -345,7 +345,7 @@ ScoreWidget::rectForPosition(int pos)
     auto itr = m_elementsByPosition.lower_bound(pos);
     if (itr == m_elementsByPosition.end()) {
 #ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidget::rectForPosition: Position " << pos
+        SVDEBUG << "ScoreWidgetPDF::rectForPosition: Position " << pos
                 << " does not have any corresponding element" << endl;
 #endif
         return {};
@@ -356,7 +356,7 @@ ScoreWidget::rectForPosition(int pos)
     const ScoreElement &elt = itr->second;
     
 #ifdef DEBUG_SCORE_WIDGET
-    SVDEBUG << "ScoreWidget::rectForPosition: Position "
+    SVDEBUG << "ScoreWidgetPDF::rectForPosition: Position "
             << pos << " has corresponding element id="
             << elt.id << " on page=" << elt.page << " with x="
             << elt.x << ", y=" << elt.y << ", sy=" << elt.sy
@@ -367,12 +367,12 @@ ScoreWidget::rectForPosition(int pos)
 }
     
 QString
-ScoreWidget::labelForPosition(int pos)
+ScoreWidgetPDF::labelForPosition(int pos)
 {
     auto itr = m_elementsByPosition.lower_bound(pos);
     if (itr == m_elementsByPosition.end()) {
 #ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidget::rectForPosition: Position " << pos
+        SVDEBUG << "ScoreWidgetPDF::rectForPosition: Position " << pos
                 << " does not have any corresponding element" << endl;
 #endif
         return {};
@@ -382,7 +382,7 @@ ScoreWidget::labelForPosition(int pos)
 }
 
 QRectF
-ScoreWidget::rectForElement(const ScoreElement &elt)
+ScoreWidgetPDF::rectForElement(const ScoreElement &elt)
 {
     // Now, we know the units are a bit mad for these values.  I
     // think(?) they are in inches * dpi * constant where dpi = 360
@@ -402,7 +402,7 @@ ScoreWidget::rectForElement(const ScoreElement &elt)
 
     if (elt.page != m_page) {
 #ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidget::rectForElement: Element at " << elt.position
+        SVDEBUG << "ScoreWidgetPDF::rectForElement: Element at " << elt.position
                 << " is not on the current page (page " << elt.page
                 << ", we are on " << m_page << ")" << endl;
 #endif
@@ -430,7 +430,7 @@ ScoreWidget::rectForElement(const ScoreElement &elt)
 }
 
 int
-ScoreWidget::positionForPoint(QPoint point)
+ScoreWidgetPDF::positionForPoint(QPoint point)
 {
     // See above for discussion of units! But this is all a dupe, we
     // should pull it out
@@ -486,7 +486,7 @@ ScoreWidget::positionForPoint(QPoint point)
     }
 
 #ifdef DEBUG_SCORE_WIDGET
-    SVDEBUG << "ScoreWidget::positionForPoint: point " << point.x()
+    SVDEBUG << "ScoreWidgetPDF::positionForPoint: point " << point.x()
             << "," << point.y() << " -> position " << pos << endl;
 #endif
     
@@ -494,7 +494,7 @@ ScoreWidget::positionForPoint(QPoint point)
 }
 
 void
-ScoreWidget::paintEvent(QPaintEvent *e)
+ScoreWidgetPDF::paintEvent(QPaintEvent *e)
 {
     QFrame::paintEvent(e);
     
@@ -515,7 +515,7 @@ ScoreWidget::paintEvent(QPaintEvent *e)
     // Show a highlight bar under the mouse if the interaction mode is
     // anything other than None - the colour depends on the mode
     
-    if (m_mode != InteractionMode::None) {
+    if (m_mode != ScoreInteractionMode::None) {
 
         int position = m_scorePosition;
         if (m_mouseActive) {
@@ -528,14 +528,14 @@ ScoreWidget::paintEvent(QPaintEvent *e)
             QColor highlightColour;
 
             switch (m_mode) {
-            case InteractionMode::Navigate:
+            case ScoreInteractionMode::Navigate:
                 highlightColour = navigateHighlightColour;
                 break;
-            case InteractionMode::Edit:
+            case ScoreInteractionMode::Edit:
                 highlightColour = editHighlightColour;
                 break;
-            case InteractionMode::SelectStart:
-            case InteractionMode::SelectEnd:
+            case ScoreInteractionMode::SelectStart:
+            case ScoreInteractionMode::SelectEnd:
                 highlightColour = selectHighlightColour.darker();
                 break;
             default: // None already handled in conditional above
@@ -547,7 +547,7 @@ ScoreWidget::paintEvent(QPaintEvent *e)
             paint.setBrush(highlightColour);
             
 #ifdef DEBUG_SCORE_WIDGET
-            SVDEBUG << "ScoreWidget::paint: highlighting rect with origin "
+            SVDEBUG << "ScoreWidgetPDF::paint: highlighting rect with origin "
                     << rect.x() << "," << rect.y() << " and size "
                     << rect.width() << "x" << rect.height()
                     << " using colour " << highlightColour.name() << endl;
@@ -563,8 +563,8 @@ ScoreWidget::paintEvent(QPaintEvent *e)
 
     if (!m_elements.empty() &&
         (!isSelectedAll() ||
-         (m_mode == InteractionMode::SelectStart ||
-          m_mode == InteractionMode::SelectEnd))) {
+         (m_mode == ScoreInteractionMode::SelectStart ||
+          m_mode == ScoreInteractionMode::SelectEnd))) {
 
         QColor fillColour = selectHighlightColour;
         fillColour.setAlpha(100);
@@ -616,7 +616,7 @@ ScoreWidget::paintEvent(QPaintEvent *e)
     }
 
 #ifdef DEBUG_SCORE_WIDGET
-    SVDEBUG << "ScoreWidget::paint: have image of size " << imageSize.width()
+    SVDEBUG << "ScoreWidgetPDF::paint: have image of size " << imageSize.width()
             << " x " << imageSize.height() << ", painting to widget of size "
             << mySize.width() << " x " << mySize.height() << ", xorigin = "
             << xorigin << ", yorigin = " << yorigin << ", devicePixelRatio = "
@@ -632,12 +632,12 @@ ScoreWidget::paintEvent(QPaintEvent *e)
 }
 
 void
-ScoreWidget::showPage(int page)
+ScoreWidgetPDF::showPage(int page)
 {
     int pages = m_document->pageCount();
     
     if (page < 0 || page >= pages) {
-        SVDEBUG << "ScoreWidget::showPage: Requested page " << page
+        SVDEBUG << "ScoreWidgetPDF::showPage: Requested page " << page
                 << " is outside range of " << pages << "-page document"
                 << endl;
         return;
@@ -647,14 +647,14 @@ ScoreWidget::showPage(int page)
     QSize mySize = contentsRect().size();
     QSizeF pageSize = m_document->pagePointSize(page);
     
-    SVDEBUG << "ScoreWidget::showPage: Rendering page " << page
+    SVDEBUG << "ScoreWidgetPDF::showPage: Rendering page " << page
             << " of " << pages << " (my size = " << mySize.width()
             << " x " << mySize.height() << ", page size = " << pageSize.width()
             << " x " << pageSize.height() << ")" << endl;
 
     if (!mySize.width() || !mySize.height() ||
         !pageSize.width() || !pageSize.height()) {
-        SVDEBUG << "ScoreWidget::showPage: one of these dimensions is zero, can't proceed" << endl;
+        SVDEBUG << "ScoreWidgetPDF::showPage: one of these dimensions is zero, can't proceed" << endl;
         return;
     }
 
@@ -663,7 +663,7 @@ ScoreWidget::showPage(int page)
     QSize scaled(round(pageSize.width() * scale * dpr),
                  round(pageSize.height() * scale * dpr));
 
-    SVDEBUG << "ScoreWidget::showPage: Using scaled size "
+    SVDEBUG << "ScoreWidgetPDF::showPage: Using scaled size "
             << scaled.width() << " x " << scaled.height()
             << " (devicePixelRatio = " << dpr << ")" <<  endl;
 
@@ -706,7 +706,7 @@ ScoreWidget::showPage(int page)
 }
 
 void
-ScoreWidget::setScorePosition(int position)
+ScoreWidgetPDF::setScorePosition(int position)
 {
     m_scorePosition = position;
     
@@ -714,7 +714,7 @@ ScoreWidget::setScorePosition(int position)
         auto itr = m_elementsByPosition.lower_bound(m_scorePosition);
         if (itr == m_elementsByPosition.end()) {
 #ifdef DEBUG_SCORE_WIDGET
-            SVDEBUG << "ScoreWidget::setScorePosition: Position "
+            SVDEBUG << "ScoreWidgetPDF::setScorePosition: Position "
                     << m_scorePosition
                     << " does not have any corresponding element"
                     << endl;
@@ -723,7 +723,7 @@ ScoreWidget::setScorePosition(int position)
             ScoreElement elt = itr->second;
             if (elt.page != m_page) {
 #ifdef DEBUG_SCORE_WIDGET
-                SVDEBUG << "ScoreWidget::setScorePosition: Flipping to page "
+                SVDEBUG << "ScoreWidgetPDF::setScorePosition: Flipping to page "
                         << elt.page << endl;
 #endif
                 showPage(elt.page);
@@ -735,14 +735,14 @@ ScoreWidget::setScorePosition(int position)
 }
 
 void
-ScoreWidget::setInteractionMode(InteractionMode mode)
+ScoreWidgetPDF::setInteractionMode(ScoreInteractionMode mode)
 {
     if (mode == m_mode) {
         return;
     }
 
 #ifdef DEBUG_SCORE_WIDGET
-    SVDEBUG << "ScoreWidget::setInteractionMode: switching from " << int(m_mode)
+    SVDEBUG << "ScoreWidgetPDF::setInteractionMode: switching from " << int(m_mode)
             << " to " << int(mode) << endl;
 #endif
     

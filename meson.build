@@ -1076,7 +1076,7 @@ svapp_moc_files = qt.preprocess(
   'svapp/framework/VersionTester.h',
 ])
 
-sv_main_files = [
+pp_main_files = [
   'main/main.cpp',
   'main/OSCHandler.cpp',
   'main/MainWindow.cpp',
@@ -1087,7 +1087,8 @@ sv_main_files = [
   'main/Session.cpp',
   'main/ScoreFinder.cpp',
   'main/ScorePositionReader.cpp',
-  'main/ScoreWidget.cpp',
+  'main/ScoreWidgetPDF.cpp',
+  'main/ScoreWidgetMEI.cpp',
   'piano-precision-aligner/Score.cpp',
 ]
 
@@ -1363,18 +1364,24 @@ verovio_files = [
   'verovio/src/midi/MidiFile.cpp',
   'verovio/src/midi/MidiMessage.cpp',
   'verovio/src/crc/crc.cpp',
+  'verovio/src/json/jsonxx.cc',
+  'verovio/src/pugi/pugixml.cpp',
 ]
 
-verovio_include_dirs = [
+verovio_dep_include_dirs = [
   'verovio/include',
+  'verovio/include/json',
+  'verovio/libmei/dist',
+  'verovio/libmei/addons',
+]
+
+verovio_all_include_dirs = [
+  verovio_dep_include_dirs,
   'verovio/include/crc',
   'verovio/include/midi',
-  'verovio/include/json',
   'verovio/include/pugi',
   'verovio/include/zip',
   'verovio/include/vrv',
-  'verovio/libmei/dist',
-  'verovio/libmei/addons',
   'misc/fake-git-commit-header',
 ]
 
@@ -1391,7 +1398,7 @@ verovio_lib = static_library(
   'verovio',
   verovio_files,
   include_directories: [
-    verovio_include_dirs,
+    verovio_all_include_dirs,
   ],
   dependencies: [
   ],
@@ -1408,14 +1415,20 @@ verovio_lib = static_library(
   ],
 )
 
-sv_main_moc_files = qt.preprocess(
+verovio_dep = declare_dependency(
+  link_with: verovio_lib,
+  include_directories: verovio_dep_include_dirs,
+)
+
+pp_main_moc_files = qt.preprocess(
   moc_headers: [
   'main/MainWindow.h',
   'main/Surveyer.h',
   'main/SVSplash.h',
   'main/PreferencesDialog.h',
   'main/Session.h',
-  'main/ScoreWidget.h',
+  'main/ScoreWidgetPDF.h',
+  'main/ScoreWidgetMEI.h',
 ])
 
 checker_lib_files = [
@@ -1492,9 +1505,9 @@ else
 endif
 
 if system == 'linux'
-  sv_main_name = 'piano-precision'
+  pp_main_name = 'piano-precision'
 else
-  sv_main_name = 'Piano Precision'
+  pp_main_name = 'Piano Precision'
 endif # system
 
 install_data(
@@ -1508,17 +1521,18 @@ install_data(
 )
 
 executable(
-  sv_main_name,
+  pp_main_name,
   qt_resource_files,
   svgui_moc_files,
   svapp_moc_files,
-  sv_main_moc_files,
+  pp_main_moc_files,
   svgui_files,
   svapp_files,
   checker_lib_files,
-  sv_main_files,
+  pp_main_files,
   rc,
   dependencies: [
+    verovio_dep,
     svcore_dep,
     qt_dep,
     feature_dependencies,
