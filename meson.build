@@ -1371,6 +1371,7 @@ verovio_files = [
 verovio_dep_include_dirs = [
   'verovio/include',
   'verovio/include/json',
+  'verovio/include/pugi',
   'verovio/libmei/dist',
   'verovio/libmei/addons',
 ]
@@ -1379,7 +1380,6 @@ verovio_all_include_dirs = [
   verovio_dep_include_dirs,
   'verovio/include/crc',
   'verovio/include/midi',
-  'verovio/include/pugi',
   'verovio/include/zip',
   'verovio/include/vrv',
   'misc/fake-git-commit-header',
@@ -1387,10 +1387,16 @@ verovio_all_include_dirs = [
 
 verovio_defines = []
 
-if compiler == 'gcc' or compiler == 'clang'
+if compiler == 'gcc'
   verovio_defines += [
     '-Wno-unused-parameter',
     '-Wno-unused-variable',
+  ]
+elif compiler == 'clang'
+  verovio_defines += [
+    '-Wno-unused-parameter',
+    '-Wno-unused-variable',
+    '-Wno-unused-private-field',
   ]
 endif
 
