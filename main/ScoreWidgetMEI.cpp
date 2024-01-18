@@ -24,6 +24,8 @@
 #include "verovio/include/vrv/toolkit.h"
 #include "verovio/include/vrv/vrv.h"
 
+#include "vrvtrim.h"
+
 #define DEBUG_SCORE_WIDGET 1
 
 static QColor navigateHighlightColour("#59c4df");
@@ -172,6 +174,9 @@ ScoreWidgetMEI::loadAScore(QString scoreName, QString &errorString)
         std::cout << "RenderToSVG returned:" << std::endl;
         std::cout << rendered << std::endl;
         std::cout << "RenderToSVG ends" << std::endl;
+
+        rendered = VrvTrim::transformSvgToTiny(rendered);
+        
         m_svgPages.push_back(QByteArray::fromStdString(rendered));
     }
     
@@ -639,22 +644,15 @@ ScoreWidgetMEI::paintEvent(QPaintEvent *e)
             << m_currentPageRenderer->defaultSize().width() << " x "
             << m_currentPageRenderer->defaultSize().height() << endl;
 
-    paint.scale(mySize.width() / m_currentPageRenderer->defaultSize().width(),
-                mySize.height() / m_currentPageRenderer->defaultSize().height());
-
     paint.setPen(Qt::black);
     paint.setBrush(Qt::black);
-    
-    m_currentPageRenderer->render(&paint);
-    
-/*!!!    
-    paint.drawImage
-        (QRect(xorigin, yorigin,
-               imageSize.width() / dpr,
-               imageSize.height() / dpr),
-         m_image,
-         QRect(0, 0, imageSize.width(), imageSize.height()));
-*/
+
+    auto vb = m_currentPageRenderer->viewBoxF();
+    SVDEBUG << "SVG view box = " << vb.x() << "," << vb.y() << " " << vb.width()
+            << " x " << vb.height() << endl;
+
+    m_currentPageRenderer->render
+        (&paint, QRectF(0, 0, mySize.width(), mySize.height()));
 }
 
 void
@@ -667,8 +665,12 @@ ScoreWidgetMEI::showPage(int page)
     }
 
     QByteArray svgText = m_svgPages[page];
+
     m_currentPageRenderer = std::make_unique<QSvgRenderer>(svgText);
-    
+    m_currentPageRenderer->setAspectRatioMode(Qt::KeepAspectRatio);
+
+    SVDEBUG << "ScoreWidgetMEI::showPage: created renderer from "
+            << svgText.size() << "-byte SVG data" << endl;
     
     m_page = page;
     emit pageChanged(m_page);

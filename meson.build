@@ -1089,6 +1089,7 @@ pp_main_files = [
   'main/ScorePositionReader.cpp',
   'main/ScoreWidgetPDF.cpp',
   'main/ScoreWidgetMEI.cpp',
+  'main/vrvtrim.cpp',
   'piano-precision-aligner/Score.cpp',
 ]
 
