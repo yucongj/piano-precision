@@ -218,7 +218,8 @@ protected:
     sv::WaveformLayer           *m_panLayer;
     
     QScrollArea             *m_mainScroll;
-    ScoreWidgetBase         *m_scoreWidget;
+    std::vector<ScoreWidgetBase *> m_scoreWidgets;
+    ScoreWidgetBase         *m_activeScoreWidget;
     QPushButton             *m_alignButton;
     QPushButton             *m_alignAcceptButton;
     QPushButton             *m_alignRejectButton;

@@ -233,23 +233,28 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
 
     QWidget *scoreWidgetContainer = new QWidget(this);
     QGridLayout *scoreWidgetLayout = new QGridLayout;
+
+    m_scoreWidgets.push_back(new ScoreWidgetMEI(this));
+    m_scoreWidgets.push_back(new ScoreWidgetPDF(this));
+    m_activeScoreWidget = m_scoreWidgets[0];
     
-    m_scoreWidget = new ScoreWidgetMEI(this);
-    m_scoreWidget->setInteractionMode(ScoreInteractionMode::Navigate);
-    connect(m_scoreWidget, SIGNAL(scorePositionHighlighted(int, ScoreInteractionMode)),
-            this, SLOT(scorePositionHighlighted(int, ScoreInteractionMode)));
-    connect(m_scoreWidget, SIGNAL(scorePositionActivated(int, ScoreInteractionMode)),
-            this, SLOT(scorePositionActivated(int, ScoreInteractionMode)));
-    connect(m_scoreWidget, SIGNAL(interactionModeChanged(ScoreInteractionMode)),
-            this, SLOT(scoreInteractionModeChanged(ScoreInteractionMode)));
-    connect(m_scoreWidget, SIGNAL(interactionEnded(ScoreInteractionMode)),
-            this, SLOT(scoreInteractionEnded(ScoreInteractionMode)));
-    connect(m_scoreWidget,
-            SIGNAL(selectionChanged(int, bool, QString, int, bool, QString)),
-            this,
-            SLOT(scoreSelectionChanged(int, bool, QString, int, bool, QString)));
-    connect(m_scoreWidget, SIGNAL(pageChanged(int)),
-            this, SLOT(scorePageChanged(int)));
+    for (auto scoreWidget : m_scoreWidgets) {
+        scoreWidget->setInteractionMode(ScoreInteractionMode::Navigate);
+        connect(scoreWidget, SIGNAL(scorePositionHighlighted(int, ScoreInteractionMode)),
+                this, SLOT(scorePositionHighlighted(int, ScoreInteractionMode)));
+        connect(scoreWidget, SIGNAL(scorePositionActivated(int, ScoreInteractionMode)),
+                this, SLOT(scorePositionActivated(int, ScoreInteractionMode)));
+        connect(scoreWidget, SIGNAL(interactionModeChanged(ScoreInteractionMode)),
+                this, SLOT(scoreInteractionModeChanged(ScoreInteractionMode)));
+        connect(scoreWidget, SIGNAL(interactionEnded(ScoreInteractionMode)),
+                this, SLOT(scoreInteractionEnded(ScoreInteractionMode)));
+        connect(scoreWidget,
+                SIGNAL(selectionChanged(int, bool, QString, int, bool, QString)),
+                this,
+                SLOT(scoreSelectionChanged(int, bool, QString, int, bool, QString)));
+        connect(scoreWidget, SIGNAL(pageChanged(int)),
+                this, SLOT(scorePageChanged(int)));
+    }
 
     m_alignButton = new QPushButton(tr("Align"));
     m_alignButton->setIcon(IconLoader().load("align"));
@@ -281,7 +286,10 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     m_scorePageLabel = new QLabel(tr("Page"));
     m_scorePageLabel->setAlignment(Qt::AlignHCenter);
 
-    scoreWidgetLayout->addWidget(m_scoreWidget, 0, 0, 1, 3);
+    for (auto scoreWidget : m_scoreWidgets) {
+        scoreWidgetLayout->addWidget(scoreWidget, 0, 0, 1, 3);
+        scoreWidget->hide();
+    }
     scoreWidgetLayout->setRowStretch(0, 10);
     
     scoreWidgetLayout->addWidget(m_alignButton, 1, 0, 1, 3, Qt::AlignHCenter);
@@ -312,27 +320,33 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     connect(m_selectFromButton, &QPushButton::toggled, [this] (bool checked) {
         SVDEBUG << "selectFromButton toggled: checked = " << checked << endl;
         if (checked) {
-            m_scoreWidget->setInteractionMode
-                (ScoreInteractionMode::SelectStart);
+            for (auto w : m_scoreWidgets) {
+                w->setInteractionMode(ScoreInteractionMode::SelectStart);
+            }
         } else {
-            m_scoreWidget->setInteractionMode
-                (ScoreInteractionMode::Navigate);
+            for (auto w : m_scoreWidgets) {
+                w->setInteractionMode(ScoreInteractionMode::Navigate);
+            }
         }
     });
     connect(m_selectToButton, &QPushButton::toggled, [this] (bool checked) {
         SVDEBUG << "m_selectToButton toggled: checked = " << checked << endl;
         if (checked) {
-            m_scoreWidget->setInteractionMode
-                (ScoreInteractionMode::SelectEnd);
+            for (auto w : m_scoreWidgets) {
+                w->setInteractionMode(ScoreInteractionMode::SelectEnd);
+            }
         } else {
-            m_scoreWidget->setInteractionMode
-                (ScoreInteractionMode::Navigate);
+            for (auto w : m_scoreWidgets) {
+                w->setInteractionMode(ScoreInteractionMode::Navigate);
+            }
         }
     });
 
     m_resetSelectionButton = new QPushButton(tr("Reset"));
-    connect(m_resetSelectionButton, SIGNAL(clicked()),
-            m_scoreWidget, SLOT(clearSelection()));
+    for (auto w : m_scoreWidgets) {
+        connect(m_resetSelectionButton, SIGNAL(clicked()),
+                w, SLOT(clearSelection()));
+    }
     m_resetSelectionButton->setEnabled(false);
     
     selectionLayout->addWidget(new QLabel(" "), 0, 0);
@@ -2392,17 +2406,35 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
         return;
     }
     
-    QString errorString;
-    if (!m_scoreWidget->loadAScore(scoreName, errorString)) {
+    QStringList errors;
+    bool loaded = false;
+    
+    for (auto w : m_scoreWidgets) {
+        w->hide();
+        if (!loaded) {
+            QString errorString;
+            m_activeScoreWidget = w;
+            if (w->loadAScore(scoreName, errorString)) {
+                SVDEBUG << "MainWindow::chooseScore: setting score widget "
+                        << w << " to visible" << endl;
+                w->show();
+                loaded = true;
+            } else {
+                errors.push_back(errorString);
+            }
+        }
+    }
+
+    if (!loaded) {
         QMessageBox::warning(this,
                              tr("Unable to load score"),
                              tr("Unable to load score \"%1\": %2")
-                             .arg(scoreName).arg(errorString),
+                             .arg(scoreName).arg(errors.join(tr("; "))),
                              QMessageBox::Ok);
         return;
     }
 
-    m_scoreWidget->setInteractionMode(ScoreInteractionMode::Navigate);
+    m_activeScoreWidget->setInteractionMode(ScoreInteractionMode::Navigate);
     
     m_scoreId = scoreName;
 
@@ -2418,7 +2450,7 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
                              tr("Unable to load score position data: score tracking will not be enabled. See log file for more information."),
                              QMessageBox::Ok);
     } else {
-        m_scoreWidget->setElements(posReader.getElements());
+        m_activeScoreWidget->setElements(posReader.getElements());
     }
 
     newSession();
@@ -2553,7 +2585,7 @@ MainWindow::highlightFrameInScore(sv_frame_t frame)
         }
     }
 
-    m_scoreWidget->setScorePosition(position);
+    m_activeScoreWidget->setScorePosition(position);
 }
 
 void
@@ -2590,7 +2622,7 @@ void
 MainWindow::scorePageChanged(int page)
 {
     SVDEBUG << "MainWindow::scorePageChanged(" << page << ")" << endl;
-    int n = m_scoreWidget->getPageCount();
+    int n = m_activeScoreWidget->getPageCount();
     m_scorePageDownButton->setEnabled(page > 0);
     m_scorePageUpButton->setEnabled(page + 1 < n);
     m_scorePageLabel->setText(tr("Page %1 of %2").arg(page + 1).arg(n));
@@ -2600,9 +2632,9 @@ void
 MainWindow::scorePageDownButtonClicked()
 {
     SVDEBUG << "MainWindow::scorePageDownButtonClicked" << endl;
-    int page = m_scoreWidget->getCurrentPage();
+    int page = m_activeScoreWidget->getCurrentPage();
     if (page > 0) {
-        m_scoreWidget->showPage(page - 1);
+        m_activeScoreWidget->showPage(page - 1);
     }
 }
 
@@ -2610,9 +2642,9 @@ void
 MainWindow::scorePageUpButtonClicked()
 {
     SVDEBUG << "MainWindow::scorePageUpButtonClicked" << endl;
-    int page = m_scoreWidget->getCurrentPage();
-    if (page + 1 < m_scoreWidget->getPageCount()) {
-        m_scoreWidget->showPage(page + 1);
+    int page = m_activeScoreWidget->getCurrentPage();
+    if (page + 1 < m_activeScoreWidget->getPageCount()) {
+        m_activeScoreWidget->showPage(page + 1);
     }
 }
 
@@ -2623,7 +2655,7 @@ MainWindow::alignButtonClicked()
     sv_frame_t audioFrameStart = -1, audioFrameEnd = -1;
     
     if (m_subsetOfScoreSelected) {
-        m_scoreWidget->getSelection(scorePositionStart, scorePositionEnd);
+        m_activeScoreWidget->getSelection(scorePositionStart, scorePositionEnd);
     }
 
     if (!m_viewManager->getSelections().empty()) {
@@ -2747,7 +2779,7 @@ MainWindow::scoreInteractionEnded(ScoreInteractionMode mode)
 void
 MainWindow::alignmentFrameIlluminated(sv_frame_t frame)
 {
-    if (m_scoreWidget->getInteractionMode() ==
+    if (m_activeScoreWidget->getInteractionMode() ==
         ScoreInteractionMode::Edit) {
         highlightFrameInScore(frame);
     }
@@ -3452,7 +3484,7 @@ MainWindow::toolNavigateSelected()
 {
     SVDEBUG << "MainWindow::toolNavigateSelected" << endl;
     m_viewManager->setToolMode(ViewManager::NavigateMode);
-    m_scoreWidget->setInteractionMode(ScoreInteractionMode::Navigate);
+    m_activeScoreWidget->setInteractionMode(ScoreInteractionMode::Navigate);
 }
 
 void
@@ -3467,7 +3499,7 @@ MainWindow::toolEditSelected()
 {
     SVDEBUG << "MainWindow::toolEditSelected" << endl;
     m_viewManager->setToolMode(ViewManager::EditMode);
-    m_scoreWidget->setInteractionMode(ScoreInteractionMode::Edit);
+    m_activeScoreWidget->setInteractionMode(ScoreInteractionMode::Edit);
 }
 
 void
