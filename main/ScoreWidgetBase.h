@@ -120,6 +120,12 @@ public slots:
     virtual void setScorePosition(int scorePosition) = 0;
 
     /**
+     * Set the current element to be highlighted. The type of
+     * highlighting will depend on the current interaction mode.
+     */
+    virtual void setScoreHighlightEvent(QString label) = 0;
+
+    /**
      * Select an interaction mode.
      */
     virtual void setInteractionMode(ScoreInteractionMode mode) = 0;

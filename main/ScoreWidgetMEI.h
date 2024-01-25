@@ -100,6 +100,12 @@ public slots:
     void setScorePosition(int scorePosition) override;
 
     /**
+     * Set the current element to be highlighted. The type of
+     * highlighting will depend on the current interaction mode.
+     */
+    void setScoreHighlightEvent(QString label) override;
+
+    /**
      * Select an interaction mode.
      */
     void setInteractionMode(ScoreInteractionMode mode) override;
@@ -129,6 +135,8 @@ private:
     int m_page;
 
     ScoreInteractionMode m_mode;
+    QString m_idUnderMouse;
+    QString m_idToHighlight;
     int m_scorePosition;
     int m_mousePosition;
     int m_selectStartPosition;
@@ -147,10 +155,20 @@ private:
     QRectF rectForElement(const ScoreElement &elt);
     int positionForPoint(QPoint point);
     QString labelForPosition(int pos);
+
+    QString idAtPoint(QPoint);
+    QRectF rectForId(QString id);
     
     Score::MusicalEventList m_musicalEvents;
-    std::map<QString, int> m_idPageMap;
-    std::map<QString, QRectF> m_idLocationMap;
+    struct EventData {
+        int page;
+        QRectF locationOnPage;
+        QString label;
+        int indexInEvents;
+    };
+    std::map<QString, EventData> m_idDataMap;
+    std::map<int, std::vector<QString>> m_pageEventsMap;
+    std::map<QString, QString> m_labelIdMap;
     QTransform m_widgetToPage;
     QTransform m_pageToWidget;
 };

@@ -2562,12 +2562,14 @@ MainWindow::highlightFrameInScore(sv_frame_t frame)
 
     // If the program is slow, might want to consider a different approach that can get rid of the loops.
     int position = 0;
+    QString label;
     if (targetLayer) {
         ModelId targetId = targetLayer->getModel();
         const auto targetModel = ModelById::getAs<SparseTimeValueModel>(targetId);
         const auto events = targetModel->getAllEvents();
         if (events.empty()) return;
         position = events[0].getValue();
+        label = events[0].getLabel();
         bool found = false;
         int eventCount = targetModel->getEventCount();
         for (int i = 1; i < eventCount; ++i) {
@@ -2575,20 +2577,24 @@ MainWindow::highlightFrameInScore(sv_frame_t frame)
             // cerr << "event index = " << i << ": " << "Frame = " << eventFrame << ", Value = " << targetModel->getAllEvents()[i].getValue() << endl;
             if (frame < eventFrame) {
                 position = events[i-1].getValue();
+                label = events[i-1].getLabel();
                 found = true;
                 break;
             } else if (frame == eventFrame) {
                 position = events[i].getValue();
+                label = events[i-1].getLabel();
                 found = true;
                 break;
             }
         }
         if (!found && eventCount > 0) {
             position = events[eventCount-1].getValue(); // last event
+            label = events[eventCount-1].getLabel();
         }
     }
 
     m_activeScoreWidget->setScorePosition(position);
+    m_activeScoreWidget->setScoreHighlightEvent(label);
 }
 
 void

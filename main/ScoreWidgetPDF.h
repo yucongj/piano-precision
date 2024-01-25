@@ -98,6 +98,12 @@ public slots:
     void setScorePosition(int scorePosition) override;
 
     /**
+     * Set the current element to be highlighted. The type of
+     * highlighting will depend on the current interaction mode.
+     */
+    void setScoreHighlightEvent(QString) override { }
+
+    /**
      * Select an interaction mode.
      */
     void setInteractionMode(ScoreInteractionMode mode) override;

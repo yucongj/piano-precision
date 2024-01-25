@@ -207,8 +207,9 @@ ScoreWidgetMEI::setMusicalEvents(const Score::MusicalEventList &events)
     SVDEBUG << "ScoreWidgetMEI::setMusicalEvents: " << events.size()
             << " events" << endl;
 
-    m_idPageMap.clear();
-    m_idLocationMap.clear();
+    m_idDataMap.clear();
+    m_pageEventsMap.clear();
+    m_labelIdMap.clear();
     
     if (m_svgPages.empty()) {
         SVDEBUG << "ScoreWidgetMEI::setMusicalEvents: WARNING: No SVG pages, score should have been set before this" << endl;
@@ -217,25 +218,49 @@ ScoreWidgetMEI::setMusicalEvents(const Score::MusicalEventList &events)
     
     int p = 0;
     int npages = m_svgPages.size();
+    int ix = 0;
     
     for (const auto &ev : m_musicalEvents) {
         for (const auto &n : ev.notes) {
             QString id = QString::fromStdString(n.noteId);
+            if (id == "") {
+                SVDEBUG << "ScoreWidgetMEI::setMusicalEvents: NOTE: found note with no id" << endl;
+                continue;
+            }
             if (p + 1 < npages &&
                 !m_svgPages[p]->elementExists(id) &&
                 m_svgPages[p + 1]->elementExists(id)) {
                 ++p;
             }
+
             if (m_svgPages[p]->elementExists(id)) {
-                m_idPageMap[id] = p;
+
                 QRectF rect = m_svgPages[p]->boundsOnElement(id); 
                 rect = m_svgPages[p]->transformForElement(id).mapRect(rect);
-                m_idLocationMap[id] = rect;
                 SVDEBUG << "id " << id << " -> page " << p << ", rect "
                         << rect.x() << "," << rect.y() << " " << rect.width()
                         << "x" << rect.height() << endl;
+
+                EventData data;
+                data.page = p;
+                data.locationOnPage = rect;
+                data.indexInEvents = ix;
+
+                // This logic must match that in PianoAligner - it
+                // would be better to have it in the Score helper
+                // classes
+                string label = to_string(ev.measureInfo.measureNumber);
+                label += "+" + to_string(ev.measureInfo.measurePosition.numerator) +
+                    "/" + to_string(ev.measureInfo.measurePosition.denominator);
+                QString qlabel = QString::fromStdString(label);
+                data.label = qlabel;
+                
+                m_idDataMap[id] = data;
+                m_pageEventsMap[p].push_back(id);
+                m_labelIdMap[qlabel] = id;
             }
         }
+        ++ix;
     }
 
     SVDEBUG << "ScoreWidgetMEI::setMusicalEvents: Done" << endl;
@@ -271,15 +296,21 @@ ScoreWidgetMEI::mouseMoveEvent(QMouseEvent *e)
 {
     if (!m_mouseActive) return;
 
-    m_mousePosition = positionForPoint(e->pos());
-    update();
+    m_idUnderMouse = idAtPoint(e->pos());
 
+    SVDEBUG << "ScoreWidgetMEI::mouseMoveEvent: id under mouse = "
+            << m_idUnderMouse << endl;
+    
+//!!!    m_mousePosition = positionForPoint(e->pos());
+    update();
+/*!!!
     if (m_mousePosition >= 0) {
 #ifdef DEBUG_SCORE_WIDGET
         SVDEBUG << "ScoreWidgetMEI::mouseMoveEvent: Emitting scorePositionHighlighted at " << m_mousePosition << endl;
 #endif
         emit scorePositionHighlighted(m_mousePosition, m_mode);
     }
+*/
 }
 
 void
@@ -495,61 +526,66 @@ ScoreWidgetMEI::rectForElement(const ScoreElement &elt)
     return {};
 }
 
+QString
+ScoreWidgetMEI::idAtPoint(QPoint point)
+{
+    QPointF pagePoint = m_widgetToPage.map(QPointF(point));
+
+    const auto &events = m_pageEventsMap[m_page];
+    
+    double px = pagePoint.x();
+    double py = pagePoint.y();
+
+    QString id;
+
+    int staffHeight = 7500;
+    double foundX = 0.0;
+
+    SVDEBUG << "ScoreWidgetMEI::idAtPoint: point " << px << "," << py << endl;
+    
+    for (auto itr = events.begin(); itr != events.end(); ++itr) {
+
+        QRectF r = rectForId(*itr);
+        if (r == QRectF()) continue;
+
+        SVDEBUG << "ScoreWidgetMEI::idAtPoint: id " << *itr
+                << " has rect " << r.x() << "," << r.y() << " "
+                << r.width() << "x" << r.height() << " (seeking " << px
+                << "," << py << ")" << endl;
+    
+        if (py < r.y() || py > r.y() + r.height()) {
+            continue;
+        }
+        if (px < r.x() || r.x() < foundX) {
+            continue;
+        }
+        
+        id = *itr;
+    }
+
+#ifdef DEBUG_SCORE_WIDGET
+    SVDEBUG << "ScoreWidgetMEI::idAtPoint: point " << point.x()
+            << "," << point.y() << " -> element id " << id << endl;
+#endif
+    
+    return id;
+}
+
+QRectF
+ScoreWidgetMEI::rectForId(QString id)
+{
+    auto itr = m_idDataMap.find(id);
+    if (itr == m_idDataMap.end()) {
+        return {};
+    }
+    return itr->second.locationOnPage;
+}
+
 int
 ScoreWidgetMEI::positionForPoint(QPoint point)
 {
-
-    QSize mySize = size();
-//!!!    QSize imageSize = m_image.size();
-    QSize imageSize = mySize;
-
-    double dpr = devicePixelRatio();
-    int xorigin = round((mySize.width() - imageSize.width() / dpr) / 2);
-    int yorigin = round((mySize.height() - imageSize.height() / dpr) / 2);
-
-    double xratio = double(imageSize.width()) / (35716.5 * dpr);
-    double yratio = double(imageSize.height()) / (50513.4 * dpr);
-
-    //!!! Slow but ok to start with
-
-    int pos = -1;
-
-    int x = (point.x() - xorigin) / xratio;
-    int y = (point.y() - yorigin) / yratio;
-/*!!!    
-    for (auto itr = m_elementsByPosition.begin();
-         itr != m_elementsByPosition.end();
-         ++itr) {
-
-        const auto &elt = itr->second;
-
-        if (elt.page < m_page) {
-            continue;
-        }
-        if (elt.page > m_page) {
-            break;
-        }
-            
-        if (y < elt.y || y > elt.y + elt.sy || x < elt.x) {
-            continue;
-        }
-        auto jtr = itr;
-        if (++jtr != m_elementsByPosition.end()) {
-            if (jtr->second.x > elt.x && x > jtr->second.x) {
-                continue;
-            }
-        }
-        pos = itr->first;
-        break;
-    }
-*/
-
-#ifdef DEBUG_SCORE_WIDGET
-    SVDEBUG << "ScoreWidgetMEI::positionForPoint: point " << point.x()
-            << "," << point.y() << " -> position " << pos << endl;
-#endif
-    
-    return pos;
+    //!!!
+    return {};
 }
 
 void
@@ -562,36 +598,63 @@ ScoreWidgetMEI::paintEvent(QPaintEvent *e)
         return;
     }
 
-    auto renderer = m_svgPages[m_page];
-    
     QPainter paint(this);
-    QSize mySize = size();
-//!!!    QSize imageSize = m_image.size();
-    QSize imageSize = mySize;
 
-    if (!mySize.width() || !mySize.height() ||
-        !imageSize.width() || !imageSize.height()) {
+    auto renderer = m_svgPages[m_page];
+
+    // When we actually paint the SVG, we just tell Qt to stick it on
+    // the paint device scaled while preserving aspect. But we still
+    // need to do the same calculations ourselves to construct the
+    // transforms needed for mapping to e.g. mouse interaction space
+    
+    QSizeF widgetSize = size();
+    QSizeF pageSize = renderer->viewBoxF().size();
+
+    double ww = widgetSize.width(), wh = widgetSize.height();
+    double pw = pageSize.width(), ph = pageSize.height();
+
+    SVDEBUG << "ScoreWidgetMEI::paint: widget size " << ww << "x" << wh
+            << ", page size " << pw << "x" << ph << endl;
+    
+    if (!ww || !wh || !pw || !ph) {
+        SVDEBUG << "ScoreWidgetPDF::paint: one of our dimensions is zero, can't proceed" << endl;
         return;
     }
     
-    double dpr = devicePixelRatio();
+    double scale = std::min(ww / pw, wh / ph);
+    double xorigin = (ww - (pw * scale)) / 2.0;
+    double yorigin = (wh - (ph * scale)) / 2.0;
 
-    int xorigin = round((mySize.width() - imageSize.width() / dpr) / 2);
-    int yorigin = round((mySize.height() - imageSize.height() / dpr) / 2);
+    m_pageToWidget = QTransform();
+    m_pageToWidget.translate(xorigin, yorigin);
+    m_pageToWidget.scale(scale, scale);
 
-    // Show a highlight bar under the mouse if the interaction mode is
-    // anything other than None - the colour depends on the mode
+    m_widgetToPage = QTransform();
+    m_widgetToPage.scale(1.0 / scale, 1.0 / scale);
+    m_widgetToPage.translate(-xorigin, -yorigin);
+    
+    // Show a highlight bar if the interaction mode is anything other
+    // than None - the colour and location depend on the mode
     
     if (m_mode != ScoreInteractionMode::None) {
 
-        int position = m_scorePosition;
+        QString id;
+
         if (m_mouseActive) {
-            position = m_mousePosition;
+            id = m_idUnderMouse;
+            SVDEBUG << "ScoreWidgetMEI::paint: m_idUnderMouse = "
+                    << m_idUnderMouse << endl;
+        } else {
+            id = m_idToHighlight;
+            SVDEBUG << "ScoreWidgetMEI::paint: m_idToHighlight = "
+                    << m_idToHighlight << endl;
         }
         
-        QRectF rect = rectForPosition(position);
+        QRectF rect = rectForId(id);
         if (!rect.isNull()) {
 
+            rect = m_pageToWidget.mapRect(rect);
+            
             QColor highlightColour;
 
             switch (m_mode) {
@@ -682,32 +745,11 @@ ScoreWidgetMEI::paintEvent(QPaintEvent *e)
         }
     }
 */
-#ifdef DEBUG_SCORE_WIDGET
-    SVDEBUG << "ScoreWidgetMEI::paint: have image of size " << imageSize.width()
-            << " x " << imageSize.height() << ", painting to widget of size "
-            << mySize.width() << " x " << mySize.height() << ", xorigin = "
-            << xorigin << ", yorigin = " << yorigin << ", devicePixelRatio = "
-            << dpr << endl;
-#endif
-
-    SVDEBUG << "ScoreWidgetMEI: have renderer of defaultSize "
-            << renderer->defaultSize().width() << " x "
-            << renderer->defaultSize().height() << endl;
 
     paint.setPen(Qt::black);
     paint.setBrush(Qt::black);
 
-    auto vb = renderer->viewBoxF();
-    SVDEBUG << "SVG view box = " << vb.x() << "," << vb.y() << " " << vb.width()
-            << " x " << vb.height() << endl;
-
-    //!!! deal with page origin later
-    m_pageToWidget = QTransform::fromScale(mySize.width() / vb.width(),
-                                           mySize.height() / vb.height());
-    m_widgetToPage = QTransform::fromScale(vb.width() / mySize.width(),
-                                           vb.height() / mySize.height());
-    
-    renderer->render(&paint, QRectF(0, 0, mySize.width(), mySize.height()));
+    renderer->render(&paint, QRectF(0, 0, ww, wh));
 }
 
 void
@@ -753,6 +795,29 @@ ScoreWidgetMEI::setScorePosition(int position)
             
 */
     update();
+}
+
+void
+ScoreWidgetMEI::setScoreHighlightEvent(QString label)
+{
+    SVDEBUG << "ScoreWidgetMEI::setScoreHighlightEvent: label = "
+            << label << endl;
+    auto itr = m_labelIdMap.find(label);
+    if (itr == m_labelIdMap.end()) {
+        SVDEBUG << "ScoreWidgetMEI::setScoreHighlightEvent: Label " << label
+                << " not found" << endl;
+        return;
+    }
+    m_idToHighlight = itr->second;
+
+    int page = m_idDataMap[m_idToHighlight].page;
+    if (page != m_page) {
+#ifdef DEBUG_SCORE_WIDGET
+        SVDEBUG << "ScoreWidgetMEI::setScoreHighlightEvent: Flipping to page "
+                << page << endl;
+#endif
+        showPage(page);
+    }
 }
 
 void
