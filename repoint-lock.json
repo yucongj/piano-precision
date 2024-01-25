@@ -4,13 +4,13 @@
       "pin": "7df85ecf98d9477c1ac5a36f51807062e00d8695"
     },
     "svcore": {
-      "pin": "78a125d2562a224e736ef3b157106319e905b654"
+      "pin": "3ca5685a8336a7e642548ea450280b86273aa6ff"
     },
     "svgui": {
-      "pin": "b300ebbf24f18b47488413031bff0b48d1215038"
+      "pin": "c5de3266a5f585758c24f4936c87802dd045a742"
     },
     "svapp": {
-      "pin": "fbc74642ee09ac62981660b7845da164c0e71d8e"
+      "pin": "0378656f4c1d7d79ddafea3dd1ad99fac234e6ca"
     },
     "checker": {
       "pin": "4f7381d34a6a1d6de73e84ff564e6ac734986d40"
@@ -43,13 +43,13 @@
       "pin": "88520ab5b8e5"
     },
     "bqaudiostream": {
-      "pin": "8b3eb99f88e5"
+      "pin": "45385f94f9d0"
     },
     "bqthingfactory": {
       "pin": "2e4bd170f57f"
     },
     "piano-precision-aligner": {
-      "pin": "113ffa80e662ba7d393360b2698e25819bda0cdd"
+      "pin": "68efe0f2dcf965d4de34f8bdd86f506b803da923"
     },
     "verovio": {
       "pin": "c482e357cfbe42c76f41a37485740f66bcb39637"

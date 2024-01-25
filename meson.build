@@ -165,6 +165,7 @@ if system == 'linux'
     '-DHAVE_MAD',
     '-DHAVE_ID3TAG',
     '-DHAVE_OPUS',
+    '-DHAVE_OPUS_READ_ONLY',
     '-DHAVE_LIBLO',
     '-DHAVE_JACK', '-DDYNAMIC_JACK',
     '-DHAVE_LIBPULSE',
@@ -237,6 +238,7 @@ elif system == 'darwin'
     '-DHAVE_SERD',
     '-DHAVE_CAPNP',
     '-DHAVE_OPUS',
+    '-DHAVE_OPUS_READ_ONLY',
     '-DHAVE_LIBLO',
     '-DHAVE_PORTAUDIO',
     '-DHAVE_COREAUDIO',
@@ -372,6 +374,7 @@ elif system == 'windows'
     '-DHAVE_MAD',
     '-DHAVE_ID3TAG',
     '-DHAVE_OPUS',
+    '-DHAVE_OPUS_READ_ONLY',
     '-DHAVE_PORTAUDIO',
     '-D__WINDOWS_MM__', # for RtMidi
   ]
@@ -566,6 +569,7 @@ bq_files = [
   'bqaudioio/src/SystemRecordSource.cpp',
   'bqaudiostream/src/AudioReadStream.cpp',
   'bqaudiostream/src/AudioReadStreamFactory.cpp',
+  'bqaudiostream/src/AudioWriteStreamFactory.cpp',
   'bqaudiostream/src/AudioStreamExceptions.cpp',
 ]
 
