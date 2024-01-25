@@ -14,6 +14,7 @@
 #define SV_SCORE_WIDGET_BASE_H
 
 #include "ScoreElement.h"
+#include "piano-precision-aligner/Score.h"
 
 #include <QFrame>
 #include <QString>
@@ -47,8 +48,29 @@ public:
      * Set the page coord/position elements for the current score,
      * containing correspondences between coordinate and position in
      * time for the notes etc in the score.
+     * 
+     *!!! This is the "old way", used only by the PDF version of the
+     * widget.
      */
-    virtual void setElements(ScoreElements elements) = 0;
+    virtual void setElements(const ScoreElements &elements) = 0;
+
+    /**
+     * Return true if this implementation requires setElements be
+     * called.
+     *
+     *!!! This can be removed when the "old way" goes.
+     */
+    virtual bool requiresElements() const = 0;
+    
+    /** 
+     * Set the musical event list for the current score, containing
+     * (among other things) an ordered-by-metrical-time correspondence
+     * between metrical time and score element ID.
+     * 
+     *!!! This is the "new way", used only by the MEI version of the
+     * widget.
+     */
+    virtual void setMusicalEvents(const Score::MusicalEventList &musicalEvents) = 0;
 
     /** 
      * Return the current score name, or an empty string if none
@@ -125,6 +147,7 @@ signals:
      * rather than positional values. The labels contain any label
      * found associated with the element at the given score position,
      * but may be empty.
+     *!!! old
      */
     void selectionChanged(int startPosition,
                           bool toStartOfScore,
@@ -132,6 +155,16 @@ signals:
                           int endPosition,
                           bool toEndOfScore,
                           QString endLabel);
+
+    /**
+     * Emitted when the selected region of score changes. The labels
+     * contain descriptive texts associated with the elements at the
+     * start and end of the selection.
+     */
+    void selectionExtentsChanged(bool toStartOfScore,
+                                 QString startLabel,
+                                 bool toEndOfScore,
+                                 QString endLabel);
     
     void pageChanged(int page);
 };

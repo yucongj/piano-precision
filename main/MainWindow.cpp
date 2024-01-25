@@ -2442,21 +2442,23 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     settings.beginGroup("MainWindow");
     settings.setValue("sessiontemplate", "");
     settings.endGroup();
-    
-    ScorePositionReader posReader;
-    if (!posReader.loadAScore(scoreName)) {
-        QMessageBox::warning(this,
-                             tr("Unable to load score positions"),
-                             tr("Unable to load score position data: score tracking will not be enabled. See log file for more information."),
-                             QMessageBox::Ok);
-    } else {
-        m_activeScoreWidget->setElements(posReader.getElements());
-    }
 
     newSession();
     m_scoreAlignmentFile = "";
     m_scoreAlignmentModified = false;
     m_score = Score();
+
+    if (m_activeScoreWidget->requiresElements()) {
+        ScorePositionReader posReader;
+        if (!posReader.loadAScore(scoreName)) {
+            QMessageBox::warning(this,
+                                 tr("Unable to load score positions"),
+                                 tr("Unable to load score position data: score tracking will not be enabled. See log file for more information."),
+                                 QMessageBox::Ok);
+        } else {
+            m_activeScoreWidget->setElements(posReader.getElements());
+        }
+    }
 
     // Creating score structure
     string sname = scoreName.toStdString();
@@ -2476,7 +2478,8 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
         return;
     }
     m_score.calculateTicks();
-    m_session.setMusicalEvents(&(m_score.getMusicalEvents()));
+    m_session.setMusicalEvents(m_score.getMusicalEvents());
+    m_activeScoreWidget->setMusicalEvents(m_score.getMusicalEvents());
 
     auto recordingDirectory =
         ScoreFinder::getUserRecordingDirectory(scoreName.toStdString());
@@ -2597,22 +2600,39 @@ MainWindow::scoreSelectionChanged(int start, bool atStart, QString startLabel,
             << ", end = " << end << ", atEnd = " << atEnd << ", endLabel = "
             << endLabel << endl;
 
+//!!! todo: remove with PDF stuff, use below function directly instead
+    
     if (atStart) {
-        m_selectFrom->setText(tr("Start"));
+        startLabel = tr("Start");
     } else if (startLabel != "") {
         m_selectFrom->setText(startLabel);
     } else {
-        m_selectFrom->setText(QString("%1").arg(start));
+        startLabel = QString("%1").arg(start);
     }
 
     if (atEnd) {
-        m_selectTo->setText(tr("End"));
+        endLabel = tr("End");
     } else if (endLabel != "") {
         m_selectTo->setText(endLabel);
     } else {
-        m_selectTo->setText(QString("%1").arg(end));
+        endLabel = QString("%1").arg(end);
     }
 
+    scoreSelectionExtentsChanged(atStart, startLabel, atEnd, endLabel);
+}
+
+void
+MainWindow::scoreSelectionExtentsChanged(bool atStart,
+                                         QString startLabel,
+                                         bool atEnd,
+                                         QString endLabel)
+{
+    SVDEBUG << "MainWindow::scoreSelectionExtentsChanged: "
+            << "startLabel = " << startLabel
+            << ", endLabel = " << endLabel << endl;
+
+    m_selectFrom->setText(startLabel);
+    m_selectTo->setText(endLabel);
     m_subsetOfScoreSelected = (!atStart || !atEnd);
     m_resetSelectionButton->setEnabled(m_subsetOfScoreSelected);
     updateAlignButtonText();

@@ -155,6 +155,7 @@ protected slots:
     void alignmentFrameIlluminated(sv::sv_frame_t);
     void highlightFrameInScore(sv::sv_frame_t);
     void scoreSelectionChanged(int, bool, QString, int, bool, QString);
+    void scoreSelectionExtentsChanged(bool, QString, bool, QString);
     void scorePageChanged(int page);
     void scorePageDownButtonClicked();
     void scorePageUpButtonClicked();

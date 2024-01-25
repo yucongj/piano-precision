@@ -39,8 +39,17 @@ public:
      * containing correspondences between coordinate and position in
      * time for the notes etc in the score.
      */
-    void setElements(ScoreElements elements) override;
+    void setElements(const ScoreElements &elements) override;
 
+    bool requiresElements() const override { return false; }
+    
+    /** 
+     * Set the musical event list for the current score, containing
+     * (among other things) an ordered-by-metrical-time correspondence
+     * between metrical time and score element ID.
+     */
+    void setMusicalEvents(const Score::MusicalEventList &musicalEvents) override;
+    
     /** 
      * Return the current score name, or an empty string if none
      * loaded.
@@ -116,8 +125,7 @@ private:
     QString m_scoreFilename;
     QTemporaryDir m_tempDir;
     QString m_verovioResourcePath;
-    std::vector<QByteArray> m_svgPages;
-    std::unique_ptr<QSvgRenderer> m_currentPageRenderer;
+    std::vector<std::shared_ptr<QSvgRenderer>> m_svgPages;
     int m_page;
 
     ScoreInteractionMode m_mode;
@@ -140,9 +148,11 @@ private:
     int positionForPoint(QPoint point);
     QString labelForPosition(int pos);
     
-    ScoreElements m_elements;
-    typedef std::multimap<int, ScoreElement> PositionElementMap;
-    PositionElementMap m_elementsByPosition;
+    Score::MusicalEventList m_musicalEvents;
+    std::map<QString, int> m_idPageMap;
+    std::map<QString, QRectF> m_idLocationMap;
+    QTransform m_widgetToPage;
+    QTransform m_pageToWidget;
 };
 
 #endif

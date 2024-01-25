@@ -561,12 +561,12 @@ Session::importAlignmentFrom(QString path)
 }
 
 void
-Session::setMusicalEvents(const Score::MusicalEventList *musicalEvents)
+Session::setMusicalEvents(const Score::MusicalEventList &musicalEvents)
 {
     m_musicalEvents = musicalEvents;
     m_alignmentEntries.clear();
     // Calculating the mapping from score musical events to m_alignmentEntries
-    for (auto &event : *m_musicalEvents) {
+    for (auto &event : m_musicalEvents) {
         Score::MeasureInfo info = event.measureInfo;
         std::string label = to_string(info.measureNumber);
         label += "+" + to_string(info.measurePosition.numerator) + "/" + to_string(info.measurePosition.denominator);
@@ -655,7 +655,7 @@ Session::recalculateTempoLayer()
             auto nextFrame = m_alignmentEntries[i+1].frame;
             auto thisSec = RealTime::frame2RealTime(thisFrame, sampleRate).toDouble();
             auto nextSec = RealTime::frame2RealTime(nextFrame, sampleRate).toDouble();
-            Fraction dur = (*m_musicalEvents)[i].duration;
+            Fraction dur = m_musicalEvents[i].duration;
             if (abs(nextSec - thisSec) > 0) {
                 double tempo = (4. * dur.numerator / dur.denominator) * 60. / (nextSec - thisSec); // num of quarter notes per minutes
                 Event tempoEvent(thisFrame, float(tempo), QString());

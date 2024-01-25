@@ -138,7 +138,7 @@ ScoreWidgetPDF::loadAScore(QString scoreName, QString &errorString)
 }
 
 void
-ScoreWidgetPDF::setElements(ScoreElements elements)
+ScoreWidgetPDF::setElements(const ScoreElements &elements)
 {
     m_elements = elements;
 
@@ -149,6 +149,12 @@ ScoreWidgetPDF::setElements(ScoreElements elements)
 
     m_selectStartPosition = -1;
     m_selectEndPosition = -1;
+}
+
+void
+ScoreWidgetPDF::setMusicalEvents(const Score::MusicalEventList &events)
+{
+    SVDEBUG << "ScoreWidgetPDF::setMusicalEvents: NOTE: Not used by this implementation" << endl;
 }
 
 void

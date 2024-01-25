@@ -37,8 +37,17 @@ public:
      * containing correspondences between coordinate and position in
      * time for the notes etc in the score.
      */
-    void setElements(ScoreElements elements) override;
+    void setElements(const ScoreElements &elements) override;
 
+    bool requiresElements() const override { return true; }
+    
+    /** 
+     * Set the musical event list for the current score, containing
+     * (among other things) an ordered-by-metrical-time correspondence
+     * between metrical time and score element ID.
+     */
+    void setMusicalEvents(const Score::MusicalEventList &musicalEvents) override;
+    
     /** 
      * Return the current score name, or an empty string if none
      * loaded.

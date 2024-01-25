@@ -52,7 +52,7 @@ public:
     bool exportAlignmentTo(QString filename);
     bool importAlignmentFrom(QString filename);
 
-    void setMusicalEvents(const Score::MusicalEventList *musicalEvents);
+    void setMusicalEvents(const Score::MusicalEventList &musicalEvents);
     bool updateAlignmentEntries();
 
 public slots:
@@ -116,7 +116,7 @@ private:
 
     bool exportAlignmentEntriesTo(QString path);
 
-    const Score::MusicalEventList *m_musicalEvents; // I don't own this.
+    Score::MusicalEventList m_musicalEvents;
     std::vector<AlignmentEntry> m_alignmentEntries;
 };
 
