@@ -339,6 +339,7 @@ ScoreWidget::mousePressEvent(QMouseEvent *e)
                               end.location,
                               isSelectedToEnd(),
                               end.label);
+        update();
     }
 
     if (!m_eventUnderMouse.isNull()) {
@@ -348,6 +349,7 @@ ScoreWidget::mousePressEvent(QMouseEvent *e)
         emit scoreLocationActivated(m_eventUnderMouse.location,
                                     m_eventUnderMouse.label,
                                     m_mode);
+        update();
     }
 }
 
@@ -714,10 +716,13 @@ ScoreWidget::setHighlightEventByLabel(EventLabel label)
 {
     m_eventToHighlight = getEventWithLabel(label);
     if (m_eventToHighlight.isNull()) {
-        SVDEBUG << "ScoreWidget::setHighlightEventByLabel: Label " << label
-                << " not found" << endl;
+        SVDEBUG << "ScoreWidget::setHighlightEventByLabel: Label \"" << label
+                << "\" not found" << endl;
         return;
     }
+
+    SVDEBUG << "ScoreWidget::setHighlightEventByLabel: Event with label \""
+            << label << "\" found at " << m_eventToHighlight.location << endl;
     
     int page = m_eventToHighlight.page;
     if (page != m_page) {
@@ -727,6 +732,8 @@ ScoreWidget::setHighlightEventByLabel(EventLabel label)
 #endif
         showPage(page);
     }
+
+    update();
 }
 
 void
