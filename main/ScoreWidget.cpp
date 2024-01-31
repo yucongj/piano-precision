@@ -234,10 +234,12 @@ ScoreWidget::setMusicalEvents(const Score::MusicalEventList &events)
                         << "x" << rect.height() << endl;
 
                 EventData data;
+                data.id = id;
                 data.page = p;
-                data.locationOnPage = rect;
-                data.indexInEvents = ix;
+                data.boxOnPage = rect;
+                data.location = ev.measureInfo.measureFraction;
                 data.label = ev.measureInfo.toLabel();
+                data.indexInEvents = ix;
                 m_idDataMap[id] = data;
                 m_pageEventsMap[p].push_back(id);
                 m_labelIdMap[data.label] = id;
@@ -279,21 +281,21 @@ ScoreWidget::mouseMoveEvent(QMouseEvent *e)
 {
     if (!m_mouseActive) return;
 
-    m_idUnderMouse = idAtPoint(e->pos());
+    m_eventUnderMouse = getEventAtPoint(e->pos());
 
     SVDEBUG << "ScoreWidget::mouseMoveEvent: id under mouse = "
-            << m_idUnderMouse << endl;
+            << m_eventUnderMouse.id << endl;
     
-//!!!    m_mousePosition = positionForPoint(e->pos());
     update();
-/*!!!
-    if (m_mousePosition >= 0) {
+
+    if (!m_eventUnderMouse.isNull()) {
 #ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidget::mouseMoveEvent: Emitting scorePositionHighlighted at " << m_mousePosition << endl;
+        SVDEBUG << "ScoreWidget::mouseMoveEvent: Emitting scorePositionHighlighted at " << m_eventUnderMouse.location << endl;
 #endif
-        emit scorePositionHighlighted(m_mousePosition, m_mode);
+        emit scoreLocationHighlighted(m_eventUnderMouse.location,
+                                      m_eventUnderMouse.label,
+                                      m_mode);
     }
-*/
 }
 
 void
@@ -304,46 +306,48 @@ ScoreWidget::mousePressEvent(QMouseEvent *e)
     }
     
     mouseMoveEvent(e);
-/*!!!
-    if (!m_elements.empty() && m_mousePosition >= 0 &&
+
+    if (!m_musicalEvents.empty() && !m_eventUnderMouse.isNull() &&
         (m_mode == InteractionMode::SelectStart ||
          m_mode == InteractionMode::SelectEnd)) {
 
         if (m_mode == InteractionMode::SelectStart) {
-            m_selectStartPosition = m_mousePosition;
-            if (m_selectEndPosition <= m_selectStartPosition) {
-                m_selectEndPosition = -1;
+            m_selectStart = m_eventUnderMouse;
+            if (!(m_selectStart.location < m_selectEnd.location)) {
+                m_selectEnd = {};
             }
         } else {
-            m_selectEndPosition = m_mousePosition;
-            if (m_selectStartPosition >= m_selectEndPosition) {
-                m_selectStartPosition = -1;
+            m_selectEnd = m_eventUnderMouse;
+            if (!(m_selectStart.location < m_selectEnd.location)) {
+                m_selectStart = {};
             }
         }
         
 #ifdef DEBUG_SCORE_WIDGET
         SVDEBUG << "ScoreWidget::mousePressEvent: Set select start to "
-                << m_selectStartPosition << " and end to "
-                << m_selectEndPosition << endl;
+                << m_selectStart.location << " and end to "
+                << m_selectEnd.location << endl;
 #endif
 
-        int start = m_selectStartPosition;
-        int end = m_selectEndPosition;
-        if (start == -1) start = getStartPosition();
-        if (end == -1) end = getEndPosition();
-        emit selectionChanged(start,
+        auto start = m_selectStart;
+        auto end = m_selectEnd;
+        if (start.isNull()) start = getScoreStartEvent();
+        if (end.isNull()) end = getScoreEndEvent();
+        emit selectionChanged(start.location,
                               isSelectedFromStart(),
-                              labelForPosition(start),
-                              end,
+                              start.label,
+                              end.location,
                               isSelectedToEnd(),
-                              labelForPosition(end));
+                              end.label);
     }
-*/    
-    if (m_mousePosition >= 0) {
+
+    if (!m_eventUnderMouse.isNull()) {
 #ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidget::mousePressEvent: Emitting scorePositionActivated at " << m_mousePosition << endl;
+        SVDEBUG << "ScoreWidget::mousePressEvent: Emitting scorePositionActivated at " << m_eventUnderMouse.location << endl;
 #endif
-        emit scorePositionActivated(m_mousePosition, m_mode);
+        emit scoreLocationActivated(m_eventUnderMouse.location,
+                                    m_eventUnderMouse.label,
+                                    m_mode);
     }
 }
 
@@ -354,67 +358,81 @@ ScoreWidget::clearSelection()
     SVDEBUG << "ScoreWidget::clearSelection" << endl;
 #endif
 
-    if (m_selectStartPosition == -1 && m_selectEndPosition == -1) {
+    if (m_selectStart.isNull() && m_selectEnd.isNull()) {
         return;
     }
 
-    m_selectStartPosition = -1;
-    m_selectEndPosition = -1;
+    m_selectStart = {};
+    m_selectEnd = {};
 
-    emit selectionChanged(m_selectStartPosition,
+    emit selectionChanged(m_selectStart.location,
                           true,
-                          labelForPosition(getStartPosition()),
-                          m_selectEndPosition,
+                          getScoreStartEvent().label,
+                          m_selectEnd.location,
                           true,
-                          labelForPosition(getEndPosition()));
+                          getScoreEndEvent().label);
 
     update();
 }
 
-int
-ScoreWidget::getStartPosition() const
+ScoreWidget::EventData
+ScoreWidget::getScoreStartEvent() const
 {
-/*!!!
-  if (m_elementsByPosition.empty()) {
-        return 0;
-    }
-    return m_elementsByPosition.begin()->second.position;
-*/
-    return 0;
+    if (m_musicalEvents.empty()) return {};
+    return getEventForMusicalEvent(*m_musicalEvents.begin());
 }
 
 bool
 ScoreWidget::isSelectedFromStart() const
 {
-    return true;
-    /*!!!
-    return (m_elementsByPosition.empty() ||
-            m_selectStartPosition < 0 ||
-            m_selectStartPosition <= getStartPosition());
-    */
+    return (m_musicalEvents.empty() ||
+            m_selectStart.isNull() ||
+            m_selectStart.indexInEvents == 0);
 }
 
-int
-ScoreWidget::getEndPosition() const
+ScoreWidget::EventData
+ScoreWidget::getScoreEndEvent() const
 {
-    return 0;
-    /*
-    if (m_elementsByPosition.empty()) {
-        return 0;
+    if (m_musicalEvents.empty()) return {};
+    return getEventForMusicalEvent(*m_musicalEvents.rbegin());
+}
+
+ScoreWidget::EventData
+ScoreWidget::getEventForMusicalEvent(const Score::MusicalEvent &mev) const
+{
+    if (mev.notes.empty()) return {};
+    return getEventWithId(mev.notes.begin()->noteId);
+}
+
+ScoreWidget::EventData
+ScoreWidget::getEventWithId(EventId id) const
+{
+    auto itr = m_idDataMap.find(id);
+    if (itr == m_idDataMap.end()) {
+        return {};
     }
-    return m_elementsByPosition.rbegin()->second.position;
-    */
+    return itr->second;
+}
+
+ScoreWidget::EventData
+ScoreWidget::getEventWithId(const std::string &id) const
+{
+    return getEventWithId(QString::fromStdString(id));
+}
+
+ScoreWidget::EventData
+ScoreWidget::getEventWithLabel(EventLabel label) const
+{
+    if (m_labelIdMap.find(label) == m_labelIdMap.end()) return {};
+    return getEventWithId(m_labelIdMap.at(label));
 }
 
 bool
 ScoreWidget::isSelectedToEnd() const
 {
-    return true;
-    /*
-    return (m_elementsByPosition.empty() ||
-            m_selectEndPosition < 0 ||
-            m_selectEndPosition >= getEndPosition());
-    */
+    return (m_musicalEvents.empty() ||
+            m_selectEnd.isNull() ||
+            m_selectEnd.indexInEvents + 1 >= m_musicalEvents.size());
 }
 
 bool
@@ -424,10 +442,13 @@ ScoreWidget::isSelectedAll() const
 }
 
 void
-ScoreWidget::getSelection(int &start, int &end) const
+ScoreWidget::getSelection(Fraction &start, EventLabel &startLabel,
+                          Fraction &end, EventLabel &endLabel) const
 {
-    start = m_selectStartPosition;
-    end = m_selectEndPosition;
+    start = m_selectStart.location;
+    startLabel = m_selectStart.label;
+    end = m_selectEnd.location;
+    endLabel = m_selectEnd.label;
 }
 
 void
@@ -447,70 +468,9 @@ ScoreWidget::mouseDoubleClickEvent(QMouseEvent *e)
 
     mousePressEvent(e);
 }
-    
-QRectF
-ScoreWidget::rectForPosition(int pos)
-{
-    if (pos < 0) {
-#ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidget::rectForPosition: No position" << endl;
-#endif
-        return {};
-    }
 
-    return {};
-    /*!!!
-    auto itr = m_elementsByPosition.lower_bound(pos);
-    if (itr == m_elementsByPosition.end()) {
-#ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidget::rectForPosition: Position " << pos
-                << " does not have any corresponding element" << endl;
-#endif
-        return {};
-    }
-
-    // just use the first element for now...
-
-    const ScoreElement &elt = itr->second;
-    
-#ifdef DEBUG_SCORE_WIDGET
-    SVDEBUG << "ScoreWidget::rectForPosition: Position "
-            << pos << " has corresponding element id="
-            << elt.id << " on page=" << elt.page << " with x="
-            << elt.x << ", y=" << elt.y << ", sy=" << elt.sy
-            << ", label= " << elt.label << endl;
-#endif
-
-    return rectForElement(elt);
-    */
-}
-    
-QString
-ScoreWidget::labelForPosition(int pos)
-{
-    /*!!!
-    auto itr = m_elementsByPosition.lower_bound(pos);
-    if (itr == m_elementsByPosition.end()) {
-#ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidget::rectForPosition: Position " << pos
-                << " does not have any corresponding element" << endl;
-#endif
-        return {};
-    }
-
-    return itr->second.label;
-    */
-    return {};
-}
-
-QRectF
-ScoreWidget::rectForElement(const ScoreElement &elt)
-{
-    return {};
-}
-
-QString
-ScoreWidget::idAtPoint(QPoint point)
+ScoreWidget::EventData
+ScoreWidget::getEventAtPoint(QPoint point)
 {
     QPointF pagePoint = m_widgetToPage.map(QPointF(point));
 
@@ -519,7 +479,7 @@ ScoreWidget::idAtPoint(QPoint point)
     double px = pagePoint.x();
     double py = pagePoint.y();
 
-    QString id;
+    EventData found;
 
     int staffHeight = 7500;
     double foundX = 0.0;
@@ -528,7 +488,11 @@ ScoreWidget::idAtPoint(QPoint point)
     
     for (auto itr = events.begin(); itr != events.end(); ++itr) {
 
-        QRectF r = rectForId(*itr);
+        EventId id = *itr;
+        EventData edata = getEventWithId(id);
+        if (edata.isNull()) continue;
+        
+        QRectF r = edata.boxOnPage;
         if (r == QRectF()) continue;
 
         SVDEBUG << "ScoreWidget::idAtPoint: id " << *itr
@@ -543,32 +507,15 @@ ScoreWidget::idAtPoint(QPoint point)
             continue;
         }
         
-        id = *itr;
+        found = edata;
     }
 
 #ifdef DEBUG_SCORE_WIDGET
     SVDEBUG << "ScoreWidget::idAtPoint: point " << point.x()
-            << "," << point.y() << " -> element id " << id << endl;
+            << "," << point.y() << " -> element id " << found.id << endl;
 #endif
     
-    return id;
-}
-
-QRectF
-ScoreWidget::rectForId(QString id)
-{
-    auto itr = m_idDataMap.find(id);
-    if (itr == m_idDataMap.end()) {
-        return {};
-    }
-    return itr->second.locationOnPage;
-}
-
-int
-ScoreWidget::positionForPoint(QPoint point)
-{
-    //!!!
-    return {};
+    return found;
 }
 
 void
@@ -576,7 +523,7 @@ ScoreWidget::paintEvent(QPaintEvent *e)
 {
     QFrame::paintEvent(e);
 
-    if (m_page < 0 || m_page >= m_svgPages.size()) {
+    if (m_page < 0 || m_page >= getPageCount()) {
         SVDEBUG << "ScoreWidget::paintEvent: No page or page out of range, painting nothing" << endl;
         return;
     }
@@ -621,20 +568,21 @@ ScoreWidget::paintEvent(QPaintEvent *e)
     
     if (m_mode != InteractionMode::None) {
 
-        QString id;
+        EventData event;
 
         if (m_mouseActive) {
-            id = m_idUnderMouse;
-            SVDEBUG << "ScoreWidget::paint: m_idUnderMouse = "
-                    << m_idUnderMouse << endl;
+            event = m_eventUnderMouse;
+            SVDEBUG << "ScoreWidget::paint: under mouse = "
+                    << event.label << endl;
         } else {
-            id = m_idToHighlight;
-            SVDEBUG << "ScoreWidget::paint: m_idToHighlight = "
-                    << m_idToHighlight << endl;
+            event = m_eventToHighlight;
+            SVDEBUG << "ScoreWidget::paint: to highlight = "
+                    << event.label << endl;
         }
+
+        if (!event.isNull()) {
         
-        QRectF rect = rectForId(id);
-        if (!rect.isNull()) {
+            QRectF rect = event.boxOnPage;
 
             rect = m_pageToWidget.mapRect(rect);
             
@@ -673,8 +621,7 @@ ScoreWidget::paintEvent(QPaintEvent *e)
     }
 
     // Highlight the current selection if there is one
-/*!!!
-    if (!m_elements.empty() &&
+    if (!m_musicalEvents.empty() &&
         (!isSelectedAll() ||
          (m_mode == InteractionMode::SelectStart ||
           m_mode == InteractionMode::SelectEnd))) {
@@ -683,51 +630,57 @@ ScoreWidget::paintEvent(QPaintEvent *e)
         fillColour.setAlpha(100);
         paint.setPen(Qt::NoPen);
         paint.setBrush(fillColour);
-        
-        PositionElementMap::iterator i0 = m_elementsByPosition.begin();
-        if (m_selectStartPosition > 0) {
-            i0 = m_elementsByPosition.lower_bound(m_selectStartPosition);
-        }
-        PositionElementMap::iterator i1 = m_elementsByPosition.end();
-        if (m_selectEndPosition > 0) {
-            i1 = m_elementsByPosition.lower_bound(m_selectEndPosition);
-        }
 
+        auto comparator = [](const Score::MusicalEvent &e, const Fraction &f) {
+            return e.measureInfo.measureFraction < f;
+        };
+        
+        Score::MusicalEventList::iterator i0 = m_musicalEvents.begin();
+        if (!m_selectStart.isNull()) {
+            i0 = lower_bound(m_musicalEvents.begin(), m_musicalEvents.end(),
+                             m_selectStart.location, comparator);
+        }
+        Score::MusicalEventList::iterator i1 = m_musicalEvents.end();
+        if (!m_selectEnd.isNull()) {
+            i0 = lower_bound(m_musicalEvents.begin(), m_musicalEvents.end(),
+                             m_selectEnd.location, comparator);
+        }
+        
         int prevY = -1;
-        for (auto i = i0; i != i1 && i != m_elementsByPosition.end(); ++i) {
-            if (i->second.page < m_page) {
+        EventData data;
+        for (auto i = i0; i != i1 && i != m_musicalEvents.end(); ++i) {
+            if (data.isNull()) {
+                data = getEventForMusicalEvent(*i);
+                // otherwise it was filled at the bottom of prev loop
+            }
+            if (data.page < m_page) {
                 continue;
             }
-            if (i->second.page > m_page) {
+            if (data.page > m_page) {
                 break;
             }
-            const ScoreElement &elt(i->second);
-            QRectF rect = rectForElement(elt);
+            QRectF rect = data.boxOnPage;
             if (rect == QRectF()) {
                 continue;
             }
             auto j = i;
             ++j;
             if (i == i0) {
-                prevY = elt.y;
+                prevY = rect.y();
             }
-            if (elt.y != prevY) {
+            if (rect.y() != prevY) {
                 rect.setX(0);
-//!!!                rect.setWidth(m_image.width());
-            } else {
-//!!!                rect.setWidth(m_image.width() - rect.x());
             }
-            if (j != m_elementsByPosition.end() && j->second.y == elt.y) {
-                QRectF nextRect = rectForElement(j->second);
-                if (nextRect != QRectF()) {
-                    rect.setWidth(nextRect.x() - rect.x());
+            if (j != m_musicalEvents.end()) {
+                data = getEventForMusicalEvent(*j);
+                if (data.boxOnPage.y() <= rect.y()) {
+                    rect.setWidth(data.boxOnPage.x() - rect.x());
                 }
             }
             paint.drawRect(rect);
-            prevY = elt.y;
+            prevY = rect.y();
         }
     }
-*/
 
     paint.setPen(Qt::black);
     paint.setBrush(Qt::black);
@@ -750,53 +703,26 @@ ScoreWidget::showPage(int page)
 }
 
 void
-ScoreWidget::setScorePosition(int position)
+ScoreWidget::setHighlightEventByLocation(Fraction location)
 {
-/*
-  m_scorePosition = position;
-
-    if (m_scorePosition >= 0) {
-        auto itr = m_elementsByPosition.lower_bound(m_scorePosition);
-        if (itr == m_elementsByPosition.end()) {
-#ifdef DEBUG_SCORE_WIDGET
-            SVDEBUG << "ScoreWidget::setScorePosition: Position "
-                    << m_scorePosition
-                    << " does not have any corresponding element"
-                    << endl;
-#endif
-        } else {
-            ScoreElement elt = itr->second;
-            if (elt.page != m_page) {
-#ifdef DEBUG_SCORE_WIDGET
-                SVDEBUG << "ScoreWidget::setScorePosition: Flipping to page "
-                        << elt.page << endl;
-#endif
-                showPage(elt.page);
-            }
-        }
-    }
-            
-*/
-    update();
+    //!!! do we need this?
+    throw std::runtime_error("Not yet implemented");
 }
 
 void
-ScoreWidget::setScoreHighlightEvent(QString label)
+ScoreWidget::setHighlightEventByLabel(EventLabel label)
 {
-    SVDEBUG << "ScoreWidget::setScoreHighlightEvent: label = "
-            << label << endl;
-    auto itr = m_labelIdMap.find(label);
-    if (itr == m_labelIdMap.end()) {
-        SVDEBUG << "ScoreWidget::setScoreHighlightEvent: Label " << label
+    m_eventToHighlight = getEventWithLabel(label);
+    if (m_eventToHighlight.isNull()) {
+        SVDEBUG << "ScoreWidget::setHighlightEventByLabel: Label " << label
                 << " not found" << endl;
         return;
     }
-    m_idToHighlight = itr->second;
-
-    int page = m_idDataMap[m_idToHighlight].page;
+    
+    int page = m_eventToHighlight.page;
     if (page != m_page) {
 #ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidget::setScoreHighlightEvent: Flipping to page "
+        SVDEBUG << "ScoreWidget::setHighlightEventByLabel: Flipping to page "
                 << page << endl;
 #endif
         showPage(page);

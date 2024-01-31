@@ -152,12 +152,14 @@ Session::beginAlignment()
         return;
     }
 
-    beginPartialAlignment(-1, -1, -1, -1);
+    beginPartialAlignment(-1, -1, -1, -1, -1, -1);
 }
 
 void
-Session::beginPartialAlignment(int scorePositionStart,
-                               int scorePositionEnd,
+Session::beginPartialAlignment(int scorePositionStartNumerator,
+                               int scorePositionStartDenominator,
+                               int scorePositionEndNumerator,
+                               int scorePositionEndDenominator,
                                sv_frame_t audioFrameStart,
                                sv_frame_t audioFrameEnd)
 {
@@ -190,13 +192,18 @@ Session::beginPartialAlignment(int scorePositionStart,
     }
 
     SVDEBUG << "Session::beginPartialAlignment: score position start = "
-            << scorePositionStart << ", end = " << scorePositionEnd
+            << scorePositionStartNumerator << "/"
+            << scorePositionStartDenominator
+            << ", end = " << scorePositionEndNumerator << "/"
+            << scorePositionEndDenominator
             << ", audio start = " << audioStart << ", end = "
             << audioEnd << endl;
     
     Transform::ParameterMap params {
-        { "score-position-start", scorePositionStart },
-        { "score-position-end", scorePositionEnd },
+        { "score-position-start-numerator", scorePositionStartNumerator },
+        { "score-position-start-denominator", scorePositionStartDenominator },
+        { "score-position-end-numerator", scorePositionEndNumerator },
+        { "score-position-end-denominator", scorePositionEndDenominator },
         { "audio-start", float(audioStart.toDouble()) },
         { "audio-end", float(audioEnd.toDouble()) }
     };
@@ -568,8 +575,7 @@ Session::setMusicalEvents(const Score::MusicalEventList &musicalEvents)
     // Calculating the mapping from score musical events to m_alignmentEntries
     for (auto &event : m_musicalEvents) {
         Score::MeasureInfo info = event.measureInfo;
-        std::string label = to_string(info.measureNumber);
-        label += "+" + to_string(info.measurePosition.numerator) + "/" + to_string(info.measurePosition.denominator);
+        std::string label = info.toLabel();
         m_alignmentEntries.push_back(AlignmentEntry(label, event.tick, -1)); // -1 is placeholder
     }
 }

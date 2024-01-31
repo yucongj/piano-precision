@@ -30,6 +30,8 @@
 #include "plugin/PluginScan.h"
 #include "plugin/PluginPathSetter.h"
 
+#include "piano-precision-aligner/Score.h" // for Fraction type
+
 #include <QMetaType>
 #include <QApplication>
 #include <QScreen>
@@ -493,6 +495,7 @@ main(int argc, char **argv)
     // Permit these types to be used as args in queued signal calls
     qRegisterMetaType<PropertyContainer::PropertyName>("PropertyContainer::PropertyName");
     qRegisterMetaType<ZoomLevel>("ZoomLevel");
+    qRegisterMetaType<Fraction>("Fraction");
 
     MainWindow::AudioMode audioMode = 
         MainWindow::AUDIO_PLAYBACK_NOW_RECORD_LATER;

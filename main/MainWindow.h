@@ -144,9 +144,9 @@ protected slots:
 
     void viewManagerPlaybackFrameChanged(sv::sv_frame_t);
     void scoreInteractionModeChanged(ScoreWidget::InteractionMode);
-    void scorePositionHighlighted(int, ScoreWidget::InteractionMode);
-    void scorePositionActivated(int, ScoreWidget::InteractionMode);
-    void actOnScorePosition(int, ScoreWidget::InteractionMode, bool activated);
+    void scoreLocationHighlighted(Fraction, ScoreWidget::EventLabel, ScoreWidget::InteractionMode);
+    void scoreLocationActivated(Fraction, ScoreWidget::EventLabel, ScoreWidget::InteractionMode);
+    void actOnScoreLocation(Fraction, ScoreWidget::EventLabel, ScoreWidget::InteractionMode, bool activated);
     void scoreInteractionEnded(ScoreWidget::InteractionMode);
     void alignmentReadyForReview();
     void alignmentModified();
@@ -154,8 +154,7 @@ protected slots:
     void alignmentRejected();
     void alignmentFrameIlluminated(sv::sv_frame_t);
     void highlightFrameInScore(sv::sv_frame_t);
-    void scoreSelectionChanged(int, bool, QString, int, bool, QString);
-    void scoreSelectionExtentsChanged(bool, QString, bool, QString);
+    void scoreSelectionChanged(Fraction, bool, ScoreWidget::EventLabel, Fraction, bool, ScoreWidget::EventLabel);
     void scorePageChanged(int page);
     void scorePageDownButtonClicked();
     void scorePageUpButtonClicked();

@@ -27,25 +27,17 @@ class ScoreWidget : public QFrame
     Q_OBJECT
 
 public:
-    ScoreWidget(QWidget *parent);
-    virtual ~ScoreWidget();
-
     /**
-     * EventLabel is for bar-beat labels used within the GUI to
-     * identify specific score events relative to the audio timeline.
-     *
-     * We intentionally use different string types for EventLabel and
-     * EventId, partly because these are the types used by the classes
-     * that generate or deal with them directly, but mostly to avoid
-     * accidentally using one when the other is expected!
+     * EventLabel is for labels derived from event position
+     * information and given to us by MeasureInfo::toString().
+     * Although typically in the form bar+beat/count, these
+     * are opaque to us within this class and are only
+     * compared, not parsed.
      */
     typedef std::string EventLabel;
-
-    /**
-     * EventId is for MEI-derived note IDs used within this class to
-     * identify specific elements.
-     */
-    typedef QString EventId;
+    
+    ScoreWidget(QWidget *parent);
+    virtual ~ScoreWidget();
     
     /** 
      * Load the named score. If loading fails, return false and set
@@ -67,7 +59,7 @@ public:
     QString getCurrentScore() const;
 
     /**
-     * Return the current page number.
+     * Return the current page number (0-based).
      */
     int getCurrentPage() const;
 
@@ -77,10 +69,12 @@ public:
     int getPageCount() const;
 
     /**
-     * Return the start and end score labels of the current selection,
-     * or empty labels if there is no constraint at either end.
+     * Return the start and end locations and labels of the current
+     * selection, or empty labels if there is no constraint at either
+     * end.
      */
-    void getSelection(EventLabel &start, EventLabel &end) const;
+    void getSelection(Fraction &start, EventLabel &startLabel,
+                      Fraction &end, EventLabel &endLabel) const;
  
     /**
      * Mode for mouse interaction.
@@ -113,10 +107,18 @@ public slots:
     void showPage(int page);
 
     /**
-     * Set the current element/position to be highlighted. The type of
-     * highlighting will depend on the current interaction mode.
+     * Set the current location (and by implication, event) to be
+     * highlighted. The type of highlighting will depend on the
+     * current interaction mode.
      */
-    void setHighlightEvent(EventLabel position);
+    void setHighlightEventByLocation(Fraction location);
+
+    /**
+     * Set the current event (and by implication, location) to be
+     * highlighted. The type of highlighting will depend on the
+     * current interaction mode.
+     */
+    void setHighlightEventByLabel(EventLabel label);
 
     /**
      * Select an interaction mode.
@@ -132,23 +134,25 @@ public slots:
 
 signals:
     void loadFailed(QString scoreName, QString errorMessage);
-    void interactionModeChanged(ScoreWidget::InteractionMode newMode);
-    void scorePositionHighlighted(EventLabel, ScoreWidget::InteractionMode);
-    void scorePositionActivated(EventLabel, ScoreWidget::InteractionMode);
-    void interactionEnded(ScoreWidget::InteractionMode); // e.g. because mouse left widget
+    void interactionModeChanged(InteractionMode newMode);
+    void scoreLocationHighlighted(Fraction, EventLabel, InteractionMode);
+    void scoreLocationActivated(Fraction, EventLabel, InteractionMode);
+    void interactionEnded(InteractionMode); // e.g. because mouse left widget
 
     /**
      * Emitted when the selected region of score changes. The start
-     * and end are given using score positions. The toStartOfScore and
+     * and end are given using score locations. The toStartOfScore and
      * toEndOfScore flags are set if the start and/or end correspond
      * to the very start/end of the whole score, in which case the UI
      * may prefer to show the value using terms like "start" or "end"
      * rather than positional values.
      */
-    void selectionChanged(EventLabel start,
+    void selectionChanged(Fraction start,
                           bool toStartOfScore,
-                          EventLabel end,
-                          bool toEndOfScore);
+                          EventLabel startLabel,
+                          Fraction end,
+                          bool toEndOfScore,
+                          EventLabel endLabel);
     
     void pageChanged(int page);
 
@@ -162,6 +166,12 @@ protected:
     void paintEvent(QPaintEvent *) override;
     
 private:
+    /**
+     * EventId is for MEI-derived note IDs used within this class to
+     * identify specific elements. These are not used in the API.
+     */
+    typedef QString EventId;
+    
     QString m_scoreName;
     QString m_scoreFilename;
     QTemporaryDir m_tempDir;
@@ -169,34 +179,43 @@ private:
     std::vector<std::shared_ptr<QSvgRenderer>> m_svgPages;
     int m_page;
 
-    InteractionMode m_mode;
-    EventId m_idUnderMouse;
-    EventId m_idToHighlight;
-    EventLabel m_selectStartLabel;
-    EventLabel m_selectEndLabel;
-    bool m_mouseActive;
-
-    EventLabel getScoreStartLabel() const;
-    bool isSelectedFromStart() const;
-
-    EventLabel getScoreEndLabel() const;
-    bool isSelectedToEnd() const;
-
-    bool isSelectedAll() const;
-    
-    EventId idAtPoint(QPoint);
-    QRectF rectForId(EventId id);
-    
     Score::MusicalEventList m_musicalEvents;
+    
     struct EventData {
+        EventId id;
         int page;
-        QRectF locationOnPage;
+        QRectF boxOnPage;
+        Fraction location;
         EventLabel label;
         int indexInEvents;
+
+        bool isNull() const { return id == ""; }
     };
     std::map<EventId, EventData> m_idDataMap;
-    std::map<int, std::vector<EventId>> m_pageEventsMap;
     std::map<EventLabel, EventId> m_labelIdMap;
+    std::map<int, std::vector<EventId>> m_pageEventsMap;
+
+    InteractionMode m_mode;
+    EventData m_eventUnderMouse;
+    EventData m_eventToHighlight;
+    EventData m_selectStart;
+    EventData m_selectEnd;
+    bool m_mouseActive;
+    
+    EventData getEventAtPoint(QPoint);
+
+    EventData getEventWithId(EventId id) const;
+    EventData getEventWithId(const std::string &id) const;
+    EventData getEventWithLabel(EventLabel label) const;
+    EventData getEventForMusicalEvent(const Score::MusicalEvent &) const;
+    
+    EventData getScoreStartEvent() const;
+    EventData getScoreEndEvent() const;
+
+    bool isSelectedFromStart() const;
+    bool isSelectedToEnd() const;
+    bool isSelectedAll() const;
+    
     QTransform m_widgetToPage;
     QTransform m_pageToWidget;
 };

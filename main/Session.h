@@ -67,8 +67,10 @@ public slots:
 
     void beginAlignment();
 
-    void beginPartialAlignment(int scorePositionStart,
-                               int scorePositionEnd,
+    void beginPartialAlignment(int scorePositionStartNumerator,
+                               int scorePositionStartDenominator,
+                               int scorePositionEndNumerator,
+                               int scorePositionEndDenominator,
                                sv::sv_frame_t audioFrameStart,
                                sv::sv_frame_t audioFrameEnd);
     void acceptAlignment();

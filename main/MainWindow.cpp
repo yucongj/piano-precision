@@ -140,9 +140,10 @@
 #include <cstdio>
 #include <errno.h>
 
-using std::vector;
 using std::map;
 using std::set;
+using std::vector;
+using std::string;
 
 using namespace sv;
 
@@ -232,23 +233,21 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     QWidget *scoreWidgetContainer = new QWidget(this);
     QGridLayout *scoreWidgetLayout = new QGridLayout;
 
-    m_scoreWidget = new ScoreWidgetMEI(this);
+    m_scoreWidget = new ScoreWidget(this);
     m_scoreWidget->setInteractionMode(ScoreWidget::InteractionMode::Navigate);
-    connect(m_scoreWidget, SIGNAL(scorePositionHighlighted(int, ScoreWidget::InteractionMode)),
-            this, SLOT(scorePositionHighlighted(int, ScoreWidget::InteractionMode)));
-    connect(m_scoreWidget, SIGNAL(scorePositionActivated(int, ScoreWidget::InteractionMode)),
-            this, SLOT(scorePositionActivated(int, ScoreWidget::InteractionMode)));
-    connect(m_scoreWidget, SIGNAL(interactionModeChanged(ScoreWidget::InteractionMode)),
-            this, SLOT(scoreInteractionModeChanged(ScoreWidget::InteractionMode)));
-    connect(m_scoreWidget, SIGNAL(interactionEnded(ScoreWidget::InteractionMode)),
-            this, SLOT(scoreInteractionEnded(ScoreWidget::InteractionMode)));
-    connect(m_scoreWidget,
-            SIGNAL(selectionChanged(int, bool, QString, int, bool, QString)),
-            this,
-            SLOT(scoreSelectionChanged(int, bool, QString, int, bool, QString)));
-    connect(m_scoreWidget, SIGNAL(pageChanged(int)),
-            this, SLOT(scorePageChanged(int)));
-
+    connect(m_scoreWidget, &ScoreWidget::scoreLocationHighlighted,
+            this, &MainWindow::scoreLocationHighlighted);
+    connect(m_scoreWidget, &ScoreWidget::scoreLocationActivated,
+            this, &MainWindow::scoreLocationActivated);
+    connect(m_scoreWidget, &ScoreWidget::interactionModeChanged,
+            this, &MainWindow::scoreInteractionModeChanged);
+    connect(m_scoreWidget, &ScoreWidget::interactionEnded,
+            this, &MainWindow::scoreInteractionEnded);
+    connect(m_scoreWidget, &ScoreWidget::selectionChanged,
+            this, &MainWindow::scoreSelectionChanged);
+    connect(m_scoreWidget, &ScoreWidget::pageChanged,
+            this, &MainWindow::scorePageChanged);
+    
     m_alignButton = new QPushButton(tr("Align"));
     m_alignButton->setIcon(IconLoader().load("align"));
     connect(m_alignButton, SIGNAL(clicked()),
@@ -1531,7 +1530,7 @@ MainWindow::setupPaneAndLayerMenus()
     int backgroundTypeCount = int(sizeof(backgroundTypes) /
                                   sizeof(backgroundTypes[0]));
 
-    std::vector<ModelId> models;
+    vector<ModelId> models;
     if (m_document) models = m_document->getTransformInputModels();
     bool plural = (models.size() > 1);
     if (models.empty()) {
@@ -1619,7 +1618,7 @@ MainWindow::setupPaneAndLayerMenus()
             default: break;
             }
 
-            std::vector<ModelId> candidateModels = models;
+            vector<ModelId> candidateModels = models;
             if (candidateModels.empty()) {
                 throw std::logic_error("candidateModels should not be empty");
             }
@@ -1919,7 +1918,7 @@ MainWindow::prepareTransformsMenu()
             this,
             SLOT(installedTransformsPopulated()));
 
-    std::set<Transform::Type> restrictedTo;
+    set<Transform::Type> restrictedTo;
     restrictedTo.insert(Transform::FeatureExtraction);
     TransformFactory::getInstance()->restrictTransformTypes(restrictedTo);
     
@@ -2100,8 +2099,8 @@ MainWindow::populateTransformsMenu()
     // Names should only be duplicated here if they have the same
     // plugin name, output name and maker but are in different library
     // .so names -- that won't happen often I hope
-    std::map<QString, QString> idNameSonameMap;
-    std::set<QString> seenNames, duplicateNames;
+    map<QString, QString> idNameSonameMap;
+    set<QString> seenNames, duplicateNames;
     for (int i = 0; in_range_for(transforms, i); ++i) {
         QString name = transforms[i].name;
         if (seenNames.find(name) != seenNames.end()) {
@@ -2311,7 +2310,7 @@ MainWindow::setupTemplatesMenu()
     bool havePersonal = false;
 
     // (ordered by name)
-    std::set<QString> byName;
+    set<QString> byName;
     for (QString t : templates) {
         if (!t.startsWith(":")) havePersonal = true;
         byName.insert(QFileInfo(t).baseName());
@@ -2351,7 +2350,7 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     m_scorePageUpButton->setEnabled(false);
 
     auto scores = ScoreFinder::getScoreNames();
-    std::set<std::string> byName;
+    set<string> byName;
     for (auto s: scores) {
         byName.insert(s);
     }
@@ -2409,18 +2408,6 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
     m_scoreAlignmentFile = "";
     m_scoreAlignmentModified = false;
     m_score = Score();
-
-    if (m_scoreWidget->requiresElements()) {
-        ScorePositionReader posReader;
-        if (!posReader.loadAScore(scoreName)) {
-            QMessageBox::warning(this,
-                                 tr("Unable to load score positions"),
-                                 tr("Unable to load score position data: score tracking will not be enabled. See log file for more information."),
-                                 QMessageBox::Ok);
-        } else {
-            m_scoreWidget->setElements(posReader.getElements());
-        }
-    }
 
     // Creating score structure
     string sname = scoreName.toStdString();
@@ -2530,7 +2517,6 @@ MainWindow::highlightFrameInScore(sv_frame_t frame)
         const auto targetModel = ModelById::getAs<SparseTimeValueModel>(targetId);
         const auto events = targetModel->getAllEvents();
         if (events.empty()) return;
-        position = events[0].getValue();
         label = events[0].getLabel();
         bool found = false;
         int eventCount = targetModel->getEventCount();
@@ -2538,69 +2524,49 @@ MainWindow::highlightFrameInScore(sv_frame_t frame)
             sv_frame_t eventFrame = events[i].getFrame();
             // cerr << "event index = " << i << ": " << "Frame = " << eventFrame << ", Value = " << targetModel->getAllEvents()[i].getValue() << endl;
             if (frame < eventFrame) {
-                position = events[i-1].getValue();
                 label = events[i-1].getLabel();
                 found = true;
                 break;
             } else if (frame == eventFrame) {
-                position = events[i].getValue();
                 label = events[i-1].getLabel();
                 found = true;
                 break;
             }
         }
         if (!found && eventCount > 0) {
-            position = events[eventCount-1].getValue(); // last event
             label = events[eventCount-1].getLabel();
         }
     }
 
-    m_scoreWidget->setScorePosition(position);
-    m_scoreWidget->setScoreHighlightEvent(label);
+    m_scoreWidget->setHighlightEventByLabel(label.toStdString());
 }
 
 void
-MainWindow::scoreSelectionChanged(int start, bool atStart, QString startLabel,
-                                  int end, bool atEnd, QString endLabel)
+MainWindow::scoreSelectionChanged(Fraction start, bool atStart,
+                                  ScoreWidget::EventLabel startLabel,
+                                  Fraction end, bool atEnd,
+                                  ScoreWidget::EventLabel endLabel)
 {
     SVDEBUG << "MainWindow::scoreSelectionChanged: start = " << start
             << ", atStart = " << atStart << ", startLabel = " << startLabel
             << ", end = " << end << ", atEnd = " << atEnd << ", endLabel = "
             << endLabel << endl;
 
-//!!! todo: remove with PDF stuff, use below function directly instead
+    QString qStartLabel = QString::fromStdString(startLabel);
+    QString qEndLabel = QString::fromStdString(endLabel);
     
     if (atStart) {
-        startLabel = tr("Start");
-    } else if (startLabel != "") {
-        m_selectFrom->setText(startLabel);
+        qStartLabel = tr("Start");
     } else {
-        startLabel = QString("%1").arg(start);
+        m_selectFrom->setText(qStartLabel);
     }
 
     if (atEnd) {
-        endLabel = tr("End");
-    } else if (endLabel != "") {
-        m_selectTo->setText(endLabel);
+        qEndLabel = tr("End");
     } else {
-        endLabel = QString("%1").arg(end);
+        m_selectTo->setText(qEndLabel);
     }
 
-    scoreSelectionExtentsChanged(atStart, startLabel, atEnd, endLabel);
-}
-
-void
-MainWindow::scoreSelectionExtentsChanged(bool atStart,
-                                         QString startLabel,
-                                         bool atEnd,
-                                         QString endLabel)
-{
-    SVDEBUG << "MainWindow::scoreSelectionExtentsChanged: "
-            << "startLabel = " << startLabel
-            << ", endLabel = " << endLabel << endl;
-
-    m_selectFrom->setText(startLabel);
-    m_selectTo->setText(endLabel);
     m_subsetOfScoreSelected = (!atStart || !atEnd);
     m_resetSelectionButton->setEnabled(m_subsetOfScoreSelected);
     updateAlignButtonText();
@@ -2639,11 +2605,12 @@ MainWindow::scorePageUpButtonClicked()
 void
 MainWindow::alignButtonClicked()
 {
-    int scorePositionStart = -1, scorePositionEnd = -1;
+    Fraction start, end;
+    ScoreWidget::EventLabel startLabel, endLabel;
     sv_frame_t audioFrameStart = -1, audioFrameEnd = -1;
     
     if (m_subsetOfScoreSelected) {
-        m_scoreWidget->getSelection(scorePositionStart, scorePositionEnd);
+        m_scoreWidget->getSelection(start, startLabel, end, endLabel);
     }
 
     if (!m_viewManager->getSelections().empty()) {
@@ -2651,9 +2618,15 @@ MainWindow::alignButtonClicked()
     }
 
     m_alignButton->setEnabled(false);
-    
-    m_session.beginPartialAlignment(scorePositionStart, scorePositionEnd,
-                                    audioFrameStart, audioFrameEnd);
+
+    if (m_subsetOfScoreSelected) {
+        m_session.beginPartialAlignment(start.numerator, start.denominator,
+                                        end.numerator, end.denominator,
+                                        audioFrameStart, audioFrameEnd);
+    } else {
+        m_session.beginPartialAlignment(-1, -1, -1, -1,
+                                        audioFrameStart, audioFrameEnd);
+    }
 }
 
 void
@@ -2685,17 +2658,19 @@ MainWindow::scoreInteractionModeChanged(ScoreWidget::InteractionMode mode)
 }
 
 void
-MainWindow::scorePositionHighlighted(int position,
+MainWindow::scoreLocationHighlighted(Fraction location,
+                                     ScoreWidget::EventLabel label,
                                      ScoreWidget::InteractionMode mode)
 {
-    actOnScorePosition(position, mode, false);
+    actOnScoreLocation(location, label, mode, false);
 }
 
 void
-MainWindow::scorePositionActivated(int position,
+MainWindow::scoreLocationActivated(Fraction location,
+                                   ScoreWidget::EventLabel label,
                                    ScoreWidget::InteractionMode mode)
 {
-    actOnScorePosition(position, mode, true);
+    actOnScoreLocation(location, label, mode, true);
 }
 
 void
@@ -2708,18 +2683,20 @@ MainWindow::followScoreToggled()
 }
 
 void
-MainWindow::actOnScorePosition(int position, ScoreWidget::InteractionMode mode,
+MainWindow::actOnScoreLocation(Fraction location,
+                               ScoreWidget::EventLabel label,
+                               ScoreWidget::InteractionMode mode,
                                bool activated)
 {
-    SVDEBUG << "MainWindow::actOnScorePosition(" << position << ", " << int(mode) << ", " << activated << ")" << endl;
+    SVDEBUG << "MainWindow::actOnScoreLocation(" << location << ", " << label << ", " << int(mode) << ", " << activated << ")" << endl;
     
     // See comments in highlightFrameInScore above
 
     TimeValueLayer *targetLayer = m_session.getOnsetsLayer();
     Pane *targetPane = m_session.getPaneContainingOnsetsLayer();
 
-    if (!targetLayer || !targetPane || position < 0 || !m_viewManager) {
-        SVDEBUG << "MainWindow::actOnScorePosition: missing either target layer, position, or view manager" << endl;
+    if (!targetLayer || !targetPane || !m_viewManager) {
+        SVDEBUG << "MainWindow::actOnScorePosition: missing either target layer or view manager" << endl;
         return;
     }
 
@@ -2737,15 +2714,16 @@ MainWindow::actOnScorePosition(int position, ScoreWidget::InteractionMode mode,
     if (events.empty()) return;
 
     sv_frame_t frame = 0;
+    QString qlabel = QString::fromStdString(label);
     for (const auto &e : events) {
         frame = e.getFrame();
-        if (int(e.getValue()) >= position) {
+        if (qlabel == e.getLabel()) {
             break;
         }
     }
 
-    SVDEBUG << "MainWindow::actOnScorePosition: mapped position " << position
-            << " to frame " << frame << endl;
+    SVDEBUG << "MainWindow::actOnScorePosition: mapped location " << location
+            << ", label " << label << " to frame " << frame << endl;
 
     targetLayer->overrideHighlightForPointsAt(frame);
     
@@ -3568,7 +3546,7 @@ MainWindow::exportAudio(bool asData)
     auto modelId = getMainModelId();
     if (modelId.isNone()) return;
     
-    std::set<ModelId> otherModelIds;
+    set<ModelId> otherModelIds;
     ModelId current = modelId;
     
     if (m_paneStack) {
@@ -3589,7 +3567,7 @@ MainWindow::exportAudio(bool asData)
         }
     }
     if (!otherModelIds.empty()) {
-        std::map<QString, ModelId> m;
+        map<QString, ModelId> m;
         QString unnamed = tr("<unnamed>");
         QString oname = unnamed;
         if (auto mp = ModelById::get(modelId)) {
@@ -5010,7 +4988,7 @@ MainWindow::addPane(const LayerConfiguration &configuration, QString text)
     if (!suggestedModelId.isNone()) {
 
         // check its validity
-        std::vector<ModelId> inputModels = m_document->getTransformInputModels();
+        vector<ModelId> inputModels = m_document->getTransformInputModels();
         for (auto im: inputModels) {
             if (im == suggestedModelId) {
                 modelId = suggestedModelId;
@@ -5242,7 +5220,7 @@ MainWindow::addLayer(QString transformId)
         return;
     }
 
-    std::vector<ModelId> candidateInputModels =
+    vector<ModelId> candidateInputModels =
         m_document->getTransformInputModels();
 
     ModelId defaultInputModelId;
