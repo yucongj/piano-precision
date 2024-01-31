@@ -1090,9 +1090,7 @@ pp_main_files = [
   'main/PreferencesDialog.cpp',
   'main/Session.cpp',
   'main/ScoreFinder.cpp',
-  'main/ScorePositionReader.cpp',
-  'main/ScoreWidgetPDF.cpp',
-  'main/ScoreWidgetMEI.cpp',
+  'main/ScoreWidget.cpp',
   'main/vrvtrim.cpp',
   'piano-precision-aligner/Score.cpp',
 ]
@@ -1438,9 +1436,7 @@ pp_main_moc_files = qt.preprocess(
   'main/SVSplash.h',
   'main/PreferencesDialog.h',
   'main/Session.h',
-  'main/ScoreWidgetBase.h',
-  'main/ScoreWidgetPDF.h',
-  'main/ScoreWidgetMEI.h',
+  'main/ScoreWidget.h',
 ])
 
 checker_lib_files = [

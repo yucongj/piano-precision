@@ -10,7 +10,7 @@
     COPYING included with this distribution for more information.
 */
 
-#include "ScoreWidgetMEI.h"
+#include "ScoreWidget.h"
 #include "ScoreFinder.h"
 
 #include <QPainter>
@@ -38,12 +38,10 @@ using std::string;
 using std::shared_ptr;
 using std::make_shared;
 
-ScoreWidgetMEI::ScoreWidgetMEI(QWidget *parent) :
-    ScoreWidgetBase(parent),
+ScoreWidget::ScoreWidget(QWidget *parent) :
+    QFrame(parent),
     m_page(-1),
-    m_mode(ScoreInteractionMode::None),
-    m_scorePosition(-1),
-    m_mousePosition(-1),
+    m_mode(InteractionMode::None),
     m_mouseActive(false)
 {
     setFrameStyle(Panel | Plain);
@@ -51,7 +49,7 @@ ScoreWidgetMEI::ScoreWidgetMEI(QWidget *parent) :
     setMouseTracking(true);
 
     if (!m_tempDir.isValid()) {
-        SVCERR << "ScoreWidgetMEI: Temporary directory is not valid! Can't unbundle resources; rendering will fail" << endl;
+        SVCERR << "ScoreWidget: Temporary directory is not valid! Can't unbundle resources; rendering will fail" << endl;
     } else {
         bool success = true;
         m_tempDir.setAutoRemove(true);
@@ -63,20 +61,20 @@ ScoreWidgetMEI::ScoreWidgetMEI(QWidget *parent) :
             QDir sourceDir(sourceRoot.filePath(name));
             QDir targetDir(targetRoot.filePath(name));
             if (!QDir().mkpath(targetDir.path())) {
-                SVCERR << "ScoreWidgetMEI: Failed to create directory \""
+                SVCERR << "ScoreWidget: Failed to create directory \""
                        << targetDir.path() << "\"" << endl;
                 success = false;
                 break;
             }
-            SVCERR << "ScoreWidgetMEI: scanning dir \"" << sourceDir.path()
+            SVCERR << "ScoreWidget: scanning dir \"" << sourceDir.path()
                    << "\"..." << endl;
             for (auto f: sourceDir.entryInfoList(QDir::Files)) {
                 QString sourcePath(f.filePath());
-                SVCERR << "ScoreWidgetMEI: found \"" << sourcePath
+                SVCERR << "ScoreWidget: found \"" << sourcePath
                        << "\"..." << endl;
                 QString targetPath(targetDir.filePath(f.fileName()));
                 if (!QFile(sourcePath).copy(targetPath)) {
-                    SVCERR << "ScoreWidgetMEI: Failed to copy file from \""
+                    SVCERR << "ScoreWidget: Failed to copy file from \""
                            << sourcePath << "\" to \"" << targetPath << "\""
                            << endl;
                     success = false;
@@ -86,37 +84,37 @@ ScoreWidgetMEI::ScoreWidgetMEI(QWidget *parent) :
         }
         if (success) {
             m_verovioResourcePath = targetRoot.canonicalPath();
-            SVDEBUG << "ScoreWidgetMEI: Unbundled Verovio resources to \""
+            SVDEBUG << "ScoreWidget: Unbundled Verovio resources to \""
                     << m_verovioResourcePath << "\"" << endl;
         }
     }
 }
 
-ScoreWidgetMEI::~ScoreWidgetMEI()
+ScoreWidget::~ScoreWidget()
 {
 
 }
 
 QString
-ScoreWidgetMEI::getCurrentScore() const
+ScoreWidget::getCurrentScore() const
 {
     return m_scoreName;
 }
 
 int
-ScoreWidgetMEI::getCurrentPage() const
+ScoreWidget::getCurrentPage() const
 {
     return m_page;
 }
 
 int
-ScoreWidgetMEI::getPageCount() const
+ScoreWidget::getPageCount() const
 {
     return m_svgPages.size();
 }
 
 void
-ScoreWidgetMEI::loadAScore(QString scoreName)
+ScoreWidget::loadAScore(QString scoreName)
 {
     QString errorString;
     if (!loadAScore(scoreName, errorString)) {
@@ -129,13 +127,13 @@ ScoreWidgetMEI::loadAScore(QString scoreName)
 }
 
 bool
-ScoreWidgetMEI::loadAScore(QString scoreName, QString &errorString)
+ScoreWidget::loadAScore(QString scoreName, QString &errorString)
 {
-    SVDEBUG << "ScoreWidgetMEI::loadAScore: Score \"" << scoreName
+    SVDEBUG << "ScoreWidget::loadAScore: Score \"" << scoreName
             << "\" requested" << endl;
 
     if (m_verovioResourcePath == QString()) {
-        SVDEBUG << "ScoreWidgetMEI::loadAScore: No Verovio resource path available" << endl;
+        SVDEBUG << "ScoreWidget::loadAScore: No Verovio resource path available" << endl;
         return false;
     }
     
@@ -147,20 +145,20 @@ ScoreWidgetMEI::loadAScore(QString scoreName, QString &errorString)
         ScoreFinder::getScoreFile(scoreName.toStdString(), "mei");
     if (scorePath == "") {
         errorString = "Score file (.mei) not found!";
-        SVDEBUG << "ScoreWidgetMEI::loadAScore: " << errorString << endl;
+        SVDEBUG << "ScoreWidget::loadAScore: " << errorString << endl;
         return false;
     }
     
-    SVDEBUG << "ScoreWidgetMEI::loadAScore: Asked to load MEI file \""
+    SVDEBUG << "ScoreWidget::loadAScore: Asked to load MEI file \""
             << scorePath << "\" for score \"" << scoreName << "\"" << endl;
 
     vrv::Toolkit toolkit(false);
     if (!toolkit.SetResourcePath(m_verovioResourcePath.toStdString())) {
-        SVDEBUG << "ScoreWidgetMEI::loadAScore: Failed to set Verovio resource path" << endl;
+        SVDEBUG << "ScoreWidget::loadAScore: Failed to set Verovio resource path" << endl;
         return false;
     }
     if (!toolkit.LoadFile(scorePath)) {
-        SVDEBUG << "ScoreWidgetMEI::loadAScore: Load failed in Verovio toolkit" << endl;
+        SVDEBUG << "ScoreWidget::loadAScore: Load failed in Verovio toolkit" << endl;
         return false;
     }
 
@@ -178,7 +176,7 @@ ScoreWidgetMEI::loadAScore(QString scoreName, QString &errorString)
             (QByteArray::fromStdString(svgText));
         renderer->setAspectRatioMode(Qt::KeepAspectRatio);
 
-        SVDEBUG << "ScoreWidgetMEI::showPage: created renderer from "
+        SVDEBUG << "ScoreWidget::showPage: created renderer from "
                 << svgText.size() << "-byte SVG data" << endl;
         
         m_svgPages.push_back(renderer);
@@ -187,24 +185,18 @@ ScoreWidgetMEI::loadAScore(QString scoreName, QString &errorString)
     m_scoreName = scoreName;
     m_scoreFilename = QString::fromStdString(scorePath);
 
-    SVDEBUG << "ScoreWidgetMEI::loadAScore: Load successful, showing first page"
+    SVDEBUG << "ScoreWidget::loadAScore: Load successful, showing first page"
             << endl;
     showPage(0);
     return true;
 }
 
 void
-ScoreWidgetMEI::setElements(const ScoreElements &elements)
-{
-    SVDEBUG << "ScoreWidgetMEI::setElements: NOTE: Not used by this implementation" << endl;
-}
-
-void
-ScoreWidgetMEI::setMusicalEvents(const Score::MusicalEventList &events)
+ScoreWidget::setMusicalEvents(const Score::MusicalEventList &events)
 {
     m_musicalEvents = events;
 
-    SVDEBUG << "ScoreWidgetMEI::setMusicalEvents: " << events.size()
+    SVDEBUG << "ScoreWidget::setMusicalEvents: " << events.size()
             << " events" << endl;
 
     m_idDataMap.clear();
@@ -212,7 +204,7 @@ ScoreWidgetMEI::setMusicalEvents(const Score::MusicalEventList &events)
     m_labelIdMap.clear();
     
     if (m_svgPages.empty()) {
-        SVDEBUG << "ScoreWidgetMEI::setMusicalEvents: WARNING: No SVG pages, score should have been set before this" << endl;
+        SVDEBUG << "ScoreWidget::setMusicalEvents: WARNING: No SVG pages, score should have been set before this" << endl;
         return;
     }
     
@@ -222,9 +214,9 @@ ScoreWidgetMEI::setMusicalEvents(const Score::MusicalEventList &events)
     
     for (const auto &ev : m_musicalEvents) {
         for (const auto &n : ev.notes) {
-            QString id = QString::fromStdString(n.noteId);
+            EventId id = QString::fromStdString(n.noteId);
             if (id == "") {
-                SVDEBUG << "ScoreWidgetMEI::setMusicalEvents: NOTE: found note with no id" << endl;
+                SVDEBUG << "ScoreWidget::setMusicalEvents: NOTE: found note with no id" << endl;
                 continue;
             }
             if (p + 1 < npages &&
@@ -245,29 +237,20 @@ ScoreWidgetMEI::setMusicalEvents(const Score::MusicalEventList &events)
                 data.page = p;
                 data.locationOnPage = rect;
                 data.indexInEvents = ix;
-
-                // This logic must match that in PianoAligner - it
-                // would be better to have it in the Score helper
-                // classes
-                string label = to_string(ev.measureInfo.measureNumber);
-                label += "+" + to_string(ev.measureInfo.measurePosition.numerator) +
-                    "/" + to_string(ev.measureInfo.measurePosition.denominator);
-                QString qlabel = QString::fromStdString(label);
-                data.label = qlabel;
-                
+                data.label = ev.measureInfo.toLabel();
                 m_idDataMap[id] = data;
                 m_pageEventsMap[p].push_back(id);
-                m_labelIdMap[qlabel] = id;
+                m_labelIdMap[data.label] = id;
             }
         }
         ++ix;
     }
 
-    SVDEBUG << "ScoreWidgetMEI::setMusicalEvents: Done" << endl;
+    SVDEBUG << "ScoreWidget::setMusicalEvents: Done" << endl;
 }
 
 void
-ScoreWidgetMEI::resizeEvent(QResizeEvent *)
+ScoreWidget::resizeEvent(QResizeEvent *)
 {
     if (m_page >= 0) {
         showPage(m_page);
@@ -275,14 +258,14 @@ ScoreWidgetMEI::resizeEvent(QResizeEvent *)
 }
 
 void
-ScoreWidgetMEI::enterEvent(QEnterEvent *)
+ScoreWidget::enterEvent(QEnterEvent *)
 {
     m_mouseActive = true;
     update();
 }
 
 void
-ScoreWidgetMEI::leaveEvent(QEvent *)
+ScoreWidget::leaveEvent(QEvent *)
 {
     if (m_mouseActive) {
         emit interactionEnded(m_mode);
@@ -292,13 +275,13 @@ ScoreWidgetMEI::leaveEvent(QEvent *)
 }
 
 void
-ScoreWidgetMEI::mouseMoveEvent(QMouseEvent *e)
+ScoreWidget::mouseMoveEvent(QMouseEvent *e)
 {
     if (!m_mouseActive) return;
 
     m_idUnderMouse = idAtPoint(e->pos());
 
-    SVDEBUG << "ScoreWidgetMEI::mouseMoveEvent: id under mouse = "
+    SVDEBUG << "ScoreWidget::mouseMoveEvent: id under mouse = "
             << m_idUnderMouse << endl;
     
 //!!!    m_mousePosition = positionForPoint(e->pos());
@@ -306,7 +289,7 @@ ScoreWidgetMEI::mouseMoveEvent(QMouseEvent *e)
 /*!!!
     if (m_mousePosition >= 0) {
 #ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidgetMEI::mouseMoveEvent: Emitting scorePositionHighlighted at " << m_mousePosition << endl;
+        SVDEBUG << "ScoreWidget::mouseMoveEvent: Emitting scorePositionHighlighted at " << m_mousePosition << endl;
 #endif
         emit scorePositionHighlighted(m_mousePosition, m_mode);
     }
@@ -314,7 +297,7 @@ ScoreWidgetMEI::mouseMoveEvent(QMouseEvent *e)
 }
 
 void
-ScoreWidgetMEI::mousePressEvent(QMouseEvent *e)
+ScoreWidget::mousePressEvent(QMouseEvent *e)
 {
     if (e->button() != Qt::LeftButton) {
         return;
@@ -323,10 +306,10 @@ ScoreWidgetMEI::mousePressEvent(QMouseEvent *e)
     mouseMoveEvent(e);
 /*!!!
     if (!m_elements.empty() && m_mousePosition >= 0 &&
-        (m_mode == ScoreInteractionMode::SelectStart ||
-         m_mode == ScoreInteractionMode::SelectEnd)) {
+        (m_mode == InteractionMode::SelectStart ||
+         m_mode == InteractionMode::SelectEnd)) {
 
-        if (m_mode == ScoreInteractionMode::SelectStart) {
+        if (m_mode == InteractionMode::SelectStart) {
             m_selectStartPosition = m_mousePosition;
             if (m_selectEndPosition <= m_selectStartPosition) {
                 m_selectEndPosition = -1;
@@ -339,7 +322,7 @@ ScoreWidgetMEI::mousePressEvent(QMouseEvent *e)
         }
         
 #ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidgetMEI::mousePressEvent: Set select start to "
+        SVDEBUG << "ScoreWidget::mousePressEvent: Set select start to "
                 << m_selectStartPosition << " and end to "
                 << m_selectEndPosition << endl;
 #endif
@@ -358,17 +341,17 @@ ScoreWidgetMEI::mousePressEvent(QMouseEvent *e)
 */    
     if (m_mousePosition >= 0) {
 #ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidgetMEI::mousePressEvent: Emitting scorePositionActivated at " << m_mousePosition << endl;
+        SVDEBUG << "ScoreWidget::mousePressEvent: Emitting scorePositionActivated at " << m_mousePosition << endl;
 #endif
         emit scorePositionActivated(m_mousePosition, m_mode);
     }
 }
 
 void
-ScoreWidgetMEI::clearSelection()
+ScoreWidget::clearSelection()
 {
 #ifdef DEBUG_SCORE_WIDGET
-    SVDEBUG << "ScoreWidgetMEI::clearSelection" << endl;
+    SVDEBUG << "ScoreWidget::clearSelection" << endl;
 #endif
 
     if (m_selectStartPosition == -1 && m_selectEndPosition == -1) {
@@ -389,7 +372,7 @@ ScoreWidgetMEI::clearSelection()
 }
 
 int
-ScoreWidgetMEI::getStartPosition() const
+ScoreWidget::getStartPosition() const
 {
 /*!!!
   if (m_elementsByPosition.empty()) {
@@ -401,7 +384,7 @@ ScoreWidgetMEI::getStartPosition() const
 }
 
 bool
-ScoreWidgetMEI::isSelectedFromStart() const
+ScoreWidget::isSelectedFromStart() const
 {
     return true;
     /*!!!
@@ -412,7 +395,7 @@ ScoreWidgetMEI::isSelectedFromStart() const
 }
 
 int
-ScoreWidgetMEI::getEndPosition() const
+ScoreWidget::getEndPosition() const
 {
     return 0;
     /*
@@ -424,7 +407,7 @@ ScoreWidgetMEI::getEndPosition() const
 }
 
 bool
-ScoreWidgetMEI::isSelectedToEnd() const
+ScoreWidget::isSelectedToEnd() const
 {
     return true;
     /*
@@ -435,42 +418,42 @@ ScoreWidgetMEI::isSelectedToEnd() const
 }
 
 bool
-ScoreWidgetMEI::isSelectedAll() const
+ScoreWidget::isSelectedAll() const
 {
     return isSelectedFromStart() && isSelectedToEnd();
 }
 
 void
-ScoreWidgetMEI::getSelection(int &start, int &end) const
+ScoreWidget::getSelection(int &start, int &end) const
 {
     start = m_selectStartPosition;
     end = m_selectEndPosition;
 }
 
 void
-ScoreWidgetMEI::mouseDoubleClickEvent(QMouseEvent *e)
+ScoreWidget::mouseDoubleClickEvent(QMouseEvent *e)
 {
     if (e->button() != Qt::LeftButton) {
         return;
     }
 
 #ifdef DEBUG_SCORE_WIDGET
-    SVDEBUG << "ScoreWidgetMEI::mouseDoubleClickEvent" << endl;
+    SVDEBUG << "ScoreWidget::mouseDoubleClickEvent" << endl;
 #endif
         
-    if (m_mode == ScoreInteractionMode::Navigate) {
-        setInteractionMode(ScoreInteractionMode::Edit);
+    if (m_mode == InteractionMode::Navigate) {
+        setInteractionMode(InteractionMode::Edit);
     }
 
     mousePressEvent(e);
 }
     
 QRectF
-ScoreWidgetMEI::rectForPosition(int pos)
+ScoreWidget::rectForPosition(int pos)
 {
     if (pos < 0) {
 #ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidgetMEI::rectForPosition: No position" << endl;
+        SVDEBUG << "ScoreWidget::rectForPosition: No position" << endl;
 #endif
         return {};
     }
@@ -480,7 +463,7 @@ ScoreWidgetMEI::rectForPosition(int pos)
     auto itr = m_elementsByPosition.lower_bound(pos);
     if (itr == m_elementsByPosition.end()) {
 #ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidgetMEI::rectForPosition: Position " << pos
+        SVDEBUG << "ScoreWidget::rectForPosition: Position " << pos
                 << " does not have any corresponding element" << endl;
 #endif
         return {};
@@ -491,7 +474,7 @@ ScoreWidgetMEI::rectForPosition(int pos)
     const ScoreElement &elt = itr->second;
     
 #ifdef DEBUG_SCORE_WIDGET
-    SVDEBUG << "ScoreWidgetMEI::rectForPosition: Position "
+    SVDEBUG << "ScoreWidget::rectForPosition: Position "
             << pos << " has corresponding element id="
             << elt.id << " on page=" << elt.page << " with x="
             << elt.x << ", y=" << elt.y << ", sy=" << elt.sy
@@ -503,13 +486,13 @@ ScoreWidgetMEI::rectForPosition(int pos)
 }
     
 QString
-ScoreWidgetMEI::labelForPosition(int pos)
+ScoreWidget::labelForPosition(int pos)
 {
     /*!!!
     auto itr = m_elementsByPosition.lower_bound(pos);
     if (itr == m_elementsByPosition.end()) {
 #ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidgetMEI::rectForPosition: Position " << pos
+        SVDEBUG << "ScoreWidget::rectForPosition: Position " << pos
                 << " does not have any corresponding element" << endl;
 #endif
         return {};
@@ -521,13 +504,13 @@ ScoreWidgetMEI::labelForPosition(int pos)
 }
 
 QRectF
-ScoreWidgetMEI::rectForElement(const ScoreElement &elt)
+ScoreWidget::rectForElement(const ScoreElement &elt)
 {
     return {};
 }
 
 QString
-ScoreWidgetMEI::idAtPoint(QPoint point)
+ScoreWidget::idAtPoint(QPoint point)
 {
     QPointF pagePoint = m_widgetToPage.map(QPointF(point));
 
@@ -541,14 +524,14 @@ ScoreWidgetMEI::idAtPoint(QPoint point)
     int staffHeight = 7500;
     double foundX = 0.0;
 
-    SVDEBUG << "ScoreWidgetMEI::idAtPoint: point " << px << "," << py << endl;
+    SVDEBUG << "ScoreWidget::idAtPoint: point " << px << "," << py << endl;
     
     for (auto itr = events.begin(); itr != events.end(); ++itr) {
 
         QRectF r = rectForId(*itr);
         if (r == QRectF()) continue;
 
-        SVDEBUG << "ScoreWidgetMEI::idAtPoint: id " << *itr
+        SVDEBUG << "ScoreWidget::idAtPoint: id " << *itr
                 << " has rect " << r.x() << "," << r.y() << " "
                 << r.width() << "x" << r.height() << " (seeking " << px
                 << "," << py << ")" << endl;
@@ -564,7 +547,7 @@ ScoreWidgetMEI::idAtPoint(QPoint point)
     }
 
 #ifdef DEBUG_SCORE_WIDGET
-    SVDEBUG << "ScoreWidgetMEI::idAtPoint: point " << point.x()
+    SVDEBUG << "ScoreWidget::idAtPoint: point " << point.x()
             << "," << point.y() << " -> element id " << id << endl;
 #endif
     
@@ -572,7 +555,7 @@ ScoreWidgetMEI::idAtPoint(QPoint point)
 }
 
 QRectF
-ScoreWidgetMEI::rectForId(QString id)
+ScoreWidget::rectForId(QString id)
 {
     auto itr = m_idDataMap.find(id);
     if (itr == m_idDataMap.end()) {
@@ -582,19 +565,19 @@ ScoreWidgetMEI::rectForId(QString id)
 }
 
 int
-ScoreWidgetMEI::positionForPoint(QPoint point)
+ScoreWidget::positionForPoint(QPoint point)
 {
     //!!!
     return {};
 }
 
 void
-ScoreWidgetMEI::paintEvent(QPaintEvent *e)
+ScoreWidget::paintEvent(QPaintEvent *e)
 {
     QFrame::paintEvent(e);
 
     if (m_page < 0 || m_page >= m_svgPages.size()) {
-        SVDEBUG << "ScoreWidgetMEI::paintEvent: No page or page out of range, painting nothing" << endl;
+        SVDEBUG << "ScoreWidget::paintEvent: No page or page out of range, painting nothing" << endl;
         return;
     }
 
@@ -613,7 +596,7 @@ ScoreWidgetMEI::paintEvent(QPaintEvent *e)
     double ww = widgetSize.width(), wh = widgetSize.height();
     double pw = pageSize.width(), ph = pageSize.height();
 
-    SVDEBUG << "ScoreWidgetMEI::paint: widget size " << ww << "x" << wh
+    SVDEBUG << "ScoreWidget::paint: widget size " << ww << "x" << wh
             << ", page size " << pw << "x" << ph << endl;
     
     if (!ww || !wh || !pw || !ph) {
@@ -636,17 +619,17 @@ ScoreWidgetMEI::paintEvent(QPaintEvent *e)
     // Show a highlight bar if the interaction mode is anything other
     // than None - the colour and location depend on the mode
     
-    if (m_mode != ScoreInteractionMode::None) {
+    if (m_mode != InteractionMode::None) {
 
         QString id;
 
         if (m_mouseActive) {
             id = m_idUnderMouse;
-            SVDEBUG << "ScoreWidgetMEI::paint: m_idUnderMouse = "
+            SVDEBUG << "ScoreWidget::paint: m_idUnderMouse = "
                     << m_idUnderMouse << endl;
         } else {
             id = m_idToHighlight;
-            SVDEBUG << "ScoreWidgetMEI::paint: m_idToHighlight = "
+            SVDEBUG << "ScoreWidget::paint: m_idToHighlight = "
                     << m_idToHighlight << endl;
         }
         
@@ -658,14 +641,14 @@ ScoreWidgetMEI::paintEvent(QPaintEvent *e)
             QColor highlightColour;
 
             switch (m_mode) {
-            case ScoreInteractionMode::Navigate:
+            case InteractionMode::Navigate:
                 highlightColour = navigateHighlightColour;
                 break;
-            case ScoreInteractionMode::Edit:
+            case InteractionMode::Edit:
                 highlightColour = editHighlightColour;
                 break;
-            case ScoreInteractionMode::SelectStart:
-            case ScoreInteractionMode::SelectEnd:
+            case InteractionMode::SelectStart:
+            case InteractionMode::SelectEnd:
                 highlightColour = selectHighlightColour.darker();
                 break;
             default: // None already handled in conditional above
@@ -677,7 +660,7 @@ ScoreWidgetMEI::paintEvent(QPaintEvent *e)
             paint.setBrush(highlightColour);
             
 #ifdef DEBUG_SCORE_WIDGET
-            SVDEBUG << "ScoreWidgetMEI::paint: highlighting rect with origin "
+            SVDEBUG << "ScoreWidget::paint: highlighting rect with origin "
                     << rect.x() << "," << rect.y() << " and size "
                     << rect.width() << "x" << rect.height()
                     << " using colour " << highlightColour.name() << endl;
@@ -693,8 +676,8 @@ ScoreWidgetMEI::paintEvent(QPaintEvent *e)
 /*!!!
     if (!m_elements.empty() &&
         (!isSelectedAll() ||
-         (m_mode == ScoreInteractionMode::SelectStart ||
-          m_mode == ScoreInteractionMode::SelectEnd))) {
+         (m_mode == InteractionMode::SelectStart ||
+          m_mode == InteractionMode::SelectEnd))) {
 
         QColor fillColour = selectHighlightColour;
         fillColour.setAlpha(100);
@@ -753,10 +736,10 @@ ScoreWidgetMEI::paintEvent(QPaintEvent *e)
 }
 
 void
-ScoreWidgetMEI::showPage(int page)
+ScoreWidget::showPage(int page)
 {
     if (page < 0 || page >= getPageCount()) {
-        SVDEBUG << "ScoreWidgetMEI::showPage: page number " << page
+        SVDEBUG << "ScoreWidget::showPage: page number " << page
                 << " out of range; have " << getPageCount() << " pages" << endl;
         return;
     }
@@ -767,7 +750,7 @@ ScoreWidgetMEI::showPage(int page)
 }
 
 void
-ScoreWidgetMEI::setScorePosition(int position)
+ScoreWidget::setScorePosition(int position)
 {
 /*
   m_scorePosition = position;
@@ -776,7 +759,7 @@ ScoreWidgetMEI::setScorePosition(int position)
         auto itr = m_elementsByPosition.lower_bound(m_scorePosition);
         if (itr == m_elementsByPosition.end()) {
 #ifdef DEBUG_SCORE_WIDGET
-            SVDEBUG << "ScoreWidgetMEI::setScorePosition: Position "
+            SVDEBUG << "ScoreWidget::setScorePosition: Position "
                     << m_scorePosition
                     << " does not have any corresponding element"
                     << endl;
@@ -785,7 +768,7 @@ ScoreWidgetMEI::setScorePosition(int position)
             ScoreElement elt = itr->second;
             if (elt.page != m_page) {
 #ifdef DEBUG_SCORE_WIDGET
-                SVDEBUG << "ScoreWidgetMEI::setScorePosition: Flipping to page "
+                SVDEBUG << "ScoreWidget::setScorePosition: Flipping to page "
                         << elt.page << endl;
 #endif
                 showPage(elt.page);
@@ -798,13 +781,13 @@ ScoreWidgetMEI::setScorePosition(int position)
 }
 
 void
-ScoreWidgetMEI::setScoreHighlightEvent(QString label)
+ScoreWidget::setScoreHighlightEvent(QString label)
 {
-    SVDEBUG << "ScoreWidgetMEI::setScoreHighlightEvent: label = "
+    SVDEBUG << "ScoreWidget::setScoreHighlightEvent: label = "
             << label << endl;
     auto itr = m_labelIdMap.find(label);
     if (itr == m_labelIdMap.end()) {
-        SVDEBUG << "ScoreWidgetMEI::setScoreHighlightEvent: Label " << label
+        SVDEBUG << "ScoreWidget::setScoreHighlightEvent: Label " << label
                 << " not found" << endl;
         return;
     }
@@ -813,7 +796,7 @@ ScoreWidgetMEI::setScoreHighlightEvent(QString label)
     int page = m_idDataMap[m_idToHighlight].page;
     if (page != m_page) {
 #ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "ScoreWidgetMEI::setScoreHighlightEvent: Flipping to page "
+        SVDEBUG << "ScoreWidget::setScoreHighlightEvent: Flipping to page "
                 << page << endl;
 #endif
         showPage(page);
@@ -821,14 +804,14 @@ ScoreWidgetMEI::setScoreHighlightEvent(QString label)
 }
 
 void
-ScoreWidgetMEI::setInteractionMode(ScoreInteractionMode mode)
+ScoreWidget::setInteractionMode(InteractionMode mode)
 {
     if (mode == m_mode) {
         return;
     }
 
 #ifdef DEBUG_SCORE_WIDGET
-    SVDEBUG << "ScoreWidgetMEI::setInteractionMode: switching from " << int(m_mode)
+    SVDEBUG << "ScoreWidget::setInteractionMode: switching from " << int(m_mode)
             << " to " << int(mode) << endl;
 #endif
     

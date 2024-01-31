@@ -22,7 +22,7 @@
 #include "PreferencesDialog.h"
 #include "Surveyer.h"
 
-#include "ScoreWidgetBase.h"
+#include "ScoreWidget.h"
 #include "Session.h"
 #include "piano-precision-aligner/Score.h"
 
@@ -143,11 +143,11 @@ protected slots:
     virtual void chooseScore(); // Added by Yucong Jiang, Oct 5, 2021
 
     void viewManagerPlaybackFrameChanged(sv::sv_frame_t);
-    void scoreInteractionModeChanged(ScoreInteractionMode);
-    void scorePositionHighlighted(int, ScoreInteractionMode);
-    void scorePositionActivated(int, ScoreInteractionMode);
-    void actOnScorePosition(int, ScoreInteractionMode, bool activated);
-    void scoreInteractionEnded(ScoreInteractionMode);
+    void scoreInteractionModeChanged(ScoreWidget::InteractionMode);
+    void scorePositionHighlighted(int, ScoreWidget::InteractionMode);
+    void scorePositionActivated(int, ScoreWidget::InteractionMode);
+    void actOnScorePosition(int, ScoreWidget::InteractionMode, bool activated);
+    void scoreInteractionEnded(ScoreWidget::InteractionMode);
     void alignmentReadyForReview();
     void alignmentModified();
     void alignmentAccepted();
@@ -219,8 +219,7 @@ protected:
     sv::WaveformLayer           *m_panLayer;
     
     QScrollArea             *m_mainScroll;
-    std::vector<ScoreWidgetBase *> m_scoreWidgets;
-    ScoreWidgetBase         *m_activeScoreWidget;
+    ScoreWidget             *m_scoreWidget;
     QPushButton             *m_alignButton;
     QPushButton             *m_alignAcceptButton;
     QPushButton             *m_alignRejectButton;

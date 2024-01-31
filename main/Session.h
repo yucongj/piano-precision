@@ -40,7 +40,7 @@ public:
         float tick;
         int frame;
 
-        AlignmentEntry(string l, float t, int f): label{l}, tick{t}, frame{f} { }
+        AlignmentEntry(std::string l, float t, int f): label{l}, tick{t}, frame{f} { }
     };
 
     sv::TimeValueLayer *getOnsetsLayer();
