@@ -27,6 +27,7 @@
 #include "vrvtrim.h"
 
 #define DEBUG_SCORE_WIDGET 1
+//#define DEBUG_EVENT_FINDING 1
 
 static QColor navigateHighlightColour("#59c4df");
 static QColor editHighlightColour("#ffbd00");
@@ -229,9 +230,11 @@ ScoreWidget::setMusicalEvents(const Score::MusicalEventList &events)
 
                 QRectF rect = m_svgPages[p]->boundsOnElement(id); 
                 rect = m_svgPages[p]->transformForElement(id).mapRect(rect);
+#ifdef DEBUG_SCORE_WIDGET
                 SVDEBUG << "id " << id << " -> page " << p << ", rect "
                         << rect.x() << "," << rect.y() << " " << rect.width()
                         << "x" << rect.height() << endl;
+#endif
 
                 EventData data;
                 data.id = id;
@@ -486,7 +489,9 @@ ScoreWidget::getEventAtPoint(QPoint point)
     int staffHeight = 7500;
     double foundX = 0.0;
 
-    SVDEBUG << "ScoreWidget::idAtPoint: point " << px << "," << py << endl;
+#ifdef DEBUG_EVENT_FINDING
+    SVDEBUG << "ScoreWidget::getEventAtPoint: point " << px << "," << py << endl;
+#endif
     
     for (auto itr = events.begin(); itr != events.end(); ++itr) {
 
@@ -497,10 +502,12 @@ ScoreWidget::getEventAtPoint(QPoint point)
         QRectF r = edata.boxOnPage;
         if (r == QRectF()) continue;
 
-        SVDEBUG << "ScoreWidget::idAtPoint: id " << *itr
+#ifdef DEBUG_EVENT_FINDING
+        SVDEBUG << "ScoreWidget::getEventAtPoint: id " << *itr
                 << " has rect " << r.x() << "," << r.y() << " "
                 << r.width() << "x" << r.height() << " (seeking " << px
                 << "," << py << ")" << endl;
+#endif
     
         if (py < r.y() || py > r.y() + r.height()) {
             continue;
@@ -512,7 +519,7 @@ ScoreWidget::getEventAtPoint(QPoint point)
         found = edata;
     }
 
-#ifdef DEBUG_SCORE_WIDGET
+#ifdef DEBUG_EVENT_FINDING
     SVDEBUG << "ScoreWidget::idAtPoint: point " << point.x()
             << "," << point.y() << " -> element id " << found.id << endl;
 #endif
@@ -644,9 +651,21 @@ ScoreWidget::paintEvent(QPaintEvent *e)
         }
         Score::MusicalEventList::iterator i1 = m_musicalEvents.end();
         if (!m_selectEnd.isNull()) {
-            i0 = lower_bound(m_musicalEvents.begin(), m_musicalEvents.end(),
+            i1 = lower_bound(m_musicalEvents.begin(), m_musicalEvents.end(),
                              m_selectEnd.location, comparator);
         }
+
+        SVDEBUG << "ScoreWidget::paint: selection spans from "
+                << m_selectStart.location << " to " << m_selectEnd.location
+                << " giving us iterators at "
+                << (i0 == m_musicalEvents.end() ? "(end)" :
+                    i0->notes.empty() ? "(location without note)" :
+                    i0->notes[0].noteId)
+                << " to " 
+                << (i1 == m_musicalEvents.end() ? "(end)" :
+                    i1->notes.empty() ? "(location without note)" :
+                    i1->notes[0].noteId)
+                << endl;
         
         int prevY = -1;
         EventData data;
@@ -656,6 +675,7 @@ ScoreWidget::paintEvent(QPaintEvent *e)
                 // otherwise it was filled at the bottom of prev loop
             }
             if (data.page < m_page) {
+                data = {};
                 continue;
             }
             if (data.page > m_page) {
@@ -663,6 +683,7 @@ ScoreWidget::paintEvent(QPaintEvent *e)
             }
             QRectF rect = data.boxOnPage;
             if (rect == QRectF()) {
+                data = {};
                 continue;
             }
             auto j = i;
@@ -670,16 +691,17 @@ ScoreWidget::paintEvent(QPaintEvent *e)
             if (i == i0) {
                 prevY = rect.y();
             }
-            if (rect.y() != prevY) {
-                rect.setX(0);
-            }
+//            if (rect.y() != prevY) {
+//                rect.setX(0);
+//            }
             if (j != m_musicalEvents.end()) {
                 data = getEventForMusicalEvent(*j);
                 if (data.boxOnPage.y() <= rect.y()) {
                     rect.setWidth(data.boxOnPage.x() - rect.x());
                 }
             }
-            paint.drawRect(rect);
+            SVDEBUG << "rect y = " << rect.y() << endl;
+            paint.drawRect(m_pageToWidget.mapRect(rect));
             prevY = rect.y();
         }
     }
