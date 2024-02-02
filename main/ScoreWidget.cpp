@@ -16,6 +16,8 @@
 #include <QPainter>
 #include <QMouseEvent>
 #include <QSvgRenderer>
+#include <QDomDocument>
+#include <QDomElement>
 
 #include "base/Debug.h"
 
@@ -139,7 +141,10 @@ ScoreWidget::loadAScore(QString scoreName, QString &errorString)
     }
     
     clearSelection();
+
     m_svgPages.clear();
+    m_noteSystemExtentMap.clear();
+    
     m_page = -1;
     
     string scorePath =
@@ -165,22 +170,24 @@ ScoreWidget::loadAScore(QString scoreName, QString &errorString)
 
     int pp = toolkit.GetPageCount();
     for (int p = 0; p < pp; ++p) {
-        // For the first cut, just store the SVG texts for each page
-        // here. Two alternative extremes are (i) convert them to Qt's
-        // internal format by loading to QSvgRenderer and store those,
-        // or (ii) store only the MEI toolkit object and render to SVG
-        // on demand (useful for reflow?)
-        std::string svgText = toolkit.RenderToSVG(p + 1); // (verovio 1-based)
+
+        std::string svgText = toolkit.RenderToSVG(p + 1); // (verovio is 1-based)
+
+        // Verovio generates SVG 1.1, this transforms its output to
+        // SVG 1.2 Tiny required by Qt
         svgText = VrvTrim::transformSvgToTiny(svgText);
 
-        shared_ptr<QSvgRenderer> renderer = make_shared<QSvgRenderer>
-            (QByteArray::fromStdString(svgText));
+        QByteArray svgData = QByteArray::fromStdString(svgText);
+        
+        shared_ptr<QSvgRenderer> renderer = make_shared<QSvgRenderer>(svgData);
         renderer->setAspectRatioMode(Qt::KeepAspectRatio);
 
         SVDEBUG << "ScoreWidget::showPage: created renderer from "
-                << svgText.size() << "-byte SVG data" << endl;
-        
+                << svgData.size() << "-byte SVG data" << endl;
+
         m_svgPages.push_back(renderer);
+
+        findSystemExtents(svgData, renderer);
     }
     
     m_scoreName = scoreName;
@@ -193,6 +200,107 @@ ScoreWidget::loadAScore(QString scoreName, QString &errorString)
 }
 
 void
+ScoreWidget::findSystemExtents(QByteArray svgData, shared_ptr<QSvgRenderer> renderer)
+{
+    // Study the system dimensions in order to calculate proper
+    // highlight positions, and add them to m_noteSystemExtentMap.
+
+    // We are now parsing the SVG XML in three different ways! But I
+    // still don't think it's a significant overhead
+    
+    QDomDocument doc;
+    doc.setContent(svgData, false);
+    auto groups = doc.elementsByTagName("g");
+
+    for (int i = 0; i < groups.size(); ++i) {
+
+        auto systemElt = groups.at(i).toElement();
+        if (!systemElt.attribute("class").split(" ", Qt::SkipEmptyParts)
+            .contains("system")) {
+            continue;
+        }
+
+        auto systemId = systemElt.attribute("id");
+        
+        Extent extent;
+        bool haveExtent = false;
+
+        auto children = systemElt.childNodes();
+        
+        for (int j = 0; j < children.size(); ++j) {
+            
+            auto childElt = children.at(j).toElement();
+            if (childElt.tagName() == "path") {
+                QStringList dparts = childElt.attribute("d")
+                    .split(" ", Qt::SkipEmptyParts);
+                if (dparts.size() == 4) {
+                    bool ok1 = false, ok3 = false;
+                    extent = { dparts[1].toDouble(&ok1), dparts[3].toDouble(&ok3) };
+                    if (ok1 && ok3) {
+#ifdef DEBUG_SCORE_WIDGET
+                        SVDEBUG << "Found possible extent for system with id \""
+                                << systemId << "\": from "
+                                << extent.first << " -> " << extent.second << endl;
+#endif
+                        QRectF mapped = renderer->transformForElement(systemId)
+                            .mapRect(QRectF(0, extent.first,
+                                            1, extent.second - extent.first));
+                        extent.first = mapped.y();
+                        extent.second = extent.first + mapped.height();
+#ifdef DEBUG_SCORE_WIDGET
+                        SVDEBUG << "Mapped extent through element transform into "
+                                << extent.first << " -> " << extent.second << endl;
+#endif
+                        haveExtent = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (haveExtent) {
+            assignExtentToNotesBelow(systemElt, extent);
+        } else {
+            SVDEBUG << "Failed to find extent for system with id \""
+                    << systemElt.attribute("id") << "\"" << endl;
+        }
+    }
+}
+
+void
+ScoreWidget::assignExtentToNotesBelow(const QDomElement &systemElt, Extent extent)
+{
+    // We're querying all group elements (of which there are many) in
+    // the doc as a whole, and then doing so here again for each
+    // system element. That's quadratic complexity but with only a
+    // small number of systems expected, I think it will be ok.
+    
+    auto groups = systemElt.elementsByTagName("g");
+
+    for (int i = 0; i < groups.size(); ++i) {
+
+        auto noteElt = groups.at(i).toElement();
+        if (!noteElt.attribute("class").split(" ", Qt::SkipEmptyParts)
+            .contains("note")) {
+            assignExtentToNotesBelow(noteElt, extent);
+            continue;
+        }
+
+        auto noteId = noteElt.attribute("id");
+        if (noteId == "") {
+            continue;
+        }
+
+#ifdef DEBUG_SCORE_WIDGET
+        SVDEBUG << "Assigning system extent " << extent.first
+                << " -> " << extent.second
+                << " to note with id \"" << noteId << "\"" << endl;
+#endif
+        m_noteSystemExtentMap[noteId] = extent;
+    }
+}
+
+void
 ScoreWidget::setMusicalEvents(const Score::MusicalEventList &events)
 {
     m_musicalEvents = events;
@@ -201,8 +309,8 @@ ScoreWidget::setMusicalEvents(const Score::MusicalEventList &events)
             << " events" << endl;
 
     m_idDataMap.clear();
-    m_pageEventsMap.clear();
     m_labelIdMap.clear();
+    m_pageEventsMap.clear();
     
     if (m_svgPages.empty()) {
         SVDEBUG << "ScoreWidget::setMusicalEvents: WARNING: No SVG pages, score should have been set before this" << endl;
@@ -437,7 +545,7 @@ ScoreWidget::isSelectedToEnd() const
 {
     return (m_musicalEvents.empty() ||
             m_selectEnd.isNull() ||
-            m_selectEnd.indexInEvents + 1 >= m_musicalEvents.size());
+            m_selectEnd.indexInEvents + 1 >= int(m_musicalEvents.size()));
 }
 
 bool
@@ -477,16 +585,12 @@ ScoreWidget::mouseDoubleClickEvent(QMouseEvent *e)
 ScoreWidget::EventData
 ScoreWidget::getEventAtPoint(QPoint point)
 {
-    QPointF pagePoint = m_widgetToPage.map(QPointF(point));
-
     const auto &events = m_pageEventsMap[m_page];
     
-    double px = pagePoint.x();
-    double py = pagePoint.y();
+    double px = point.x();
+    double py = point.y();
 
     EventData found;
-
-    int staffHeight = 7500;
     double foundX = 0.0;
 
 #ifdef DEBUG_EVENT_FINDING
@@ -499,7 +603,7 @@ ScoreWidget::getEventAtPoint(QPoint point)
         EventData edata = getEventWithId(id);
         if (edata.isNull()) continue;
         
-        QRectF r = edata.boxOnPage;
+        QRectF r = getHighlightRectFor(edata);
         if (r == QRectF()) continue;
 
 #ifdef DEBUG_EVENT_FINDING
@@ -517,6 +621,7 @@ ScoreWidget::getEventAtPoint(QPoint point)
         }
         
         found = edata;
+        foundX = r.x();
     }
 
 #ifdef DEBUG_EVENT_FINDING
@@ -525,6 +630,20 @@ ScoreWidget::getEventAtPoint(QPoint point)
 #endif
     
     return found;
+}
+
+QRectF
+ScoreWidget::getHighlightRectFor(const EventData &event)
+{
+    QRectF rect = event.boxOnPage;
+
+    if (m_noteSystemExtentMap.find(event.id) != m_noteSystemExtentMap.end()) {
+        Extent extent = m_noteSystemExtentMap.at(event.id);
+        rect = QRectF(rect.x(), extent.first,
+                      rect.width(), extent.second - extent.first);
+    }
+                      
+    return m_pageToWidget.mapRect(rect);
 }
 
 void
@@ -591,10 +710,8 @@ ScoreWidget::paintEvent(QPaintEvent *e)
 
         if (!event.isNull()) {
         
-            QRectF rect = event.boxOnPage;
+            QRectF rect = getHighlightRectFor(event);
 
-            rect = m_pageToWidget.mapRect(rect);
-            
             QColor highlightColour;
 
             switch (m_mode) {
@@ -666,42 +783,40 @@ ScoreWidget::paintEvent(QPaintEvent *e)
                     i1->notes.empty() ? "(location without note)" :
                     i1->notes[0].noteId)
                 << endl;
+
+        double lineOrigin = m_pageToWidget.map(QPointF(0, 0)).x();
+        double lineWidth = m_pageToWidget.map(QPointF(pageSize.width(), 0)).x();
         
-        int prevY = -1;
-        EventData data;
+        double prevY = -1.0;
         for (auto i = i0; i != i1 && i != m_musicalEvents.end(); ++i) {
-            if (data.isNull()) {
-                data = getEventForMusicalEvent(*i);
-                // otherwise it was filled at the bottom of prev loop
-            }
+            EventData data = getEventForMusicalEvent(*i);
             if (data.page < m_page) {
-                data = {};
                 continue;
             }
             if (data.page > m_page) {
                 break;
             }
-            QRectF rect = data.boxOnPage;
+            QRectF rect = getHighlightRectFor(data);
             if (rect == QRectF()) {
-                data = {};
                 continue;
             }
-            auto j = i;
-            ++j;
             if (i == i0) {
                 prevY = rect.y();
             }
-//            if (rect.y() != prevY) {
-//                rect.setX(0);
-//            }
+            if (rect.y() > prevY) {
+                rect.setX(lineOrigin);
+            }
+            rect.setWidth(lineWidth - rect.x());
+            auto j = i;
+            ++j;
             if (j != m_musicalEvents.end()) {
-                data = getEventForMusicalEvent(*j);
-                if (data.boxOnPage.y() <= rect.y()) {
-                    rect.setWidth(data.boxOnPage.x() - rect.x());
+                EventData nextData = getEventForMusicalEvent(*j);
+                QRectF nextRect = getHighlightRectFor(nextData);
+                if (nextData.page == m_page && nextRect.y() <= rect.y()) {
+                    rect.setWidth(nextRect.x() - rect.x());
                 }
             }
-            SVDEBUG << "rect y = " << rect.y() << endl;
-            paint.drawRect(m_pageToWidget.mapRect(rect));
+            paint.drawRect(rect);
             prevY = rect.y();
         }
     }

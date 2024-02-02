@@ -21,6 +21,7 @@
 #include "piano-precision-aligner/Score.h"
 
 class QSvgRenderer;
+class QDomElement;
 
 class ScoreWidget : public QFrame
 {
@@ -167,8 +168,9 @@ protected:
     
 private:
     /**
-     * EventId is for MEI-derived note IDs used within this class to
-     * identify specific elements. These are not used in the API.
+     * EventId is for MEI-derived note IDs (or other MEI element IDs)
+     * used within this class to identify specific elements. These are
+     * not exposed in the API.
      */
     typedef QString EventId;
     
@@ -191,6 +193,15 @@ private:
 
         bool isNull() const { return id == ""; }
     };
+
+    // MEI id-to-extent relations: these are generated from the SVG
+    // XML when the score is loaded
+    typedef std::pair<double, double> Extent;
+    std::map<EventId, Extent> m_noteSystemExtentMap;
+
+    // Relations between MEI IDs and musical events: these are
+    // generated when the musical event data is set, after the score
+    // has been loaded
     std::map<EventId, EventData> m_idDataMap;
     std::map<EventLabel, EventId> m_labelIdMap;
     std::map<int, std::vector<EventId>> m_pageEventsMap;
@@ -215,6 +226,11 @@ private:
     bool isSelectedFromStart() const;
     bool isSelectedToEnd() const;
     bool isSelectedAll() const;
+
+    QRectF getHighlightRectFor(const EventData &);
+    
+    void findSystemExtents(QByteArray, std::shared_ptr<QSvgRenderer>);
+    void assignExtentToNotesBelow(const QDomElement &, Extent);
     
     QTransform m_widgetToPage;
     QTransform m_pageToWidget;
