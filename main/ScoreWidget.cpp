@@ -323,6 +323,7 @@ ScoreWidget::setMusicalEvents(const Score::MusicalEventList &events)
     
     for (const auto &ev : m_musicalEvents) {
         for (const auto &n : ev.notes) {
+            if (!n.isNewNote)    continue;
             EventId id = QString::fromStdString(n.noteId);
             if (id == "") {
                 SVDEBUG << "ScoreWidget::setMusicalEvents: NOTE: found note with no id" << endl;
