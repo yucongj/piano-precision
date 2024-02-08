@@ -52,7 +52,7 @@ ScoreWidget::ScoreWidget(QWidget *parent) :
     setMouseTracking(true);
 
     if (!m_tempDir.isValid()) {
-        SVCERR << "ScoreWidget: Temporary directory is not valid! Can't unbundle resources; rendering will fail" << endl;
+        SVDEBUG << "ScoreWidget: Temporary directory is not valid! Can't unbundle resources; rendering will fail" << endl;
     } else {
         bool success = true;
         m_tempDir.setAutoRemove(true);
@@ -64,22 +64,20 @@ ScoreWidget::ScoreWidget(QWidget *parent) :
             QDir sourceDir(sourceRoot.filePath(name));
             QDir targetDir(targetRoot.filePath(name));
             if (!QDir().mkpath(targetDir.path())) {
-                SVCERR << "ScoreWidget: Failed to create directory \""
-                       << targetDir.path() << "\"" << endl;
+                SVDEBUG << "ScoreWidget: Failed to create directory \""
+                        << targetDir.path() << "\"" << endl;
                 success = false;
                 break;
             }
-            SVCERR << "ScoreWidget: scanning dir \"" << sourceDir.path()
-                   << "\"..." << endl;
+            SVDEBUG << "ScoreWidget: scanning dir \"" << sourceDir.path()
+                    << "\"..." << endl;
             for (auto f: sourceDir.entryInfoList(QDir::Files)) {
                 QString sourcePath(f.filePath());
-                SVCERR << "ScoreWidget: found \"" << sourcePath
-                       << "\"..." << endl;
                 QString targetPath(targetDir.filePath(f.fileName()));
                 if (!QFile(sourcePath).copy(targetPath)) {
-                    SVCERR << "ScoreWidget: Failed to copy file from \""
-                           << sourcePath << "\" to \"" << targetPath << "\""
-                           << endl;
+                    SVDEBUG << "ScoreWidget: Failed to copy file from \""
+                            << sourcePath << "\" to \"" << targetPath << "\""
+                            << endl;
                     success = false;
                     break;
                 }

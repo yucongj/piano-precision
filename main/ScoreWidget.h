@@ -10,8 +10,8 @@
     COPYING included with this distribution for more information.
 */
 
-#ifndef SV_SCORE_WIDGET_MEI_H
-#define SV_SCORE_WIDGET_MEI_H
+#ifndef SV_SCORE_WIDGET_H
+#define SV_SCORE_WIDGET_H
 
 #include <QTemporaryDir>
 #include <QFrame>
