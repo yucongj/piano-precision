@@ -45,7 +45,6 @@ ScoreParser::generateScoreFiles(string dir, string score)
     toolkit.RenderToTimemapFile(dir + "/" + score + ".json", option);
     timemap.parse(toolkit.RenderToTimemap(option));
 
-
     std::vector<string> meters; // starting from measure 1
     for (int i = 0; i < int(timemap.size()); i++) {
         auto event = timemap.get<jsonxx::Object>(i);
@@ -153,6 +152,11 @@ ScoreParser::generateScoreFiles(string dir, string score)
     }
     std::ofstream file(dir + "/" + score + ".solo");
     file << content;
+
+
+    // Writing to the .tempo file (currently always empty)
+    std::ofstream tempo(dir + "/" + score + ".tempo");
+    tempo << "";
 
     return true;
 }
