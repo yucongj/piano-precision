@@ -289,7 +289,7 @@ ScoreWidget::assignExtentToNotesBelow(const QDomElement &systemElt, Extent exten
             continue;
         }
 
-#ifdef DEBUG_SCORE_WIDGET
+#ifdef DEBUG_EVENT_FINDING
         SVDEBUG << "Assigning system extent " << extent.first
                 << " -> " << extent.second
                 << " to note with id \"" << noteId << "\"" << endl;
@@ -787,6 +787,7 @@ ScoreWidget::paintEvent(QPaintEvent *e)
         double lineWidth = m_pageToWidget.map(QPointF(pageSize.width(), 0)).x();
         
         double prevY = -1.0;
+
         for (auto i = i0; i != i1 && i != m_musicalEvents.end(); ++i) {
             EventData data = getEventForMusicalEvent(*i);
             if (data.page < m_page) {
