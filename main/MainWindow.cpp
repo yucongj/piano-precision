@@ -19,6 +19,7 @@
 #include "PreferencesDialog.h"
 #include "ScoreWidget.h"
 #include "ScoreFinder.h"
+#include "ScoreParser.h"
 #include "Session.h"
 #include "piano-precision-aligner/Score.h"
 
@@ -2411,6 +2412,11 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
 
     // Creating score structure
     string sname = scoreName.toStdString();
+    string meiDir = ScoreFinder::getUserScoreDirectory() + "/" + sname;
+    if (!ScoreParser::generateScoreFiles(meiDir, sname)) { // generating score files
+        SVCERR << "MainWindow::chooseScore: Failed to generate score files from " << meiDir << ".mei" << endl;
+        return;
+    }
     string soloPath = ScoreFinder::getScoreFile(sname, "solo");
     string tempoPath = ScoreFinder::getScoreFile(sname, "tempo");
     string meterPath = ScoreFinder::getScoreFile(sname, "meter");

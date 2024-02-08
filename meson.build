@@ -1090,6 +1090,7 @@ pp_main_files = [
   'main/PreferencesDialog.cpp',
   'main/Session.cpp',
   'main/ScoreFinder.cpp',
+  'main/ScoreParser.cpp',
   'main/ScoreWidget.cpp',
   'main/vrvtrim.cpp',
   'piano-precision-aligner/Score.cpp',
