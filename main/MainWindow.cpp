@@ -5338,11 +5338,11 @@ MainWindow::renameCurrentLayer()
     CommandHistory::getInstance()->addCommand
         (new GenericCommand
          (tr("Rename Layer"),
-          [=]() {
+          [=, this]() {
               layer->setPresentationName(newName);
               setupExistingLayersMenus();
           },
-          [=]() {
+          [=, this]() {
               layer->setPresentationName(existingNameSet ? existingName : "");
               setupExistingLayersMenus();
           }));
