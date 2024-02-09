@@ -374,7 +374,7 @@ ScoreWidget::setMusicalEvents(const Score::MusicalEventList &events)
 
                 QRectF rect = m_svgPages[p]->boundsOnElement(id); 
                 rect = m_svgPages[p]->transformForElement(id).mapRect(rect);
-#ifdef DEBUG_SCORE_WIDGET
+#ifdef DEBUG_EVENT_FINDING
                 SVDEBUG << "id " << id << " -> page " << p << ", rect "
                         << rect.x() << "," << rect.y() << " " << rect.width()
                         << "x" << rect.height() << endl;
@@ -823,6 +823,7 @@ ScoreWidget::paintEvent(QPaintEvent *e)
         double lineWidth = m_pageToWidget.map(QPointF(pageSize.width(), 0)).x();
         
         double prevY = -1.0;
+        double furthestX = 0.0;
 
         for (auto i = i0; i != i1 && i != m_musicalEvents.end(); ++i) {
             EventData data = getEventForMusicalEvent(*i);
@@ -833,6 +834,11 @@ ScoreWidget::paintEvent(QPaintEvent *e)
                 break;
             }
             QRectF rect = getHighlightRectFor(data);
+#ifdef DEBUG_EVENT_FINDING                    
+            SVDEBUG << "I'm at " << rect.x() << " with width "
+                    << rect.width() << " (furthest X = " << furthestX
+                    << ")" << endl;
+#endif
             if (rect == QRectF()) {
                 continue;
             }
@@ -841,6 +847,9 @@ ScoreWidget::paintEvent(QPaintEvent *e)
             }
             if (rect.y() > prevY) {
                 rect.setX(lineOrigin);
+                furthestX = lineOrigin;
+            } else if (rect.x() < furthestX) {
+                continue;
             }
             rect.setWidth(lineWidth - rect.x());
             auto j = i;
@@ -848,12 +857,19 @@ ScoreWidget::paintEvent(QPaintEvent *e)
             if (j != m_musicalEvents.end()) {
                 EventData nextData = getEventForMusicalEvent(*j);
                 QRectF nextRect = getHighlightRectFor(nextData);
-                if (nextData.page == m_page && nextRect.y() <= rect.y()) {
+                if (nextData.page == m_page &&
+                    nextRect.y() <= rect.y() &&
+                    nextRect.x() >= rect.x()) {
+#ifdef DEBUG_EVENT_FINDING                    
+                    SVDEBUG << "next event is at " << nextRect.x()
+                            << " with width " << nextRect.width() << endl;
+#endif
                     rect.setWidth(nextRect.x() - rect.x());
                 }
             }
             paint.drawRect(rect);
             prevY = rect.y();
+            furthestX = rect.x() + rect.width();
         }
     }
 
