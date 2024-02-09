@@ -26,14 +26,18 @@
 using std::string;
 using std::vector;
 
+#include <QDir>
+#include <QTemporaryDir>
+#include <QString>
+#include <QStringList>
 
 bool
 ScoreParser::generateScoreFiles(string dir, string score)
 {
     vrv::Toolkit toolkit(false);
 
-    string resourcePath = "/Users/yjiang3/piano-precision/verovio/data"; // TODO: needs to be changed!
-    if (!toolkit.SetResourcePath(resourcePath)) {
+    string resourcePath = getResourcePath();
+    if (resourcePath == "" || !toolkit.SetResourcePath(resourcePath)) {
         SVDEBUG << "ScoreParser::generateScoreFiles: Failed to set Verovio resource path" << endl;
         return false;
     }
@@ -160,3 +164,56 @@ ScoreParser::generateScoreFiles(string dir, string score)
 
     return true;
 }
+
+string
+ScoreParser::getResourcePath()
+{
+    static string resourcePath;
+    static std::unique_ptr<QTemporaryDir> tempDir;
+    static std::once_flag f;
+
+    std::call_once(f, [&]() {
+
+        tempDir = std::make_unique<QTemporaryDir>();
+        tempDir->setAutoRemove(true);
+        bool success = true;
+
+        QDir sourceRoot(":verovio/data/");
+        QDir targetRoot(QDir(tempDir->path()).filePath("verovio"));
+        QStringList names = sourceRoot.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        names.push_back(".");
+
+        for (auto name: names) {
+            QDir sourceDir(sourceRoot.filePath(name));
+            QDir targetDir(targetRoot.filePath(name));
+            if (!QDir().mkpath(targetDir.path())) {
+                SVDEBUG << "ScoreParser: Failed to create directory \""
+                        << targetDir.path() << "\"" << endl;
+                success = false;
+                break;
+            }
+            SVDEBUG << "ScoreParser: scanning dir \"" << sourceDir.path()
+                    << "\"..." << endl;
+            for (auto f: sourceDir.entryInfoList(QDir::Files)) {
+                QString sourcePath(f.filePath());
+                QString targetPath(targetDir.filePath(f.fileName()));
+                if (!QFile(sourcePath).copy(targetPath)) {
+                    SVDEBUG << "ScoreParser: Failed to copy file from \""
+                            << sourcePath << "\" to \"" << targetPath << "\""
+                            << endl;
+                    success = false;
+                    break;
+                }
+            }
+        }
+
+        if (success) {
+            resourcePath = targetRoot.canonicalPath().toStdString();
+            SVDEBUG << "ScoreParser: Unbundled Verovio resources to \""
+                    << resourcePath << "\"" << endl;
+        }
+    });
+
+    return resourcePath;
+}
+
