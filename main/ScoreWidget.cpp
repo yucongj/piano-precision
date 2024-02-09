@@ -210,33 +210,69 @@ ScoreWidget::findSystemExtents(QByteArray svgData, shared_ptr<QSvgRenderer> rend
     QDomDocument doc;
     doc.setContent(svgData, false);
 
-    Extent currentSystemExtent;
+    Extent currentExtent;
+    vector<double> staffLines;
 
-    auto extractExtent = [&](QDomElement path, QString systemId) -> Extent {
+    auto extractExtent = [&](QDomElement path,
+                             QString systemId,
+                             QString staffId) -> Extent {
+        
+        // We're looking for a path of the form Mx0 y0 Lx1 y1
         
         QStringList dd = path.attribute("d").split(" ", Qt::SkipEmptyParts);
+        if (dd.size() != 4) return {};
+
+        if (dd[0].startsWith("M", Qt::CaseInsensitive)) {
+            dd[0] = dd[0].right(dd[0].length()-1);
+        } else return {};
+
+        if (dd[2].startsWith("L", Qt::CaseInsensitive)) {
+            dd[2] = dd[2].right(dd[2].length()-1);
+        } else return {};
         
-        if (dd.size() == 4) {
-            bool ok1 = false, ok3 = false;
-            double y0 = dd[1].toDouble(&ok1);
-            double y1 = dd[3].toDouble(&ok3);
-            if (ok1 && ok3 && y1 > y0) {
+        bool ok = false;
+        double x0 = dd[0].toDouble(&ok); if (!ok) return {};
+        double y0 = dd[1].toDouble(&ok); if (!ok) return {};
+        double x1 = dd[2].toDouble(&ok); if (!ok) return {};
+        double y1 = dd[3].toDouble(&ok); if (!ok) return {};
+        
+        if (systemId != "" && y1 > y0 && x1 == x0) {
 #ifdef DEBUG_SCORE_WIDGET
-                SVDEBUG << "Found possible extent for system with id \""
-                        << systemId << "\": from "
+            SVDEBUG << "Found possible extent for system with id \""
+                    << systemId << "\": from "
+                    << y0 << " -> " << y1 << endl;
+#endif
+            QRectF mapped = renderer->transformForElement(systemId)
+                .mapRect(QRectF(0, y0, 1, y1 - y0));
+            return Extent(mapped.y(), mapped.height());
+        }
+
+        if (staffId != "" && x1 > x0 && y1 == y0 &&
+            staffLines.size() < 5) {
+#ifdef DEBUG_SCORE_WIDGET
+            SVDEBUG << "Found possible staff line for staff with id \""
+                    << staffId << "\": from "
+                    << x0 << " to " << x1 << " at y = " << y0 << endl;
+#endif
+            staffLines.push_back(y0);
+            if (staffLines.size() == 5) {
+                y0 = staffLines[0];
+                y1 = staffLines[4];
+#ifdef DEBUG_SCORE_WIDGET
+                SVDEBUG << "Deducing extent from staff lines as "
                         << y0 << " -> " << y1 << endl;
 #endif
-                QRectF mapped = renderer->transformForElement(systemId)
+                QRectF mapped = renderer->transformForElement(staffId)
                     .mapRect(QRectF(0, y0, 1, y1 - y0));
                 return Extent(mapped.y(), mapped.height());
             }
-        }
+        }                
         
         return {};
     };
     
-    std::function<void(QDomNode, QString)> descend =
-        [&](QDomNode node, QString systemId) {
+    std::function<void(QDomNode, QString, QString)> descend =
+        [&](QDomNode node, QString systemId, QString staffId) {
 
         if (!node.isElement()) {
             return;
@@ -245,47 +281,58 @@ ScoreWidget::findSystemExtents(QByteArray svgData, shared_ptr<QSvgRenderer> rend
         QDomElement elt = node.toElement();
         QString tag = elt.tagName();
 
-        if (systemId != "") {
-            if (currentSystemExtent.isNull() && tag == "path") {
-                // Haven't yet seen system dimensions, defined using the
-                // vertical path that joins the systems. This might be it
-                currentSystemExtent = extractExtent(elt, systemId);
+        if (systemId != "" || staffId != "") {
+            if (currentExtent.isNull() && tag == "path") {
+                // Haven't yet seen system dimensions, defined using
+                // either the vertical path that joins the systems, or
+                // if there is only one staff, locations of the first
+                // and fifth staff lines. This might be one of the
+                // bits of evidence we need
+                currentExtent = extractExtent(elt, systemId, staffId);
             }
         }
         
         if (tag == "g") {
             // The remaining elements we're interested in (system,
-            // note) are all defined using group tags in SVG
+            // staff, note) are all defined using group tags in SVG
 
             QStringList classes =
                 elt.attribute("class").split(" ", Qt::SkipEmptyParts);
 
-            if (systemId == "") {
-                if (classes.contains("system")) {
-                    systemId = elt.attribute("id");
-                    currentSystemExtent = {};
+            if (systemId == "" && classes.contains("system")) {
+                systemId = elt.attribute("id");
+                currentExtent = {};
+            }
+
+            if (staffId == "" && classes.contains("staff")) {
+                staffId = elt.attribute("id");
+                staffLines.clear();
+                if (systemId == "") { // a staff outside a system
+                    currentExtent = {};
                 }
-            } else if (classes.contains("note") && !currentSystemExtent.isNull()) {
+            }
+            
+            if (!currentExtent.isNull() && classes.contains("note")) {
                 QString noteId = elt.attribute("id");
                 if (noteId != "") {
 #ifdef DEBUG_EVENT_FINDING
                     SVDEBUG << "Assigning system extent ("
-                            << currentSystemExtent.y << ","
-                            << currentSystemExtent.height
+                            << currentExtent.y << ","
+                            << currentExtent.height
                             << ") to note with id \"" << noteId << "\"" << endl;
 #endif
-                    m_noteSystemExtentMap[noteId] = currentSystemExtent;
+                    m_noteSystemExtentMap[noteId] = currentExtent;
                 }
             }
         }
             
         auto children = node.childNodes();
         for (int i = 0; i < children.size(); ++i) {
-            descend(children.at(i), systemId);
+            descend(children.at(i), systemId, staffId);
         }
     };
 
-    descend(doc.documentElement(), "");
+    descend(doc.documentElement(), "", "");
 }                       
 
 void
