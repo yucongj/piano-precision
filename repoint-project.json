@@ -65,7 +65,7 @@
             "vcs": "git",
             "service": "github",
             "owner": "rism-digital",
-            "branch": "develop"
+            "tag": "version-4.1.0"
         },
         "bqvec": {
             "vcs": "hg",
