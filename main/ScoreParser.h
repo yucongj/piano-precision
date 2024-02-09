@@ -21,6 +21,13 @@ public:
     /** Generate necessary score files.
      */
     static bool generateScoreFiles(std::string scorePath, std::string scoreName);
+
+    /** Obtain the resource path to pass to Verovio. Resources are
+     *  unpacked from the binary bundle the first time this is called,
+     *  so the resulting resource path is local to this invocation of
+     *  the program.
+     */
+    static std::string getResourcePath();
 };
 
 #endif

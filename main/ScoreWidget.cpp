@@ -12,6 +12,7 @@
 
 #include "ScoreWidget.h"
 #include "ScoreFinder.h"
+#include "ScoreParser.h"
 
 #include <QPainter>
 #include <QMouseEvent>
@@ -50,47 +51,7 @@ ScoreWidget::ScoreWidget(QWidget *parent) :
     setFrameStyle(Panel | Plain);
     setMinimumSize(QSize(100, 100));
     setMouseTracking(true);
-
-    if (!m_tempDir.isValid()) {
-        SVCERR << "ScoreWidget: Temporary directory is not valid! Can't unbundle resources; rendering will fail" << endl;
-    } else {
-        bool success = true;
-        m_tempDir.setAutoRemove(true);
-        QDir sourceRoot(":verovio/data/");
-        QDir targetRoot(QDir(m_tempDir.path()).filePath("verovio"));
-        QStringList names = sourceRoot.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
-        names.push_back(".");
-        for (auto name: names) {
-            QDir sourceDir(sourceRoot.filePath(name));
-            QDir targetDir(targetRoot.filePath(name));
-            if (!QDir().mkpath(targetDir.path())) {
-                SVCERR << "ScoreWidget: Failed to create directory \""
-                       << targetDir.path() << "\"" << endl;
-                success = false;
-                break;
-            }
-            SVCERR << "ScoreWidget: scanning dir \"" << sourceDir.path()
-                   << "\"..." << endl;
-            for (auto f: sourceDir.entryInfoList(QDir::Files)) {
-                QString sourcePath(f.filePath());
-                SVCERR << "ScoreWidget: found \"" << sourcePath
-                       << "\"..." << endl;
-                QString targetPath(targetDir.filePath(f.fileName()));
-                if (!QFile(sourcePath).copy(targetPath)) {
-                    SVCERR << "ScoreWidget: Failed to copy file from \""
-                           << sourcePath << "\" to \"" << targetPath << "\""
-                           << endl;
-                    success = false;
-                    break;
-                }
-            }
-        }
-        if (success) {
-            m_verovioResourcePath = targetRoot.canonicalPath();
-            SVDEBUG << "ScoreWidget: Unbundled Verovio resources to \""
-                    << m_verovioResourcePath << "\"" << endl;
-        }
-    }
+    m_verovioResourcePath = ScoreParser::getResourcePath();
 }
 
 ScoreWidget::~ScoreWidget()
@@ -135,7 +96,7 @@ ScoreWidget::loadAScore(QString scoreName, QString &errorString)
     SVDEBUG << "ScoreWidget::loadAScore: Score \"" << scoreName
             << "\" requested" << endl;
 
-    if (m_verovioResourcePath == QString()) {
+    if (m_verovioResourcePath == "") {
         SVDEBUG << "ScoreWidget::loadAScore: No Verovio resource path available" << endl;
         return false;
     }
@@ -159,7 +120,7 @@ ScoreWidget::loadAScore(QString scoreName, QString &errorString)
             << scorePath << "\" for score \"" << scoreName << "\"" << endl;
 
     vrv::Toolkit toolkit(false);
-    if (!toolkit.SetResourcePath(m_verovioResourcePath.toStdString())) {
+    if (!toolkit.SetResourcePath(m_verovioResourcePath)) {
         SVDEBUG << "ScoreWidget::loadAScore: Failed to set Verovio resource path" << endl;
         return false;
     }

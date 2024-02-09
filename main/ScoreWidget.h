@@ -176,8 +176,7 @@ private:
     
     QString m_scoreName;
     QString m_scoreFilename;
-    QTemporaryDir m_tempDir;
-    QString m_verovioResourcePath;
+    std::string m_verovioResourcePath;
     std::vector<std::shared_ptr<QSvgRenderer>> m_svgPages;
     int m_page;
 
