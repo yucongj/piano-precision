@@ -2418,14 +2418,9 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
         return;
     }
     string soloPath = ScoreFinder::getScoreFile(sname, "solo");
-    string tempoPath = ScoreFinder::getScoreFile(sname, "tempo");
     string meterPath = ScoreFinder::getScoreFile(sname, "meter");
     if (!m_score.initialize(soloPath)) {
         SVCERR << "MainWindow::chooseScore: Failed to load score data from " << soloPath << endl;
-        return;
-    }
-    if (!m_score.readTempo(tempoPath)) {
-        SVCERR << "MainWindow::chooseScore: Failed to load tempo data from " << tempoPath << endl;
         return;
     }
     if (!m_score.readMeter(meterPath)) {
@@ -2509,13 +2504,11 @@ MainWindow::highlightFrameInScore(sv_frame_t frame)
     // sv_samplerate_t rate = m_viewManager->getMainModelSampleRate();
     // RealTime rt = RealTime::frame2RealTime(frame, rate);
 
-    // In MuseScore's spos file, 0.5 second = position value of 500.
     // The default tempo is quarter note = 120 bpm.
 
     TimeValueLayer *targetLayer = m_session.getOnsetsLayer();
 
     // If the program is slow, might want to consider a different approach that can get rid of the loops.
-    int position = 0;
     QString label;
     if (targetLayer) {
         ModelId targetId = targetLayer->getModel();

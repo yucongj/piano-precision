@@ -157,11 +157,6 @@ ScoreParser::generateScoreFiles(string dir, string score)
     std::ofstream file(dir + "/" + score + ".solo");
     file << content;
 
-
-    // Writing to the .tempo file (currently always empty)
-    std::ofstream tempo(dir + "/" + score + ".tempo");
-    tempo << "";
-
     return true;
 }
 
