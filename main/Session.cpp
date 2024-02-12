@@ -451,12 +451,12 @@ Session::exportAlignmentEntriesTo(QString path)
     
     QTextStream out(&file);
 
-    out << "LABEL,TICK,FRAME\n";
+    out << "LABEL,TIME,FRAME\n";
     
     for (const auto &entry : m_alignmentEntries) {
         QVector<QString> columns;
         columns << QString::fromStdString(entry.label)
-                << QString("%1").arg(entry.tick);
+                << QString("%1").arg(entry.time);
         if (entry.frame < 0) {
             columns << "N";
         } else {
@@ -481,11 +481,11 @@ Session::importAlignmentFrom(QString path)
         return false;
     }
     
-    // Our CSV format is LABEL,TICK,FRAME where LABEL is text, TICK is
-    // a number (not necessarily an integer), and FRAME is an integer
+    // Our CSV format is LABEL,TIME,FRAME where LABEL is text, TIME is
+    // a number in seconds (not an integer), and FRAME is an integer
     // audio sample frame number. We want to import to an onsets layer
     // whose contents are time-value events indexed by audio sample
-    // frame, with a value corresponding to TICK and a label
+    // frame, with a value corresponding to Time and a label
     // corresponding to LABEL.
     
     CSVFormat format;
@@ -576,7 +576,7 @@ Session::setMusicalEvents(const Score::MusicalEventList &musicalEvents)
     for (auto &event : m_musicalEvents) {
         Score::MeasureInfo info = event.measureInfo;
         std::string label = info.toLabel();
-        m_alignmentEntries.push_back(AlignmentEntry(label, event.tick, -1)); // -1 is placeholder
+        m_alignmentEntries.push_back(AlignmentEntry(label, .0, -1)); // -1 is placeholder // TODO: .0 needs to be the real time in seconds
     }
 }
 

@@ -2432,7 +2432,6 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
         SVCERR << "MainWindow::chooseScore: Failed to load meter data from " << meterPath << endl;
         return;
     }
-    m_score.calculateTicks();
     m_session.setMusicalEvents(m_score.getMusicalEvents());
     m_scoreWidget->setMusicalEvents(m_score.getMusicalEvents());
 
