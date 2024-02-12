@@ -10,8 +10,8 @@
     COPYING included with this distribution for more information.
 */
 
-#ifndef SV_SCORE_WIDGET_MEI_H
-#define SV_SCORE_WIDGET_MEI_H
+#ifndef SV_SCORE_WIDGET_H
+#define SV_SCORE_WIDGET_H
 
 #include <QTemporaryDir>
 #include <QFrame>
@@ -195,7 +195,14 @@ private:
 
     // MEI id-to-extent relations: these are generated from the SVG
     // XML when the score is loaded
-    typedef std::pair<double, double> Extent;
+    struct Extent {
+        double y;
+        double height;
+
+        Extent() : y(0.0), height(0.0) { }
+        Extent(double y_, double height_) : y(y_), height(height_) { }
+        bool isNull() const { return y == 0.0 && height == 0.0; }
+    };
     std::map<EventId, Extent> m_noteSystemExtentMap;
 
     // Relations between MEI IDs and musical events: these are
@@ -229,7 +236,6 @@ private:
     QRectF getHighlightRectFor(const EventData &);
     
     void findSystemExtents(QByteArray, std::shared_ptr<QSvgRenderer>);
-    void assignExtentToNotesBelow(const QDomElement &, Extent);
     
     QTransform m_widgetToPage;
     QTransform m_pageToWidget;

@@ -160,6 +160,7 @@ ScoreWidget::loadAScore(QString scoreName, QString &errorString)
     return true;
 }
 
+
 void
 ScoreWidget::findSystemExtents(QByteArray svgData, shared_ptr<QSvgRenderer> renderer)
 {
@@ -171,95 +172,131 @@ ScoreWidget::findSystemExtents(QByteArray svgData, shared_ptr<QSvgRenderer> rend
     
     QDomDocument doc;
     doc.setContent(svgData, false);
-    auto groups = doc.elementsByTagName("g");
 
-    for (int i = 0; i < groups.size(); ++i) {
+    Extent currentExtent;
+    vector<double> staffLines;
 
-        auto systemElt = groups.at(i).toElement();
-        if (!systemElt.attribute("class").split(" ", Qt::SkipEmptyParts)
-            .contains("system")) {
-            continue;
+    auto extractExtent = [&](QDomElement path,
+                             QString systemId,
+                             QString staffId) -> Extent {
+        
+        // We're looking for a path of the form Mx0 y0 Lx1 y1
+        
+        QStringList dd = path.attribute("d").split(" ", Qt::SkipEmptyParts);
+        if (dd.size() != 4) return {};
+
+        if (dd[0].startsWith("M", Qt::CaseInsensitive)) {
+            dd[0] = dd[0].right(dd[0].length()-1);
+        } else return {};
+
+        if (dd[2].startsWith("L", Qt::CaseInsensitive)) {
+            dd[2] = dd[2].right(dd[2].length()-1);
+        } else return {};
+        
+        bool ok = false;
+        double x0 = dd[0].toDouble(&ok); if (!ok) return {};
+        double y0 = dd[1].toDouble(&ok); if (!ok) return {};
+        double x1 = dd[2].toDouble(&ok); if (!ok) return {};
+        double y1 = dd[3].toDouble(&ok); if (!ok) return {};
+        
+        if (systemId != "" && y1 > y0 && x1 == x0) {
+#ifdef DEBUG_SCORE_WIDGET
+            SVDEBUG << "Found possible extent for system with id \""
+                    << systemId << "\": from "
+                    << y0 << " -> " << y1 << endl;
+#endif
+            QRectF mapped = renderer->transformForElement(systemId)
+                .mapRect(QRectF(0, y0, 1, y1 - y0));
+            return Extent(mapped.y(), mapped.height());
         }
 
-        auto systemId = systemElt.attribute("id");
+        if (staffId != "" && x1 > x0 && y1 == y0 &&
+            staffLines.size() < 5) {
+#ifdef DEBUG_SCORE_WIDGET
+            SVDEBUG << "Found possible staff line for staff with id \""
+                    << staffId << "\": from "
+                    << x0 << " to " << x1 << " at y = " << y0 << endl;
+#endif
+            staffLines.push_back(y0);
+            if (staffLines.size() == 5) {
+                y0 = staffLines[0];
+                y1 = staffLines[4];
+#ifdef DEBUG_SCORE_WIDGET
+                SVDEBUG << "Deducing extent from staff lines as "
+                        << y0 << " -> " << y1 << endl;
+#endif
+                QRectF mapped = renderer->transformForElement(staffId)
+                    .mapRect(QRectF(0, y0, 1, y1 - y0));
+                return Extent(mapped.y(), mapped.height());
+            }
+        }                
         
-        Extent extent;
-        bool haveExtent = false;
+        return {};
+    };
+    
+    std::function<void(QDomNode, QString, QString)> descend =
+        [&](QDomNode node, QString systemId, QString staffId) {
 
-        auto children = systemElt.childNodes();
+        if (!node.isElement()) {
+            return;
+        }
+
+        QDomElement elt = node.toElement();
+        QString tag = elt.tagName();
+
+        if (systemId != "" || staffId != "") {
+            if (currentExtent.isNull() && tag == "path") {
+                // Haven't yet seen system dimensions, defined using
+                // either the vertical path that joins the systems, or
+                // if there is only one staff, locations of the first
+                // and fifth staff lines. This might be one of the
+                // bits of evidence we need
+                currentExtent = extractExtent(elt, systemId, staffId);
+            }
+        }
         
-        for (int j = 0; j < children.size(); ++j) {
+        if (tag == "g") {
+            // The remaining elements we're interested in (system,
+            // staff, note) are all defined using group tags in SVG
+
+            QStringList classes =
+                elt.attribute("class").split(" ", Qt::SkipEmptyParts);
+
+            if (systemId == "" && classes.contains("system")) {
+                systemId = elt.attribute("id");
+                currentExtent = {};
+            }
+
+            if (staffId == "" && classes.contains("staff")) {
+                staffId = elt.attribute("id");
+                staffLines.clear();
+                if (systemId == "") { // a staff outside a system
+                    currentExtent = {};
+                }
+            }
             
-            auto childElt = children.at(j).toElement();
-            if (childElt.tagName() == "path") {
-                QStringList dparts = childElt.attribute("d")
-                    .split(" ", Qt::SkipEmptyParts);
-                if (dparts.size() == 4) {
-                    bool ok1 = false, ok3 = false;
-                    extent = { dparts[1].toDouble(&ok1), dparts[3].toDouble(&ok3) };
-                    if (ok1 && ok3) {
-#ifdef DEBUG_SCORE_WIDGET
-                        SVDEBUG << "Found possible extent for system with id \""
-                                << systemId << "\": from "
-                                << extent.first << " -> " << extent.second << endl;
+            if (!currentExtent.isNull() && classes.contains("note")) {
+                QString noteId = elt.attribute("id");
+                if (noteId != "") {
+#ifdef DEBUG_EVENT_FINDING
+                    SVDEBUG << "Assigning system extent ("
+                            << currentExtent.y << ","
+                            << currentExtent.height
+                            << ") to note with id \"" << noteId << "\"" << endl;
 #endif
-                        QRectF mapped = renderer->transformForElement(systemId)
-                            .mapRect(QRectF(0, extent.first,
-                                            1, extent.second - extent.first));
-                        extent.first = mapped.y();
-                        extent.second = extent.first + mapped.height();
-#ifdef DEBUG_SCORE_WIDGET
-                        SVDEBUG << "Mapped extent through element transform into "
-                                << extent.first << " -> " << extent.second << endl;
-#endif
-                        haveExtent = true;
-                        break;
-                    }
+                    m_noteSystemExtentMap[noteId] = currentExtent;
                 }
             }
         }
-
-        if (haveExtent) {
-            assignExtentToNotesBelow(systemElt, extent);
-        } else {
-            SVDEBUG << "Failed to find extent for system with id \""
-                    << systemElt.attribute("id") << "\"" << endl;
+            
+        auto children = node.childNodes();
+        for (int i = 0; i < children.size(); ++i) {
+            descend(children.at(i), systemId, staffId);
         }
-    }
-}
+    };
 
-void
-ScoreWidget::assignExtentToNotesBelow(const QDomElement &systemElt, Extent extent)
-{
-    // We're querying all group elements (of which there are many) in
-    // the doc as a whole, and then doing so here again for each
-    // system element. That's quadratic complexity but with only a
-    // small number of systems expected, I think it will be ok.
-    
-    auto groups = systemElt.elementsByTagName("g");
-
-    for (int i = 0; i < groups.size(); ++i) {
-
-        auto noteElt = groups.at(i).toElement();
-        if (!noteElt.attribute("class").split(" ", Qt::SkipEmptyParts)
-            .contains("note")) {
-            assignExtentToNotesBelow(noteElt, extent);
-            continue;
-        }
-
-        auto noteId = noteElt.attribute("id");
-        if (noteId == "") {
-            continue;
-        }
-
-#ifdef DEBUG_SCORE_WIDGET
-        SVDEBUG << "Assigning system extent " << extent.first
-                << " -> " << extent.second
-                << " to note with id \"" << noteId << "\"" << endl;
-#endif
-        m_noteSystemExtentMap[noteId] = extent;
-    }
-}
+    descend(doc.documentElement(), "", "");
+}                       
 
 void
 ScoreWidget::setMusicalEvents(const Score::MusicalEventList &events)
@@ -300,7 +337,7 @@ ScoreWidget::setMusicalEvents(const Score::MusicalEventList &events)
 
                 QRectF rect = m_svgPages[p]->boundsOnElement(id); 
                 rect = m_svgPages[p]->transformForElement(id).mapRect(rect);
-#ifdef DEBUG_SCORE_WIDGET
+#ifdef DEBUG_EVENT_FINDING
                 SVDEBUG << "id " << id << " -> page " << p << ", rect "
                         << rect.x() << "," << rect.y() << " " << rect.width()
                         << "x" << rect.height() << endl;
@@ -601,8 +638,7 @@ ScoreWidget::getHighlightRectFor(const EventData &event)
 
     if (m_noteSystemExtentMap.find(event.id) != m_noteSystemExtentMap.end()) {
         Extent extent = m_noteSystemExtentMap.at(event.id);
-        rect = QRectF(rect.x(), extent.first,
-                      rect.width(), extent.second - extent.first);
+        rect = QRectF(rect.x(), extent.y, rect.width(), extent.height);
     }
                       
     return m_pageToWidget.mapRect(rect);
@@ -750,6 +786,8 @@ ScoreWidget::paintEvent(QPaintEvent *e)
         double lineWidth = m_pageToWidget.map(QPointF(pageSize.width(), 0)).x();
         
         double prevY = -1.0;
+        double furthestX = 0.0;
+
         for (auto i = i0; i != i1 && i != m_musicalEvents.end(); ++i) {
             EventData data = getEventForMusicalEvent(*i);
             if (data.page < m_page) {
@@ -759,6 +797,11 @@ ScoreWidget::paintEvent(QPaintEvent *e)
                 break;
             }
             QRectF rect = getHighlightRectFor(data);
+#ifdef DEBUG_EVENT_FINDING                    
+            SVDEBUG << "I'm at " << rect.x() << " with width "
+                    << rect.width() << " (furthest X = " << furthestX
+                    << ")" << endl;
+#endif
             if (rect == QRectF()) {
                 continue;
             }
@@ -767,6 +810,9 @@ ScoreWidget::paintEvent(QPaintEvent *e)
             }
             if (rect.y() > prevY) {
                 rect.setX(lineOrigin);
+                furthestX = lineOrigin;
+            } else if (rect.x() < furthestX) {
+                continue;
             }
             rect.setWidth(lineWidth - rect.x());
             auto j = i;
@@ -774,12 +820,19 @@ ScoreWidget::paintEvent(QPaintEvent *e)
             if (j != m_musicalEvents.end()) {
                 EventData nextData = getEventForMusicalEvent(*j);
                 QRectF nextRect = getHighlightRectFor(nextData);
-                if (nextData.page == m_page && nextRect.y() <= rect.y()) {
+                if (nextData.page == m_page &&
+                    nextRect.y() <= rect.y() &&
+                    nextRect.x() >= rect.x()) {
+#ifdef DEBUG_EVENT_FINDING                    
+                    SVDEBUG << "next event is at " << nextRect.x()
+                            << " with width " << nextRect.width() << endl;
+#endif
                     rect.setWidth(nextRect.x() - rect.x());
                 }
             }
             paint.drawRect(rect);
             prevY = rect.y();
+            furthestX = rect.x() + rect.width();
         }
     }
 

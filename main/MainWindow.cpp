@@ -2563,16 +2563,14 @@ MainWindow::scoreSelectionChanged(Fraction start, bool atStart,
     
     if (atStart) {
         qStartLabel = tr("Start");
-    } else {
-        m_selectFrom->setText(qStartLabel);
     }
 
     if (atEnd) {
-        qEndLabel = tr("End");
-    } else {
-        m_selectTo->setText(qEndLabel);
+        qEndLabel = tr("End"); 
     }
 
+    m_selectFrom->setText(qStartLabel);
+    m_selectTo->setText(qEndLabel);
     m_subsetOfScoreSelected = (!atStart || !atEnd);
     m_resetSelectionButton->setEnabled(m_subsetOfScoreSelected);
     updateAlignButtonText();
@@ -5346,11 +5344,11 @@ MainWindow::renameCurrentLayer()
     CommandHistory::getInstance()->addCommand
         (new GenericCommand
          (tr("Rename Layer"),
-          [=]() {
+          [=, this]() {
               layer->setPresentationName(newName);
               setupExistingLayersMenus();
           },
-          [=]() {
+          [=, this]() {
               layer->setPresentationName(existingNameSet ? existingName : "");
               setupExistingLayersMenus();
           }));
