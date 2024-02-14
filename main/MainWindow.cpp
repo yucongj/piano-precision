@@ -2641,16 +2641,22 @@ MainWindow::scoreInteractionModeChanged(ScoreWidget::InteractionMode mode)
     }
     
     for (auto &p : m_toolActions) {
-        if (p.first == toolMode) {
+        if (p.first == toolMode && !p.second->isChecked()) {
             p.second->trigger();
             break;
         }
     }
 
+    m_selectFromButton->blockSignals(true);
+    m_selectToButton->blockSignals(true);
+    
     m_selectFromButton->setChecked
         (mode == ScoreWidget::InteractionMode::SelectStart);
     m_selectToButton->setChecked
         (mode == ScoreWidget::InteractionMode::SelectEnd);
+
+    m_selectFromButton->blockSignals(false);
+    m_selectToButton->blockSignals(false);
 }
 
 void

@@ -321,7 +321,9 @@ ScoreWidget::setMusicalEvents(const Score::MusicalEventList &events)
     
     for (const auto &ev : m_musicalEvents) {
         for (const auto &n : ev.notes) {
-            if (!n.isNewNote)    continue;
+            if (!n.isNewNote) {
+                continue;
+            }
             EventId id = QString::fromStdString(n.noteId);
             if (id == "") {
                 SVDEBUG << "ScoreWidget::setMusicalEvents: NOTE: found note with no id" << endl;
@@ -337,8 +339,11 @@ ScoreWidget::setMusicalEvents(const Score::MusicalEventList &events)
 
                 QRectF rect = m_svgPages[p]->boundsOnElement(id); 
                 rect = m_svgPages[p]->transformForElement(id).mapRect(rect);
+
 #ifdef DEBUG_EVENT_FINDING
-                SVDEBUG << "id " << id << " -> page " << p << ", rect "
+                SVDEBUG << "found note id " << id << " for event at "
+                        << ev.measureInfo.toLabel()
+                        << " -> page " << p << ", rect "
                         << rect.x() << "," << rect.y() << " " << rect.width()
                         << "x" << rect.height() << endl;
 #endif
@@ -625,7 +630,8 @@ ScoreWidget::getEventAtPoint(QPoint point)
 
 #ifdef DEBUG_EVENT_FINDING
     SVDEBUG << "ScoreWidget::idAtPoint: point " << point.x()
-            << "," << point.y() << " -> element id " << found.id << endl;
+            << "," << point.y() << " -> element id " << found.id
+            << " with x = " << foundX << endl;
 #endif
     
     return found;
@@ -755,19 +761,24 @@ ScoreWidget::paintEvent(QPaintEvent *e)
         paint.setPen(Qt::NoPen);
         paint.setBrush(fillColour);
 
-        auto comparator = [](const Score::MusicalEvent &e, const Fraction &f) {
-            return e.measureInfo.measureFraction < f;
+        auto exclusiveComparator =
+            [](const Score::MusicalEvent &e, const Fraction &f) {
+                return e.measureInfo.measureFraction < f;
+        };
+        auto inclusiveComparator =
+            [](const Score::MusicalEvent &e, const Fraction &f) {
+                return !(f < e.measureInfo.measureFraction);
         };
         
         Score::MusicalEventList::iterator i0 = m_musicalEvents.begin();
         if (!m_selectStart.isNull()) {
             i0 = lower_bound(m_musicalEvents.begin(), m_musicalEvents.end(),
-                             m_selectStart.location, comparator);
+                             m_selectStart.location, exclusiveComparator);
         }
         Score::MusicalEventList::iterator i1 = m_musicalEvents.end();
         if (!m_selectEnd.isNull()) {
             i1 = lower_bound(m_musicalEvents.begin(), m_musicalEvents.end(),
-                             m_selectEnd.location, comparator);
+                             m_selectEnd.location, inclusiveComparator);
         }
 
         SVDEBUG << "ScoreWidget::paint: selection spans from "
@@ -798,8 +809,8 @@ ScoreWidget::paintEvent(QPaintEvent *e)
             }
             QRectF rect = getHighlightRectFor(data);
 #ifdef DEBUG_EVENT_FINDING                    
-            SVDEBUG << "I'm at " << rect.x() << " with width "
-                    << rect.width() << " (furthest X = " << furthestX
+            SVDEBUG << "I'm at " << rect.x() << "," << rect.y() << " with width "
+                    << rect.width() << " (furthest X so far = " << furthestX
                     << ")" << endl;
 #endif
             if (rect == QRectF()) {
@@ -809,25 +820,33 @@ ScoreWidget::paintEvent(QPaintEvent *e)
                 prevY = rect.y();
             }
             if (rect.y() > prevY) {
+#ifdef DEBUG_EVENT_FINDING
+                SVDEBUG << "New line, resetting x and furthestX to " << lineOrigin << endl;
+#endif
                 rect.setX(lineOrigin);
                 furthestX = lineOrigin;
-            } else if (rect.x() < furthestX) {
+            } else if (rect.x() < furthestX - 0.001) {
                 continue;
             }
             rect.setWidth(lineWidth - rect.x());
             auto j = i;
-            ++j;
-            if (j != m_musicalEvents.end()) {
+            while (++j != m_musicalEvents.end()) {
                 EventData nextData = getEventForMusicalEvent(*j);
                 QRectF nextRect = getHighlightRectFor(nextData);
                 if (nextData.page == m_page &&
                     nextRect.y() <= rect.y() &&
-                    nextRect.x() >= rect.x()) {
+                    nextRect.x() >= rect.x() &&
+                    nextRect.width() > 0) {
 #ifdef DEBUG_EVENT_FINDING                    
                     SVDEBUG << "next event is at " << nextRect.x()
                             << " with width " << nextRect.width() << endl;
 #endif
                     rect.setWidth(nextRect.x() - rect.x());
+                    break;
+                }
+                if (nextData.page > m_page ||
+                    nextRect.y() > rect.y()) {
+                    break;
                 }
             }
             paint.drawRect(rect);
