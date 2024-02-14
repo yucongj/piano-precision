@@ -625,7 +625,8 @@ ScoreWidget::getEventAtPoint(QPoint point)
 
 #ifdef DEBUG_EVENT_FINDING
     SVDEBUG << "ScoreWidget::idAtPoint: point " << point.x()
-            << "," << point.y() << " -> element id " << found.id << endl;
+            << "," << point.y() << " -> element id " << found.id
+            << " with x = " << foundX << endl;
 #endif
     
     return found;
@@ -798,8 +799,8 @@ ScoreWidget::paintEvent(QPaintEvent *e)
             }
             QRectF rect = getHighlightRectFor(data);
 #ifdef DEBUG_EVENT_FINDING                    
-            SVDEBUG << "I'm at " << rect.x() << " with width "
-                    << rect.width() << " (furthest X = " << furthestX
+            SVDEBUG << "I'm at " << rect.x() << "," << rect.y() << " with width "
+                    << rect.width() << " (furthest X so far = " << furthestX
                     << ")" << endl;
 #endif
             if (rect == QRectF()) {
@@ -809,25 +810,33 @@ ScoreWidget::paintEvent(QPaintEvent *e)
                 prevY = rect.y();
             }
             if (rect.y() > prevY) {
+#ifdef DEBUG_EVENT_FINDING
+                SVDEBUG << "New line, resetting x and furthestX to " << lineOrigin << endl;
+#endif
                 rect.setX(lineOrigin);
                 furthestX = lineOrigin;
-            } else if (rect.x() < furthestX) {
+            } else if (rect.x() < furthestX - 0.001) {
                 continue;
             }
             rect.setWidth(lineWidth - rect.x());
             auto j = i;
-            ++j;
-            if (j != m_musicalEvents.end()) {
+            while (++j != m_musicalEvents.end()) {
                 EventData nextData = getEventForMusicalEvent(*j);
                 QRectF nextRect = getHighlightRectFor(nextData);
                 if (nextData.page == m_page &&
                     nextRect.y() <= rect.y() &&
-                    nextRect.x() >= rect.x()) {
+                    nextRect.x() >= rect.x() &&
+                    nextRect.width() > 0) {
 #ifdef DEBUG_EVENT_FINDING                    
                     SVDEBUG << "next event is at " << nextRect.x()
                             << " with width " << nextRect.width() << endl;
 #endif
                     rect.setWidth(nextRect.x() - rect.x());
+                    break;
+                }
+                if (nextData.page > m_page ||
+                    nextRect.y() > rect.y()) {
+                    break;
                 }
             }
             paint.drawRect(rect);
