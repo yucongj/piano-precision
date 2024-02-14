@@ -321,7 +321,9 @@ ScoreWidget::setMusicalEvents(const Score::MusicalEventList &events)
     
     for (const auto &ev : m_musicalEvents) {
         for (const auto &n : ev.notes) {
-            if (!n.isNewNote)    continue;
+            if (!n.isNewNote) {
+                continue;
+            }
             EventId id = QString::fromStdString(n.noteId);
             if (id == "") {
                 SVDEBUG << "ScoreWidget::setMusicalEvents: NOTE: found note with no id" << endl;
@@ -337,8 +339,11 @@ ScoreWidget::setMusicalEvents(const Score::MusicalEventList &events)
 
                 QRectF rect = m_svgPages[p]->boundsOnElement(id); 
                 rect = m_svgPages[p]->transformForElement(id).mapRect(rect);
+
 #ifdef DEBUG_EVENT_FINDING
-                SVDEBUG << "id " << id << " -> page " << p << ", rect "
+                SVDEBUG << "found note id " << id << " for event at "
+                        << ev.measureInfo.toLabel()
+                        << " -> page " << p << ", rect "
                         << rect.x() << "," << rect.y() << " " << rect.width()
                         << "x" << rect.height() << endl;
 #endif
@@ -756,19 +761,24 @@ ScoreWidget::paintEvent(QPaintEvent *e)
         paint.setPen(Qt::NoPen);
         paint.setBrush(fillColour);
 
-        auto comparator = [](const Score::MusicalEvent &e, const Fraction &f) {
-            return e.measureInfo.measureFraction < f;
+        auto exclusiveComparator =
+            [](const Score::MusicalEvent &e, const Fraction &f) {
+                return e.measureInfo.measureFraction < f;
+        };
+        auto inclusiveComparator =
+            [](const Score::MusicalEvent &e, const Fraction &f) {
+                return !(f < e.measureInfo.measureFraction);
         };
         
         Score::MusicalEventList::iterator i0 = m_musicalEvents.begin();
         if (!m_selectStart.isNull()) {
             i0 = lower_bound(m_musicalEvents.begin(), m_musicalEvents.end(),
-                             m_selectStart.location, comparator);
+                             m_selectStart.location, exclusiveComparator);
         }
         Score::MusicalEventList::iterator i1 = m_musicalEvents.end();
         if (!m_selectEnd.isNull()) {
             i1 = lower_bound(m_musicalEvents.begin(), m_musicalEvents.end(),
-                             m_selectEnd.location, comparator);
+                             m_selectEnd.location, inclusiveComparator);
         }
 
         SVDEBUG << "ScoreWidget::paint: selection spans from "
