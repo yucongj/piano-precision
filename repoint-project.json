@@ -12,19 +12,19 @@
             "vcs": "git",
             "service": "github",
             "owner": "sonic-visualiser",
-            "branch": "qt6"
+            "branch": "default"
         },
         "svgui": {
             "vcs": "git",
             "service": "github",
             "owner": "sonic-visualiser",
-            "branch": "qt6"
+            "branch": "default"
         },
         "svapp": {
             "vcs": "git",
             "service": "github",
             "owner": "sonic-visualiser",
-            "branch": "qt6"
+            "branch": "default"
         },
         "checker": {
             "vcs": "git",
