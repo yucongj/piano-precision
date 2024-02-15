@@ -37,7 +37,7 @@ public:
      */
     typedef std::string EventLabel;
     
-    ScoreWidget(QWidget *parent);
+    ScoreWidget(bool withZoomControls, QWidget *parent = 0);
     virtual ~ScoreWidget();
     
     /** 
@@ -69,6 +69,18 @@ public:
      */
     int getPageCount() const;
 
+    /**
+     * Set the scale factor for score rendering. The default is
+     * 100. Changing this will cause the whole score to be re-flowed,
+     * which may take a significant amount of time.
+     */
+    void setScale(int);
+
+    /**
+     * Get the scale factor for score rendering.
+     */
+    int getScale() const;
+    
     /**
      * Return the start and end locations and labels of the current
      * selection, or empty labels if there is no constraint at either
@@ -133,6 +145,10 @@ public slots:
      */
     void clearSelection();
 
+    void zoomIn();
+    void zoomReset();
+    void zoomOut();
+    
 signals:
     void loadFailed(QString scoreName, QString errorMessage);
     void interactionModeChanged(InteractionMode newMode);
@@ -179,6 +195,7 @@ private:
     std::string m_verovioResourcePath;
     std::vector<std::shared_ptr<QSvgRenderer>> m_svgPages;
     int m_page;
+    int m_scale;
 
     Score::MusicalEventList m_musicalEvents;
     
