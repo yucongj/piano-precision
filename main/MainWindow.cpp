@@ -2506,13 +2506,13 @@ MainWindow::highlightFrameInScore(sv_frame_t frame)
 
     // The default tempo is quarter note = 120 bpm.
 
-    TimeValueLayer *targetLayer = m_session.getOnsetsLayer();
+    TimeInstantLayer *targetLayer = m_session.getOnsetsLayer();
 
     // If the program is slow, might want to consider a different approach that can get rid of the loops.
     QString label;
     if (targetLayer) {
         ModelId targetId = targetLayer->getModel();
-        const auto targetModel = ModelById::getAs<SparseTimeValueModel>(targetId);
+        const auto targetModel = ModelById::getAs<SparseOneDimensionalModel>(targetId);
         const auto events = targetModel->getAllEvents();
         if (events.empty()) return;
         label = events[0].getLabel();
@@ -2694,7 +2694,7 @@ MainWindow::actOnScoreLocation(Fraction location,
     
     // See comments in highlightFrameInScore above
 
-    TimeValueLayer *targetLayer = m_session.getOnsetsLayer();
+    TimeInstantLayer *targetLayer = m_session.getOnsetsLayer();
     Pane *targetPane = m_session.getPaneContainingOnsetsLayer();
 
     if (!targetLayer || !targetPane || !m_viewManager) {
@@ -2702,11 +2702,11 @@ MainWindow::actOnScoreLocation(Fraction location,
         return;
     }
 
-    targetLayer->setPermitValueEditOfSegmentation(false);
+//    targetLayer->setPermitValueEditOfSegmentation(false);
     m_paneStack->setCurrentLayer(targetPane, targetLayer);
 
     ModelId targetId = targetLayer->getModel();
-    const auto targetModel = ModelById::getAs<SparseTimeValueModel>(targetId);
+    const auto targetModel = ModelById::getAs<SparseOneDimensionalModel>(targetId);
     if (!targetModel) {
         SVDEBUG << "MainWindow::actOnScorePosition: missing target model" << endl;
         return;
@@ -2738,7 +2738,7 @@ MainWindow::actOnScoreLocation(Fraction location,
 void
 MainWindow::scoreInteractionEnded(ScoreWidget::InteractionMode mode)
 {
-    TimeValueLayer *targetLayer = m_session.getOnsetsLayer();
+    TimeInstantLayer *targetLayer = m_session.getOnsetsLayer();
     if (targetLayer) {
         targetLayer->removeOverrideHighlight();
     }
@@ -2764,7 +2764,7 @@ MainWindow::alignmentReadyForReview()
 {
     SVDEBUG << "MainWindow::alignmentReadyForReview" << endl;
 
-    TimeValueLayer *onsetsLayer = m_session.getOnsetsLayer();
+    TimeInstantLayer *onsetsLayer = m_session.getOnsetsLayer();
     Pane *onsetsPane = m_session.getPaneContainingOnsetsLayer();
     if (!onsetsLayer) {
         SVDEBUG << "MainWindow::alignmentReadyForReview: can't find an onsets layer!" << endl;
@@ -2797,7 +2797,7 @@ MainWindow::alignmentAccepted()
     m_alignButton->show();
     m_alignButton->setEnabled(true);
 
-    TimeValueLayer *onsetsLayer = m_session.getOnsetsLayer();
+    TimeInstantLayer *onsetsLayer = m_session.getOnsetsLayer();
     Pane *onsetsPane = m_session.getPaneContainingOnsetsLayer();
     if (!onsetsLayer) {
         SVDEBUG << "MainWindow::alignmentAccepted: can't find an onsets layer!" << endl;
@@ -2820,7 +2820,7 @@ MainWindow::alignmentRejected()
     m_alignButton->show();
     m_alignButton->setEnabled(true);
 
-    TimeValueLayer *onsetsLayer = m_session.getOnsetsLayer();
+    TimeInstantLayer *onsetsLayer = m_session.getOnsetsLayer();
     Pane *onsetsPane = m_session.getPaneContainingOnsetsLayer();
     if (!onsetsLayer) {
         SVDEBUG << "MainWindow::alignmentRejected: can't find an onsets layer!" << endl;

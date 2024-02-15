@@ -79,7 +79,7 @@ Session::unsetDocument()
     setDocument(nullptr, nullptr, nullptr, nullptr);
 }
 
-TimeValueLayer *
+TimeInstantLayer *
 Session::getOnsetsLayer()
 {
     return m_displayedOnsetsLayer;
@@ -170,7 +170,7 @@ Session::beginPartialAlignment(int scorePositionStartNumerator,
 
     ModelTransformer::Input input(m_mainModel);
 
-    vector<pair<QString, pair<Pane *, TimeValueLayer **>>> layerDefinitions {
+    vector<pair<QString, pair<Pane *, TimeInstantLayer **>>> layerDefinitions {
         { "vamp:score-aligner:pianoaligner:chordonsets",
           { m_topPane, &m_pendingOnsetsLayer }
         }
@@ -248,8 +248,8 @@ Session::beginPartialAlignment(int scorePositionStartNumerator,
             return;
         }
 
-        TimeValueLayer *tvl = qobject_cast<TimeValueLayer *>(layer);
-        if (!tvl) {
+        TimeInstantLayer *tl = qobject_cast<TimeInstantLayer *>(layer);
+        if (!tl) {
             SVDEBUG << "Session::beginPartialAlignment: Transform resulted in wrong layer type" << endl;
             return;
         }
@@ -258,7 +258,7 @@ Session::beginPartialAlignment(int scorePositionStartNumerator,
             m_document->deleteLayer(*layerPtr, true);
         }
             
-        *layerPtr = tvl;
+        *layerPtr = tl;
         
         m_document->addLayerToView(pane, layer);
 
@@ -294,15 +294,13 @@ Session::beginPartialAlignment(int scorePositionStartNumerator,
 }
 
 void
-Session::setOnsetsLayerProperties(TimeValueLayer *onsetsLayer)
+Session::setOnsetsLayerProperties(TimeInstantLayer *onsetsLayer)
 {
-    onsetsLayer->setPlotStyle(TimeValueLayer::PlotSegmentation);
-    onsetsLayer->setDrawSegmentDivisions(true);
-    onsetsLayer->setFillSegments(false);
-    onsetsLayer->setPermitValueEditOfSegmentation(false);
+//    onsetsLayer->setPlotStyle(TimeInstantLayer::PlotSegmentation);
+//    onsetsLayer->setFillSegments(false);
 
-    connect(onsetsLayer, SIGNAL(frameIlluminated(sv_frame_t)),
-            this, SIGNAL(alignmentFrameIlluminated(sv_frame_t)));
+    connect(onsetsLayer, &TimeInstantLayer::frameIlluminated,
+            this, &Session::alignmentFrameIlluminated);
 }
 
 void
@@ -401,7 +399,7 @@ Session::acceptAlignment()
 }
 
 void
-Session::mergeLayers(TimeValueLayer *from, TimeValueLayer *to,
+Session::mergeLayers(TimeInstantLayer *from, TimeInstantLayer *to,
                      sv_frame_t overlapStart, sv_frame_t overlapEnd)
 {
     // Currently the way we are handling this is by having "to"
@@ -411,8 +409,8 @@ Session::mergeLayers(TimeValueLayer *from, TimeValueLayer *to,
 
     //!!! We should also use a command
     
-    auto fromModel = ModelById::getAs<SparseTimeValueModel>(from->getModel());
-    auto toModel = ModelById::getAs<SparseTimeValueModel>(to->getModel());
+    auto fromModel = ModelById::getAs<SparseOneDimensionalModel>(from->getModel());
+    auto toModel = ModelById::getAs<SparseOneDimensionalModel>(to->getModel());
 
     EventVector beforeOverlap = fromModel->getEventsWithin(0, overlapStart);
     EventVector afterOverlap = fromModel->getEventsWithin
@@ -518,7 +516,7 @@ Session::importAlignmentFrom(QString path)
         return false;
     }
 
-    auto stvm = qobject_cast<SparseTimeValueModel *>(imported);
+    auto stvm = qobject_cast<SparseOneDimensionalModel *>(imported);
     if (!stvm) {
         SVDEBUG << "Session::importAlignmentFrom: Imported model is of the wrong type" << endl;
         delete imported;
@@ -528,14 +526,14 @@ Session::importAlignmentFrom(QString path)
     bool existingModelIsNew = false;
     
     if (!m_displayedOnsetsLayer) {
-        m_displayedOnsetsLayer = dynamic_cast<TimeValueLayer *>
-            (m_document->createEmptyLayer(LayerFactory::TimeValues));
+        m_displayedOnsetsLayer = dynamic_cast<TimeInstantLayer *>
+            (m_document->createEmptyLayer(LayerFactory::TimeInstants));
         m_document->addLayerToView(m_topPane, m_displayedOnsetsLayer);
         setOnsetsLayerProperties(m_displayedOnsetsLayer);
         existingModelIsNew = true;
     }
     
-    auto existingModel = ModelById::getAs<SparseTimeValueModel>
+    auto existingModel = ModelById::getAs<SparseOneDimensionalModel>
         (m_displayedOnsetsLayer->getModel());
     if (!existingModel) {
         SVDEBUG << "Session::importAlignmentFrom: Internal error: onsets layer has no model!" << endl;
@@ -585,8 +583,10 @@ Session::updateAlignmentEntries()
 {
     if (m_displayedOnsetsLayer) {
 
-        shared_ptr<SparseTimeValueModel> model =
-                ModelById::getAs<SparseTimeValueModel>(m_displayedOnsetsLayer->getModel());
+        shared_ptr<SparseOneDimensionalModel> model =
+                ModelById::getAs<SparseOneDimensionalModel>
+            (m_displayedOnsetsLayer->getModel());
+        
         if (model) {
 
             // Overwriting the frame values

@@ -18,6 +18,7 @@
 #include "layer/TimeRulerLayer.h"
 #include "layer/WaveformLayer.h"
 #include "layer/SpectrogramLayer.h"
+#include "layer/TimeInstantLayer.h"
 #include "layer/TimeValueLayer.h"
 
 #include "view/Pane.h"
@@ -43,7 +44,7 @@ public:
         AlignmentEntry(std::string l, float t, int f): label{l}, time{t}, frame{f} { }
     };
 
-    sv::TimeValueLayer *getOnsetsLayer();
+    sv::TimeInstantLayer *getOnsetsLayer();
     sv::Pane *getPaneContainingOnsetsLayer();
     
     sv::TimeValueLayer *getTempoLayer();
@@ -103,16 +104,16 @@ private:
     sv::sv_frame_t m_partialAlignmentAudioStart;
     sv::sv_frame_t m_partialAlignmentAudioEnd;
     
-    sv::TimeValueLayer *m_displayedOnsetsLayer;
-    sv::TimeValueLayer *m_acceptedOnsetsLayer;
-    sv::TimeValueLayer *m_pendingOnsetsLayer;
+    sv::TimeInstantLayer *m_displayedOnsetsLayer;
+    sv::TimeInstantLayer *m_acceptedOnsetsLayer;
+    sv::TimeInstantLayer *m_pendingOnsetsLayer;
     bool m_awaitingOnsetsLayer;
     
     sv::TimeValueLayer *m_tempoLayer;
 
-    void setOnsetsLayerProperties(sv::TimeValueLayer *);
+    void setOnsetsLayerProperties(sv::TimeInstantLayer *);
     void alignmentComplete();
-    void mergeLayers(sv::TimeValueLayer *from, sv::TimeValueLayer *to,
+    void mergeLayers(sv::TimeInstantLayer *from, sv::TimeInstantLayer *to,
                      sv::sv_frame_t overlapStart, sv::sv_frame_t overlapEnd);
     void recalculateTempoLayer();
 
