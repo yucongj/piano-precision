@@ -78,24 +78,6 @@ ScoreWidget::getPageCount() const
 }
 
 bool
-ScoreWidget::loadScoreByName(QString scoreName, QString &errorString)
-{
-    SVDEBUG << "ScoreWidget::loadScoreByName: Score \"" << scoreName
-            << "\" requested" << endl;
-
-    string scorePath =
-        ScoreFinder::getScoreFile(scoreName.toStdString(), "mei");
-    if (scorePath == "") {
-        errorString = "Score file (.mei) not found!";
-        SVDEBUG << "ScoreWidget::loadAScore: " << errorString << endl;
-        return false;
-    }
-
-    return loadScoreFile(scoreName, QString::fromStdString(scorePath),
-                         errorString);
-}
-
-bool
 ScoreWidget::loadScoreFile(QString scoreName, QString scoreFile, QString &errorString)
 {
     clearSelection();

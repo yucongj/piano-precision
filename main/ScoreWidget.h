@@ -39,12 +39,6 @@ public:
     
     ScoreWidget(QWidget *parent);
     virtual ~ScoreWidget();
-    
-    /** 
-     * Load the named score. If loading fails, return false and set
-     * the error string accordingly.
-     */
-    bool loadScoreByName(QString name, QString &error);
 
     /** 
      * Load a score, by MEI filename. If loading fails, return false

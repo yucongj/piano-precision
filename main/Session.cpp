@@ -233,6 +233,8 @@ Session::beginPartialAlignment(int scorePositionStartNumerator,
         Transform t = TransformFactory::getInstance()->
             getDefaultTransformFor(transformId);
 
+        SVDEBUG << "Session::beginPartialAlignment: Setting plugin's program to \"" << m_scoreId << "\"" << endl;
+            
         t.setProgram(m_scoreId);
         t.setParameters(params);
 

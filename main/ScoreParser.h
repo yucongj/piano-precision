@@ -20,7 +20,9 @@ class ScoreParser
 public:
     /** Generate necessary score files.
      */
-    static bool generateScoreFiles(std::string scorePath, std::string scoreName);
+    static bool generateScoreFiles(std::string scoreDir,
+                                   std::string scoreName,
+                                   std::string meiFile);
 
     /** Obtain the resource path to pass to Verovio. Resources are
      *  unpacked from the binary bundle the first time this is called,
