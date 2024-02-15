@@ -828,9 +828,12 @@ ScoreWidget::paintEvent(QPaintEvent *e)
             } else if (rect.x() < furthestX - 0.001) {
                 continue;
             }
-            rect.setWidth(lineWidth - rect.x());
             auto j = i;
-            while (++j != m_musicalEvents.end()) {
+            ++j;
+            if (j != i1) {
+                rect.setWidth(lineWidth - rect.x());
+            }
+            while (j != m_musicalEvents.end()) {
                 EventData nextData = getEventForMusicalEvent(*j);
                 QRectF nextRect = getHighlightRectFor(nextData);
                 if (nextData.page == m_page &&
@@ -841,13 +844,16 @@ ScoreWidget::paintEvent(QPaintEvent *e)
                     SVDEBUG << "next event is at " << nextRect.x()
                             << " with width " << nextRect.width() << endl;
 #endif
-                    rect.setWidth(nextRect.x() - rect.x());
+                    if (nextRect.x() - rect.x() < rect.width()) {
+                        rect.setWidth(nextRect.x() - rect.x());
+                    }
                     break;
                 }
                 if (nextData.page > m_page ||
                     nextRect.y() > rect.y()) {
                     break;
                 }
+                ++j;
             }
             paint.drawRect(rect);
             prevY = rect.y();
