@@ -174,10 +174,14 @@ ScoreWidget::loadAScore(QString scoreName, QString &errorString)
         SVDEBUG << "ScoreWidget::loadAScore: Failed to set Verovio resource path" << endl;
         return false;
     }
-    if (!toolkit.SetScale(m_scale)) {
-        SVDEBUG << "ScoreWidget::loadAScore: Failed to set rendering scale" << endl;
-    } else {
-        SVDEBUG << "ScoreWidget::loadAScore: Set scale to " << m_scale << endl;
+    if (m_scale != 100) {
+        toolkit.SetOptions("{\"scaleToPageSize\": true}");
+        if (!toolkit.SetScale(m_scale)) {
+            SVDEBUG << "ScoreWidget::loadAScore: Failed to set rendering scale" << endl;
+        } else {
+            SVDEBUG << "ScoreWidget::loadAScore: Set scale to " << m_scale << endl;
+        }
+        SVDEBUG << "options: " << toolkit.GetOptions() << endl;
     }
     if (!toolkit.LoadFile(scorePath)) {
         SVDEBUG << "ScoreWidget::loadAScore: Load failed in Verovio toolkit" << endl;
