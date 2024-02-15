@@ -77,27 +77,32 @@ ScoreWidget::getPageCount() const
     return m_svgPages.size();
 }
 
-void
-ScoreWidget::loadAScore(QString scoreName)
+bool
+ScoreWidget::loadScoreByName(QString scoreName, QString &errorString)
 {
-    QString errorString;
-    if (!loadAScore(scoreName, errorString)) {
-        emit loadFailed(scoreName, tr("Failed to load score %1: %2")
-                        .arg(scoreName).arg(errorString));
-        return;
+    SVDEBUG << "ScoreWidget::loadScoreByName: Score \"" << scoreName
+            << "\" requested" << endl;
+
+    string scorePath =
+        ScoreFinder::getScoreFile(scoreName.toStdString(), "mei");
+    if (scorePath == "") {
+        errorString = "Score file (.mei) not found!";
+        SVDEBUG << "ScoreWidget::loadAScore: " << errorString << endl;
+        return false;
     }
 
-    clearSelection();
+    return loadScoreFile(scoreName, QString::fromStdString(scorePath),
+                         errorString);
 }
 
 bool
-ScoreWidget::loadAScore(QString scoreName, QString &errorString)
+ScoreWidget::loadScoreFile(QString scoreName, QString scoreFile, QString &errorString)
 {
-    SVDEBUG << "ScoreWidget::loadAScore: Score \"" << scoreName
-            << "\" requested" << endl;
+    clearSelection();
 
     if (m_verovioResourcePath == "") {
-        SVDEBUG << "ScoreWidget::loadAScore: No Verovio resource path available" << endl;
+        SVDEBUG << "ScoreWidget::loadScoreFile: No Verovio resource path available" << endl;
+        errorString = "No Verovio resource path available: application was not packaged properly";
         return false;
     }
     
@@ -108,24 +113,16 @@ ScoreWidget::loadAScore(QString scoreName, QString &errorString)
     
     m_page = -1;
     
-    string scorePath =
-        ScoreFinder::getScoreFile(scoreName.toStdString(), "mei");
-    if (scorePath == "") {
-        errorString = "Score file (.mei) not found!";
-        SVDEBUG << "ScoreWidget::loadAScore: " << errorString << endl;
-        return false;
-    }
-    
-    SVDEBUG << "ScoreWidget::loadAScore: Asked to load MEI file \""
-            << scorePath << "\" for score \"" << scoreName << "\"" << endl;
+    SVDEBUG << "ScoreWidget::loadScoreFile: Asked to load MEI file \""
+            << scoreFile << "\" for score \"" << scoreName << "\"" << endl;
 
     vrv::Toolkit toolkit(false);
     if (!toolkit.SetResourcePath(m_verovioResourcePath)) {
-        SVDEBUG << "ScoreWidget::loadAScore: Failed to set Verovio resource path" << endl;
+        SVDEBUG << "ScoreWidget::loadScoreFile: Failed to set Verovio resource path" << endl;
         return false;
     }
-    if (!toolkit.LoadFile(scorePath)) {
-        SVDEBUG << "ScoreWidget::loadAScore: Load failed in Verovio toolkit" << endl;
+    if (!toolkit.LoadFile(scoreFile.toStdString())) {
+        SVDEBUG << "ScoreWidget::loadScoreFile: Load failed in Verovio toolkit" << endl;
         return false;
     }
 
@@ -152,9 +149,9 @@ ScoreWidget::loadAScore(QString scoreName, QString &errorString)
     }
     
     m_scoreName = scoreName;
-    m_scoreFilename = QString::fromStdString(scorePath);
+    m_scoreFilename = scoreFile;
 
-    SVDEBUG << "ScoreWidget::loadAScore: Load successful, showing first page"
+    SVDEBUG << "ScoreWidget::loadScoreFile: Load successful, showing first page"
             << endl;
     showPage(0);
     return true;
