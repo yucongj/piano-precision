@@ -102,6 +102,7 @@ protected slots:
 
     void updateMenuStates() override;
     void updateDescriptionLabel() override;
+    void updateWindowTitle() override;
 
     virtual void setInstantsNumbering();
     virtual void setInstantsCounterCycle();

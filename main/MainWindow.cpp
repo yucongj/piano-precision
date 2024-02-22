@@ -3447,6 +3447,26 @@ MainWindow::updateMenuStates()
 }
 
 void
+MainWindow::updateWindowTitle()
+{
+    QString title;
+    
+    if (m_originalLocation == "") {
+        if (m_scoreId != "") {
+            title = tr("%1: %2")
+                .arg(QApplication::applicationName())
+                .arg(m_scoreId);
+        }
+    }
+
+    if (title != "") {
+        setWindowTitle(title);
+    } else {
+        MainWindowBase::updateWindowTitle();
+    }
+}
+
+void
 MainWindow::updateDescriptionLabel()
 {
     if (!getMainModel()) {
