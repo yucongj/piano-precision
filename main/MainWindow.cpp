@@ -2567,13 +2567,13 @@ MainWindow::highlightFrameInScore(sv_frame_t frame)
         int eventCount = targetModel->getEventCount();
         for (int i = 1; i < eventCount; ++i) {
             sv_frame_t eventFrame = events[i].getFrame();
-            // cerr << "event index = " << i << ": " << "Frame = " << eventFrame << ", Value = " << targetModel->getAllEvents()[i].getValue() << endl;
+//            SVDEBUG << "MainWindow::highlightFrameInScore: seeking frame " << frame << ": event index = " << i << ": " << "Frame = " << eventFrame << ", Value = " << events[i].getValue() << ", Label = " << events[i].getLabel() << endl;
             if (frame < eventFrame) {
                 label = events[i-1].getLabel();
                 found = true;
                 break;
             } else if (frame == eventFrame) {
-                label = events[i-1].getLabel();
+                label = events[i].getLabel();
                 found = true;
                 break;
             }
