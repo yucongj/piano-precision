@@ -19,8 +19,11 @@
 #include <QSvgRenderer>
 #include <QDomDocument>
 #include <QDomElement>
+#include <QToolButton>
+#include <QGridLayout>
 
 #include "base/Debug.h"
+#include "widgets/IconLoader.h"
 
 #include <vector>
 
@@ -42,9 +45,10 @@ using std::string;
 using std::shared_ptr;
 using std::make_shared;
 
-ScoreWidget::ScoreWidget(QWidget *parent) :
+ScoreWidget::ScoreWidget(bool withZoomControls, QWidget *parent) :
     QFrame(parent),
     m_page(-1),
+    m_scale(100),
     m_mode(InteractionMode::None),
     m_mouseActive(false)
 {
@@ -52,6 +56,26 @@ ScoreWidget::ScoreWidget(QWidget *parent) :
     setMinimumSize(QSize(100, 100));
     setMouseTracking(true);
     m_verovioResourcePath = ScoreParser::getResourcePath();
+
+    if (withZoomControls) {
+        sv::IconLoader il;
+        auto zoomOut = new QToolButton;
+        zoomOut->setIcon(il.load("zoom-out"));
+        connect(zoomOut, &QToolButton::clicked, this, &ScoreWidget::zoomOut);
+        auto zoomReset = new QToolButton;
+        zoomReset->setIcon(il.load("zoom-reset"));
+        connect(zoomReset, &QToolButton::clicked, this, &ScoreWidget::zoomReset);
+        auto zoomIn = new QToolButton;
+        zoomIn->setIcon(il.load("zoom-in"));
+        connect(zoomIn, &QToolButton::clicked, this, &ScoreWidget::zoomIn);
+        auto layout = new QGridLayout;
+        layout->addWidget(zoomOut, 1, 0);
+        layout->addWidget(zoomReset, 1, 1);
+        layout->addWidget(zoomIn, 1, 2);
+        layout->setRowStretch(0, 10);
+        layout->setColumnStretch(3, 10);
+        setLayout(layout);
+    }
 }
 
 ScoreWidget::~ScoreWidget()
@@ -75,6 +99,32 @@ int
 ScoreWidget::getPageCount() const
 {
     return m_svgPages.size();
+}
+
+void
+ScoreWidget::setScale(int scale)
+{
+    if (m_scale == scale) {
+        return;
+    }
+    m_scale = scale;
+    auto scoreName = m_scoreName;
+    auto scoreFilename = m_scoreFilename;
+    auto musicalEvents = m_musicalEvents;
+    QString errorString;
+    if (!loadScoreFile(scoreName, scoreFilename, errorString)) {
+        SVCERR << "ScoreWidget::setScale: Failed to reload score "
+               << scoreName << ": " << errorString << endl;
+        return;
+    }
+    setMusicalEvents(musicalEvents);
+    update();
+}
+
+int
+ScoreWidget::getScale() const
+{
+    return m_scale;
 }
 
 bool
@@ -103,12 +153,24 @@ ScoreWidget::loadScoreFile(QString scoreName, QString scoreFile, QString &errorS
         SVDEBUG << "ScoreWidget::loadScoreFile: Failed to set Verovio resource path" << endl;
         return false;
     }
+    if (m_scale != 100) {
+        toolkit.SetOptions("{\"scaleToPageSize\": true}");
+        if (!toolkit.SetScale(m_scale)) {
+            SVDEBUG << "ScoreWidget::loadScoreFile: Failed to set rendering scale" << endl;
+        } else {
+            SVDEBUG << "ScoreWidget::loadScoreFile: Set scale to " << m_scale << endl;
+        }
+        SVDEBUG << "options: " << toolkit.GetOptions() << endl;
+    }
     if (!toolkit.LoadFile(scoreFile.toStdString())) {
         SVDEBUG << "ScoreWidget::loadScoreFile: Load failed in Verovio toolkit" << endl;
         return false;
     }
 
     int pp = toolkit.GetPageCount();
+
+    SVDEBUG << "ScoreWidget::loadScoreFile: Have " << pp << " pages" << endl;
+    
     for (int p = 0; p < pp; ++p) {
 
         std::string svgText = toolkit.RenderToSVG(p + 1); // (verovio is 1-based)
@@ -469,6 +531,28 @@ ScoreWidget::clearSelection()
                           getScoreEndEvent().label);
 
     update();
+}
+
+void
+ScoreWidget::zoomIn()
+{
+    if (m_scale < 240) {
+        setScale(m_scale + 20);
+    }
+}
+
+void
+ScoreWidget::zoomOut()
+{
+    if (m_scale > 20) {
+        setScale(m_scale - 20);
+    }
+}
+
+void
+ScoreWidget::zoomReset()
+{
+    setScale(100);
 }
 
 ScoreWidget::EventData

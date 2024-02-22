@@ -235,7 +235,7 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     QWidget *scoreWidgetContainer = new QWidget(this);
     QGridLayout *scoreWidgetLayout = new QGridLayout;
 
-    m_scoreWidget = new ScoreWidget(this);
+    m_scoreWidget = new ScoreWidget(true, this);
     m_scoreWidget->setInteractionMode(ScoreWidget::InteractionMode::Navigate);
     connect(m_scoreWidget, &ScoreWidget::scoreLocationHighlighted,
             this, &MainWindow::scoreLocationHighlighted);
