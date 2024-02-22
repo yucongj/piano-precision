@@ -38,10 +38,9 @@ public:
     struct AlignmentEntry
     {
         std::string label;
-        float time;
         int frame;
 
-        AlignmentEntry(std::string l, float t, int f): label{l}, time{t}, frame{f} { }
+        AlignmentEntry(std::string l, int f): label{l}, frame{f} { }
     };
 
     sv::TimeInstantLayer *getOnsetsLayer();

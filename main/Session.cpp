@@ -437,6 +437,9 @@ Session::exportAlignmentTo(QString path)
 bool
 Session::exportAlignmentEntriesTo(QString path)
 {
+    if (m_mainModel.isNone()) return false;
+    sv_samplerate_t sampleRate = ModelById::get(m_mainModel)->getSampleRate();
+
     // Write to a temporary file and then move it into place at the
     // end, so as to avoid overwriting existing file if for any reason
     // the write fails
@@ -455,12 +458,14 @@ Session::exportAlignmentEntriesTo(QString path)
     
     for (const auto &entry : m_alignmentEntries) {
         QVector<QString> columns;
-        columns << QString::fromStdString(entry.label)
-                << QString("%1").arg(entry.time);
-        if (entry.frame < 0) {
-            columns << "N";
+        columns << QString::fromStdString(entry.label);
+        auto frame = entry.frame;
+        if (frame < 0) {
+            columns << "N" << "N";
         } else {
-            columns << QString("%1").arg(entry.frame);
+            columns << QString("%1").arg(RealTime::frame2RealTime
+                                         (frame, sampleRate).toDouble())
+                    << QString("%1").arg(frame);
         }
         out << StringBits::joinDelimited(columns, ",") << '\n';
     }
@@ -576,7 +581,7 @@ Session::setMusicalEvents(const Score::MusicalEventList &musicalEvents)
     for (auto &event : m_musicalEvents) {
         Score::MeasureInfo info = event.measureInfo;
         std::string label = info.toLabel();
-        m_alignmentEntries.push_back(AlignmentEntry(label, .0, -1)); // -1 is placeholder // TODO: .0 needs to be the real time in seconds
+        m_alignmentEntries.push_back(AlignmentEntry(label, -1)); // -1 is placeholder
     }
 }
 
