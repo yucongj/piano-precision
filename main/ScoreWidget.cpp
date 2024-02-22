@@ -948,13 +948,6 @@ ScoreWidget::showPage(int page)
 }
 
 void
-ScoreWidget::setHighlightEventByLocation(Fraction location)
-{
-    //!!! do we need this?
-    throw std::runtime_error("Not yet implemented");
-}
-
-void
 ScoreWidget::setHighlightEventByLabel(EventLabel label)
 {
     m_eventToHighlight = getEventWithLabel(label);

@@ -114,16 +114,8 @@ public slots:
     void showPage(int page);
 
     /**
-     * Set the current location (and by implication, event) to be
-     * highlighted. The type of highlighting will depend on the
-     * current interaction mode.
-     */
-    void setHighlightEventByLocation(Fraction location);
-
-    /**
-     * Set the current event (and by implication, location) to be
-     * highlighted. The type of highlighting will depend on the
-     * current interaction mode.
+     * Set the current event to be highlighted. The type of
+     * highlighting will depend on the current interaction mode.
      */
     void setHighlightEventByLabel(EventLabel label);
 
