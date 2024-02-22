@@ -60,13 +60,16 @@ ScoreWidget::ScoreWidget(bool withZoomControls, QWidget *parent) :
     if (withZoomControls) {
         sv::IconLoader il;
         auto zoomOut = new QToolButton;
-        zoomOut->setIcon(il.load("zoom-out"));
+        zoomOut->setText(QString(QChar(0x2212))); // mathematical minus
+        zoomOut->setToolTip(tr("Decrease Staff Size"));
         connect(zoomOut, &QToolButton::clicked, this, &ScoreWidget::zoomOut);
         auto zoomReset = new QToolButton;
-        zoomReset->setIcon(il.load("zoom-reset"));
+        zoomReset->setText(QString(QChar(0x2218))); // mathematical ring operator, I just quite liked it!
+        zoomReset->setToolTip(tr("Reset Staff Size to Default"));
         connect(zoomReset, &QToolButton::clicked, this, &ScoreWidget::zoomReset);
         auto zoomIn = new QToolButton;
-        zoomIn->setIcon(il.load("zoom-in"));
+        zoomIn->setText(QString(QChar(0x002b))); // mathematical plus
+        zoomIn->setToolTip(tr("Increase Staff Size"));
         connect(zoomIn, &QToolButton::clicked, this, &ScoreWidget::zoomIn);
         auto layout = new QGridLayout;
         layout->addWidget(zoomOut, 1, 0);
