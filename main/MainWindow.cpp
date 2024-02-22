@@ -2408,7 +2408,7 @@ MainWindow::openScoreFile()
     if (!dialog.exec() || dialog.selectedFiles().empty()) return; // cancel
 
     QString scoreFile = dialog.selectedFiles()[0];
-    QString scoreName = QFileInfo(scoreFile).baseName();
+    QString scoreName = QFileInfo(scoreFile).completeBaseName();
 
     openScoreFile(scoreName, scoreFile);
 }
