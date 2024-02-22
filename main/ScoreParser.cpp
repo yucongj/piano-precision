@@ -31,21 +31,42 @@ using std::vector;
 #include <QString>
 #include <QStringList>
 
-bool
+static void
+removeGeneratedFiles(const vector<string> files)
+{
+    for (auto f : files) {
+        std::error_code ec;
+        SVDEBUG << "ScoreParser: removing generated file \""
+                << f << "\"" << endl;
+        if (!std::filesystem::remove(f, ec)) {
+            SVDEBUG << "Failed to remove generated file \""
+                    << f << "\": " << ec.message() << endl;
+        }
+    }
+}
+
+vector<string>
 ScoreParser::generateScoreFiles(string dir, string scoreName, string meiFile)
 {
+    vector<string> generatedFiles;
+    
     vrv::Toolkit toolkit(false);
 
     string resourcePath = getResourcePath();
     if (resourcePath == "" || !toolkit.SetResourcePath(resourcePath)) {
         SVDEBUG << "ScoreParser::generateScoreFiles: Failed to set Verovio resource path" << endl;
-        return false;
+        return {};
     }
     toolkit.LoadFile(meiFile);
 
     jsonxx::Array timemap;
     string option = "{\"includeMeasures\" : true,}";
-    toolkit.RenderToTimemapFile(dir + "/" + scoreName + ".json", option);
+    string timemapFilePath = dir + "/" + scoreName + ".json";
+    if (!toolkit.RenderToTimemapFile(timemapFilePath, option)) {
+        SVDEBUG << "Failed to write timemap data to " << timemapFilePath << endl;
+        return {};
+    }
+    generatedFiles.push_back(timemapFilePath);
     timemap.parse(toolkit.RenderToTimemap(option));
 
     std::vector<string> meters; // starting from measure 1
@@ -69,11 +90,14 @@ ScoreParser::generateScoreFiles(string dir, string scoreName, string meiFile)
     string outfile(dir + "/" + scoreName + ".meter");
     std::ofstream output(outfile);
     output << outputString;
-    if (!output.good()) {
+    generatedFiles.push_back(outfile);
+    if (output.good()) {
+        SVDEBUG << "Wrote meter data to " << outfile << endl;
+    } else {
         SVDEBUG << "Failed to write meter data to " << outfile << endl;
-        return false;
+        removeGeneratedFiles(generatedFiles);
+        return {};
     }
-    SVDEBUG << "Wrote meter data to " << outfile << endl;
 
     // Calculating cumulative fraction for the beginning of each measure
     vector<vrv::Fraction> cumulativeMeasureFraction;
@@ -162,13 +186,16 @@ ScoreParser::generateScoreFiles(string dir, string scoreName, string meiFile)
     outfile = dir + "/" + scoreName + ".solo";
     std::ofstream file(outfile);
     file << content;
-    if (!file.good()) {
+    generatedFiles.push_back(outfile);
+    if (file.good()) {
+        SVDEBUG << "Wrote solo data to " << outfile << endl;
+    } else {
         SVDEBUG << "Failed to write solo data to " << outfile << endl;
-        return false;
+        removeGeneratedFiles(generatedFiles);
+        return {};
     }
-    SVDEBUG << "Wrote solo data to " << outfile << endl;
 
-    return true;
+    return generatedFiles;
 }
 
 string

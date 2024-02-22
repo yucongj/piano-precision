@@ -538,6 +538,8 @@ MainWindow::~MainWindow()
 {
 //    SVDEBUG << "MainWindow::~MainWindow" << endl;
 
+    deleteTemporaryScoreFiles();
+
     delete m_keyReference;
     delete m_activityLog;
     delete m_unitConverter;
@@ -2418,6 +2420,27 @@ MainWindow::openScoreFile()
 }
 
 void
+MainWindow::deleteTemporaryScoreFiles()
+{
+    // Delete in reverse order of creation, so as to delete any
+    // resulting empty directory after its contents
+    for (auto itr = m_scoreFilesToDelete.rbegin();
+         itr != m_scoreFilesToDelete.rend();
+         ++itr) {
+        auto f = *itr;
+        std::error_code ec;
+        SVDEBUG << "MainWindow::deleteTemporaryScoreFiles: Removing file \""
+                << f << "\"" << endl;
+        if (!std::filesystem::remove(f, ec)) {
+            SVDEBUG << "MainWindow::deleteTemporaryScoreFiles: "
+                    << "Failed to remove generated file \""
+                    << f << "\": " << ec.message() << endl;
+        }
+    }
+    m_scoreFilesToDelete.clear();
+}
+
+void
 MainWindow::openScoreFile(QString scoreName, QString scoreFile)
 {
     QString errorString;
@@ -2443,6 +2466,8 @@ MainWindow::openScoreFile(QString scoreName, QString scoreFile)
                              QMessageBox::Ok);
         return;
     }
+
+    deleteTemporaryScoreFiles();
     
     m_scoreWidget->setInteractionMode(ScoreWidget::InteractionMode::Navigate);
     
@@ -2461,13 +2486,23 @@ MainWindow::openScoreFile(QString scoreName, QString scoreFile)
     // Creating score structure
     string sname = scoreName.toStdString();
     string scoreDir = ScoreFinder::getUserScoreDirectory() + "/" + sname;
-    QDir().mkpath(QString::fromStdString(scoreDir));
-    
-    if (!ScoreParser::generateScoreFiles(scoreDir, scoreName.toStdString(),
-                                         scoreFile.toStdString())) {
+
+    if (!std::filesystem::exists(scoreDir)) {
+        if (!QDir().mkpath(QString::fromStdString(scoreDir))) {
+            SVCERR << "MainWindow::chooseScore: Failed to create score directory \"" << scoreDir << "\" for generated files" << endl;
+            return;
+        }
+        m_scoreFilesToDelete.push_back(scoreDir);
+    }
+
+    auto generatedFiles = ScoreParser::generateScoreFiles
+        (scoreDir, scoreName.toStdString(), scoreFile.toStdString());
+    if (generatedFiles.empty()) {
         SVCERR << "MainWindow::chooseScore: Failed to generate score files in directory \"" << scoreDir << "\" from MEI file \"" << scoreFile << "\"" << endl;
         return;
     }
+    m_scoreFilesToDelete.insert(m_scoreFilesToDelete.end(),
+                                generatedFiles.begin(), generatedFiles.end());
     
     string soloPath = ScoreFinder::getScoreFile(sname, "solo");
     string meterPath = ScoreFinder::getScoreFile(sname, "meter");

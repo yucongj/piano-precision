@@ -303,6 +303,9 @@ protected:
     QString                  m_scoreAlignmentFile;
     bool                     m_scoreAlignmentModified;
     bool                     m_followScore;
+
+    std::vector<std::string> m_scoreFilesToDelete;
+    void deleteTemporaryScoreFiles();
     
     struct LayerConfiguration {
         LayerConfiguration(sv::LayerFactory::LayerType _layer
