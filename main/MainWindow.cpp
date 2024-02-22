@@ -3451,12 +3451,17 @@ MainWindow::updateWindowTitle()
 {
     QString title;
     
-    if (m_originalLocation == "") {
-        if (m_scoreId != "") {
+    if (m_scoreId != "") {
+        if (m_originalLocation == "") {
             title = tr("%1: %2")
                 .arg(QApplication::applicationName())
                 .arg(m_scoreId);
-        }
+        } else {
+            title = tr("%1: %2: %3")
+                .arg(QApplication::applicationName())
+                .arg(m_scoreId)
+                .arg(QFileInfo(m_originalLocation).completeBaseName());
+        }            
     }
 
     if (title != "") {
