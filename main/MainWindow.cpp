@@ -2480,12 +2480,7 @@ MainWindow::openScoreFile(QString scoreName, QString scoreFile)
 
     auto recordingDirectory =
         ScoreFinder::getUserRecordingDirectory(scoreName.toStdString());
-    if (recordingDirectory == "") {
-        QMessageBox::warning(this,
-                             tr("Unable to create recording directory"),
-                             tr("Unable to create recording directory: recordings will not be saved in score-specific locations. See log file for more information."),
-                             QMessageBox::Ok);
-    } else {
+    if (recordingDirectory != "") {
         RecordDirectory::setRecordContainerDirectory
             (QString::fromStdString(recordingDirectory));
     }
