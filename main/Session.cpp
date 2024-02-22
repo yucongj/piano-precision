@@ -303,6 +303,12 @@ Session::setOnsetsLayerProperties(TimeInstantLayer *onsetsLayer)
 
     connect(onsetsLayer, &TimeInstantLayer::frameIlluminated,
             this, &Session::alignmentFrameIlluminated);
+
+    auto playParams = PlayParameterRepository::getInstance()->getPlayParameters
+        (onsetsLayer->getModel().untyped);
+    if (playParams) {
+        playParams->setPlayGain(0.1);
+    }
 }
 
 void
