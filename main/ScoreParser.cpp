@@ -32,7 +32,7 @@ using std::vector;
 #include <QStringList>
 
 bool
-ScoreParser::generateScoreFiles(string dir, string score)
+ScoreParser::generateScoreFiles(string dir, string scoreName, string meiFile)
 {
     vrv::Toolkit toolkit(false);
 
@@ -41,12 +41,11 @@ ScoreParser::generateScoreFiles(string dir, string score)
         SVDEBUG << "ScoreParser::generateScoreFiles: Failed to set Verovio resource path" << endl;
         return false;
     }
-    string infile = dir + "/" + score + ".mei";
-    toolkit.LoadFile(infile);
+    toolkit.LoadFile(meiFile);
 
     jsonxx::Array timemap;
     string option = "{\"includeMeasures\" : true,}";
-    toolkit.RenderToTimemapFile(dir + "/" + score + ".json", option);
+    toolkit.RenderToTimemapFile(dir + "/" + scoreName + ".json", option);
     timemap.parse(toolkit.RenderToTimemap(option));
 
     std::vector<string> meters; // starting from measure 1
@@ -67,8 +66,14 @@ ScoreParser::generateScoreFiles(string dir, string score)
             meterChanges.push_back(std::pair<int, std::string>(m+1, meters.at(m)));
         }
     }
-    std::ofstream output(dir + "/" + score + ".meter");
+    string outfile(dir + "/" + scoreName + ".meter");
+    std::ofstream output(outfile);
     output << outputString;
+    if (!output.good()) {
+        SVDEBUG << "Failed to write meter data to " << outfile << endl;
+        return false;
+    }
+    SVDEBUG << "Wrote meter data to " << outfile << endl;
 
     // Calculating cumulative fraction for the beginning of each measure
     vector<vrv::Fraction> cumulativeMeasureFraction;
@@ -154,8 +159,14 @@ ScoreParser::generateScoreFiles(string dir, string score)
         else    content += "0\t";
         content += line.noteId + "\n";
     }
-    std::ofstream file(dir + "/" + score + ".solo");
+    outfile = dir + "/" + scoreName + ".solo";
+    std::ofstream file(outfile);
     file << content;
+    if (!file.good()) {
+        SVDEBUG << "Failed to write solo data to " << outfile << endl;
+        return false;
+    }
+    SVDEBUG << "Wrote solo data to " << outfile << endl;
 
     return true;
 }

@@ -136,6 +136,7 @@
 #include <QGroupBox>
 #include <QButtonGroup>
 #include <QActionGroup>
+#include <QFileDialog>
 
 #include <iostream>
 #include <cstdio>
@@ -524,7 +525,7 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     connect(&m_session, SIGNAL(alignmentFrameIlluminated(sv_frame_t)),
             this, SLOT(alignmentFrameIlluminated(sv_frame_t)));
 
-    chooseScore(); // Added by YJ, Oct 5, 2021
+    openScoreFile(); // Added by YJ, Oct 5, 2021
 
     SVDEBUG << "MainWindow: Constructor done" << endl;
 }
@@ -683,7 +684,7 @@ MainWindow::setupFileMenu()
     action = new QAction(icon, tr("&Choose Score..."), this);
     // action->setShortcut(tr("Ctrl+N"));
     action->setStatusTip(tr("Choose a new score"));
-    connect(action, SIGNAL(triggered()), this, SLOT(chooseScore()));
+    connect(action, SIGNAL(triggered()), this, SLOT(openScoreFile()));
     // m_keyReference->registerShortcut(action);
     menu->addAction(action);
     toolbar->addAction(action);
@@ -2385,9 +2386,52 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
         // user clicked Cancel
         return;
     }
+
+    openScoreFile(scoreName, {});
+}
+
+void
+MainWindow::openScoreFile()
+{
+    m_scorePageDownButton->setEnabled(false);
+    m_scorePageUpButton->setEnabled(false);
+
+    QString scoreDir =
+        QString::fromStdString(ScoreFinder::getUserScoreDirectory());
     
+    QFileDialog dialog(this);
+    dialog.setNameFilter(tr("MEI score files (*.mei)"));
+    dialog.setWindowTitle(tr("Choose a score file"));
+    dialog.setDirectory(scoreDir);
+    dialog.setAcceptMode(QFileDialog::AcceptOpen);
+    dialog.setFileMode(QFileDialog::ExistingFile);
+    if (!dialog.exec() || dialog.selectedFiles().empty()) return; // cancel
+
+    QString scoreFile = dialog.selectedFiles()[0];
+    QString scoreName = QFileInfo(scoreFile).baseName();
+
+    openScoreFile(scoreName, scoreFile);
+}
+
+void
+MainWindow::openScoreFile(QString scoreName, QString scoreFile)
+{
     QString errorString;
-    if (!m_scoreWidget->loadAScore(scoreName, errorString)) {
+    
+    if (scoreFile == "") {
+        scoreFile = QString::fromStdString
+            (ScoreFinder::getScoreFile(scoreName.toStdString(), "mei"));
+        if (scoreFile == "") {
+            QMessageBox::warning(this,
+                                 tr("Unable to load score"),
+                                 tr("Unable to load score \"%1\": Score file (.mei) not found!")
+                                 .arg(scoreName),
+                                 QMessageBox::Ok);
+            return;
+        }
+    }
+        
+    if (!m_scoreWidget->loadScoreFile(scoreName, scoreFile, errorString)) {
         QMessageBox::warning(this,
                              tr("Unable to load score"),
                              tr("Unable to load score \"%1\": %2")
@@ -2395,7 +2439,7 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
                              QMessageBox::Ok);
         return;
     }
-
+    
     m_scoreWidget->setInteractionMode(ScoreWidget::InteractionMode::Navigate);
     
     m_scoreId = scoreName;
@@ -2412,19 +2456,23 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
 
     // Creating score structure
     string sname = scoreName.toStdString();
-    string meiDir = ScoreFinder::getUserScoreDirectory() + "/" + sname;
-    if (!ScoreParser::generateScoreFiles(meiDir, sname)) { // generating score files
-        SVCERR << "MainWindow::chooseScore: Failed to generate score files from " << meiDir << ".mei" << endl;
+    string scoreDir = ScoreFinder::getUserScoreDirectory() + "/" + sname;
+    QDir().mkpath(QString::fromStdString(scoreDir));
+    
+    if (!ScoreParser::generateScoreFiles(scoreDir, scoreName.toStdString(),
+                                         scoreFile.toStdString())) {
+        SVCERR << "MainWindow::chooseScore: Failed to generate score files in directory \"" << scoreDir << "\" from MEI file \"" << scoreFile << "\"" << endl;
         return;
     }
+    
     string soloPath = ScoreFinder::getScoreFile(sname, "solo");
     string meterPath = ScoreFinder::getScoreFile(sname, "meter");
     if (!m_score.initialize(soloPath)) {
-        SVCERR << "MainWindow::chooseScore: Failed to load score data from " << soloPath << endl;
+        SVCERR << "MainWindow::chooseScore: Failed to load score data from solo file path \"" << soloPath << "\"" << endl;
         return;
     }
     if (!m_score.readMeter(meterPath)) {
-        SVCERR << "MainWindow::chooseScore: Failed to load meter data from " << meterPath << endl;
+        SVCERR << "MainWindow::chooseScore: Failed to load meter data from meter file path \"" << meterPath << "\"" << endl;
         return;
     }
     m_session.setMusicalEvents(m_score.getMusicalEvents());

@@ -39,12 +39,12 @@ public:
     
     ScoreWidget(QWidget *parent);
     virtual ~ScoreWidget();
-    
+
     /** 
-     * Load the named score. If loading fails, return false and set
-     * the error string accordingly.
+     * Load a score, by MEI filename. If loading fails, return false
+     * and set the error string accordingly.
      */
-    bool loadAScore(QString name, QString &error);
+    bool loadScoreFile(QString name, QString filename, QString &error);
     
     /** 
      * Set the musical event list for the current score, containing
@@ -96,12 +96,6 @@ public:
     }
                                                  
 public slots:
-    /** 
-     * Load the named score. If loading fails, emit the loadFailed
-     * signal.
-     */
-    void loadAScore(QString name);
-
     /**
      * Set the current page number and update the widget.
      */
@@ -134,7 +128,7 @@ public slots:
     void clearSelection();
 
 signals:
-    void loadFailed(QString scoreName, QString errorMessage);
+    void loadFailed(QString scoreNameOrFile, QString errorMessage);
     void interactionModeChanged(InteractionMode newMode);
     void scoreLocationHighlighted(Fraction, EventLabel, InteractionMode);
     void scoreLocationActivated(Fraction, EventLabel, InteractionMode);
@@ -218,7 +212,7 @@ private:
     EventData m_selectStart;
     EventData m_selectEnd;
     bool m_mouseActive;
-    
+
     EventData getEventAtPoint(QPoint);
 
     EventData getEventWithId(EventId id) const;
