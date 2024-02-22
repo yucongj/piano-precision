@@ -14,13 +14,20 @@
 #define SV_SCORE_PARSER_H
 
 #include <string>
+#include <vector>
 
 class ScoreParser
 {
 public:
-    /** Generate necessary score files.
+    /** Generate necessary score files. Return a vector of the
+     *  generated file names. Only files that we generated here are
+     *  included in that list; it's safe to delete all of them
+     *  later. If generation failed, return an empty vector (deleting
+     *  any partial generated files).
      */
-    static bool generateScoreFiles(std::string scorePath, std::string scoreName);
+    static std::vector<std::string> generateScoreFiles(std::string scoreDir,
+                                                       std::string scoreName,
+                                                       std::string meiFile);
 
     /** Obtain the resource path to pass to Verovio. Resources are
      *  unpacked from the binary bundle the first time this is called,

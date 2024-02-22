@@ -37,14 +37,14 @@ public:
      */
     typedef std::string EventLabel;
     
-    ScoreWidget(QWidget *parent);
+    ScoreWidget(bool withZoomControls, QWidget *parent = 0);
     virtual ~ScoreWidget();
-    
+
     /** 
-     * Load the named score. If loading fails, return false and set
-     * the error string accordingly.
+     * Load a score, by MEI filename. If loading fails, return false
+     * and set the error string accordingly.
      */
-    bool loadAScore(QString name, QString &error);
+    bool loadScoreFile(QString name, QString filename, QString &error);
     
     /** 
      * Set the musical event list for the current score, containing
@@ -69,6 +69,18 @@ public:
      */
     int getPageCount() const;
 
+    /**
+     * Set the scale factor for score rendering. The default is
+     * 100. Changing this will cause the whole score to be re-flowed,
+     * which may take a significant amount of time.
+     */
+    void setScale(int);
+
+    /**
+     * Get the scale factor for score rendering.
+     */
+    int getScale() const;
+    
     /**
      * Return the start and end locations and labels of the current
      * selection, or empty labels if there is no constraint at either
@@ -96,28 +108,14 @@ public:
     }
                                                  
 public slots:
-    /** 
-     * Load the named score. If loading fails, emit the loadFailed
-     * signal.
-     */
-    void loadAScore(QString name);
-
     /**
      * Set the current page number and update the widget.
      */
     void showPage(int page);
 
     /**
-     * Set the current location (and by implication, event) to be
-     * highlighted. The type of highlighting will depend on the
-     * current interaction mode.
-     */
-    void setHighlightEventByLocation(Fraction location);
-
-    /**
-     * Set the current event (and by implication, location) to be
-     * highlighted. The type of highlighting will depend on the
-     * current interaction mode.
+     * Set the current event to be highlighted. The type of
+     * highlighting will depend on the current interaction mode.
      */
     void setHighlightEventByLabel(EventLabel label);
 
@@ -133,8 +131,12 @@ public slots:
      */
     void clearSelection();
 
+    void zoomIn();
+    void zoomReset();
+    void zoomOut();
+    
 signals:
-    void loadFailed(QString scoreName, QString errorMessage);
+    void loadFailed(QString scoreNameOrFile, QString errorMessage);
     void interactionModeChanged(InteractionMode newMode);
     void scoreLocationHighlighted(Fraction, EventLabel, InteractionMode);
     void scoreLocationActivated(Fraction, EventLabel, InteractionMode);
@@ -179,6 +181,7 @@ private:
     std::string m_verovioResourcePath;
     std::vector<std::shared_ptr<QSvgRenderer>> m_svgPages;
     int m_page;
+    int m_scale;
 
     Score::MusicalEventList m_musicalEvents;
     
@@ -218,7 +221,7 @@ private:
     EventData m_selectStart;
     EventData m_selectEnd;
     bool m_mouseActive;
-    
+
     EventData getEventAtPoint(QPoint);
 
     EventData getEventWithId(EventId id) const;

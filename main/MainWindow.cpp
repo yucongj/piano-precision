@@ -136,6 +136,7 @@
 #include <QGroupBox>
 #include <QButtonGroup>
 #include <QActionGroup>
+#include <QFileDialog>
 
 #include <iostream>
 #include <cstdio>
@@ -234,7 +235,7 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     QWidget *scoreWidgetContainer = new QWidget(this);
     QGridLayout *scoreWidgetLayout = new QGridLayout;
 
-    m_scoreWidget = new ScoreWidget(this);
+    m_scoreWidget = new ScoreWidget(true, this);
     m_scoreWidget->setInteractionMode(ScoreWidget::InteractionMode::Navigate);
     connect(m_scoreWidget, &ScoreWidget::scoreLocationHighlighted,
             this, &MainWindow::scoreLocationHighlighted);
@@ -256,11 +257,15 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     m_alignButton->setEnabled(false);
     m_subsetOfScoreSelected = false;
 
-    m_alignAcceptButton = new QPushButton(tr("Accept Alignment"));
+    m_alignAcceptButton = new QPushButton
+        (QApplication::style()->standardIcon(QStyle::SP_DialogOkButton),
+         tr("Accept Alignment"));
     connect(m_alignAcceptButton, SIGNAL(clicked()),
             &m_session, SLOT(acceptAlignment()));
 
-    m_alignRejectButton = new QPushButton(tr("Reject Alignment"));
+    m_alignRejectButton = new QPushButton
+        (QApplication::style()->standardIcon(QStyle::SP_DialogDiscardButton),
+         tr("Reject Alignment"));
     connect(m_alignRejectButton, SIGNAL(clicked()),
             &m_session, SLOT(rejectAlignment()));
 
@@ -524,7 +529,7 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     connect(&m_session, SIGNAL(alignmentFrameIlluminated(sv_frame_t)),
             this, SLOT(alignmentFrameIlluminated(sv_frame_t)));
 
-    chooseScore(); // Added by YJ, Oct 5, 2021
+    openScoreFile(); // Added by YJ, Oct 5, 2021
 
     SVDEBUG << "MainWindow: Constructor done" << endl;
 }
@@ -532,6 +537,8 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
 MainWindow::~MainWindow()
 {
 //    SVDEBUG << "MainWindow::~MainWindow" << endl;
+
+    deleteTemporaryScoreFiles();
 
     delete m_keyReference;
     delete m_activityLog;
@@ -683,7 +690,7 @@ MainWindow::setupFileMenu()
     action = new QAction(icon, tr("&Choose Score..."), this);
     // action->setShortcut(tr("Ctrl+N"));
     action->setStatusTip(tr("Choose a new score"));
-    connect(action, SIGNAL(triggered()), this, SLOT(chooseScore()));
+    connect(action, SIGNAL(triggered()), this, SLOT(openScoreFile()));
     // m_keyReference->registerShortcut(action);
     menu->addAction(action);
     toolbar->addAction(action);
@@ -2385,9 +2392,73 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
         // user clicked Cancel
         return;
     }
+
+    openScoreFile(scoreName, {});
+}
+
+void
+MainWindow::openScoreFile()
+{
+    m_scorePageDownButton->setEnabled(false);
+    m_scorePageUpButton->setEnabled(false);
+
+    QString scoreDir =
+        QString::fromStdString(ScoreFinder::getUserScoreDirectory());
     
+    QFileDialog dialog(this);
+    dialog.setNameFilter(tr("MEI score files (*.mei)"));
+    dialog.setWindowTitle(tr("Choose a score file"));
+    dialog.setDirectory(scoreDir);
+    dialog.setAcceptMode(QFileDialog::AcceptOpen);
+    dialog.setFileMode(QFileDialog::ExistingFile);
+    if (!dialog.exec() || dialog.selectedFiles().empty()) return; // cancel
+
+    QString scoreFile = dialog.selectedFiles()[0];
+    QString scoreName = QFileInfo(scoreFile).completeBaseName();
+
+    openScoreFile(scoreName, scoreFile);
+}
+
+void
+MainWindow::deleteTemporaryScoreFiles()
+{
+    // Delete in reverse order of creation, so as to delete any
+    // resulting empty directory after its contents
+    for (auto itr = m_scoreFilesToDelete.rbegin();
+         itr != m_scoreFilesToDelete.rend();
+         ++itr) {
+        auto f = *itr;
+        std::error_code ec;
+        SVDEBUG << "MainWindow::deleteTemporaryScoreFiles: Removing file \""
+                << f << "\"" << endl;
+        if (!std::filesystem::remove(f, ec)) {
+            SVDEBUG << "MainWindow::deleteTemporaryScoreFiles: "
+                    << "Failed to remove generated file \""
+                    << f << "\": " << ec.message() << endl;
+        }
+    }
+    m_scoreFilesToDelete.clear();
+}
+
+void
+MainWindow::openScoreFile(QString scoreName, QString scoreFile)
+{
     QString errorString;
-    if (!m_scoreWidget->loadAScore(scoreName, errorString)) {
+    
+    if (scoreFile == "") {
+        scoreFile = QString::fromStdString
+            (ScoreFinder::getScoreFile(scoreName.toStdString(), "mei"));
+        if (scoreFile == "") {
+            QMessageBox::warning(this,
+                                 tr("Unable to load score"),
+                                 tr("Unable to load score \"%1\": Score file (.mei) not found!")
+                                 .arg(scoreName),
+                                 QMessageBox::Ok);
+            return;
+        }
+    }
+        
+    if (!m_scoreWidget->loadScoreFile(scoreName, scoreFile, errorString)) {
         QMessageBox::warning(this,
                              tr("Unable to load score"),
                              tr("Unable to load score \"%1\": %2")
@@ -2396,6 +2467,8 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
         return;
     }
 
+    deleteTemporaryScoreFiles();
+    
     m_scoreWidget->setInteractionMode(ScoreWidget::InteractionMode::Navigate);
     
     m_scoreId = scoreName;
@@ -2412,19 +2485,33 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
 
     // Creating score structure
     string sname = scoreName.toStdString();
-    string meiDir = ScoreFinder::getUserScoreDirectory() + "/" + sname;
-    if (!ScoreParser::generateScoreFiles(meiDir, sname)) { // generating score files
-        SVCERR << "MainWindow::chooseScore: Failed to generate score files from " << meiDir << ".mei" << endl;
+    string scoreDir = ScoreFinder::getUserScoreDirectory() + "/" + sname;
+
+    if (!std::filesystem::exists(scoreDir)) {
+        if (!QDir().mkpath(QString::fromStdString(scoreDir))) {
+            SVCERR << "MainWindow::chooseScore: Failed to create score directory \"" << scoreDir << "\" for generated files" << endl;
+            return;
+        }
+        m_scoreFilesToDelete.push_back(scoreDir);
+    }
+
+    auto generatedFiles = ScoreParser::generateScoreFiles
+        (scoreDir, scoreName.toStdString(), scoreFile.toStdString());
+    if (generatedFiles.empty()) {
+        SVCERR << "MainWindow::chooseScore: Failed to generate score files in directory \"" << scoreDir << "\" from MEI file \"" << scoreFile << "\"" << endl;
         return;
     }
+    m_scoreFilesToDelete.insert(m_scoreFilesToDelete.end(),
+                                generatedFiles.begin(), generatedFiles.end());
+    
     string soloPath = ScoreFinder::getScoreFile(sname, "solo");
     string meterPath = ScoreFinder::getScoreFile(sname, "meter");
     if (!m_score.initialize(soloPath)) {
-        SVCERR << "MainWindow::chooseScore: Failed to load score data from " << soloPath << endl;
+        SVCERR << "MainWindow::chooseScore: Failed to load score data from solo file path \"" << soloPath << "\"" << endl;
         return;
     }
     if (!m_score.readMeter(meterPath)) {
-        SVCERR << "MainWindow::chooseScore: Failed to load meter data from " << meterPath << endl;
+        SVCERR << "MainWindow::chooseScore: Failed to load meter data from meter file path \"" << meterPath << "\"" << endl;
         return;
     }
     m_session.setMusicalEvents(m_score.getMusicalEvents());
@@ -2432,12 +2519,7 @@ MainWindow::chooseScore() // Added by YJ Oct 5, 2021
 
     auto recordingDirectory =
         ScoreFinder::getUserRecordingDirectory(scoreName.toStdString());
-    if (recordingDirectory == "") {
-        QMessageBox::warning(this,
-                             tr("Unable to create recording directory"),
-                             tr("Unable to create recording directory: recordings will not be saved in score-specific locations. See log file for more information."),
-                             QMessageBox::Ok);
-    } else {
+    if (recordingDirectory != "") {
         RecordDirectory::setRecordContainerDirectory
             (QString::fromStdString(recordingDirectory));
     }
@@ -2520,13 +2602,13 @@ MainWindow::highlightFrameInScore(sv_frame_t frame)
         int eventCount = targetModel->getEventCount();
         for (int i = 1; i < eventCount; ++i) {
             sv_frame_t eventFrame = events[i].getFrame();
-            // cerr << "event index = " << i << ": " << "Frame = " << eventFrame << ", Value = " << targetModel->getAllEvents()[i].getValue() << endl;
+//            SVDEBUG << "MainWindow::highlightFrameInScore: seeking frame " << frame << ": event index = " << i << ": " << "Frame = " << eventFrame << ", Value = " << events[i].getValue() << ", Label = " << events[i].getLabel() << endl;
             if (frame < eventFrame) {
                 label = events[i-1].getLabel();
                 found = true;
                 break;
             } else if (frame == eventFrame) {
-                label = events[i-1].getLabel();
+                label = events[i].getLabel();
                 found = true;
                 break;
             }
@@ -3401,6 +3483,31 @@ MainWindow::updateMenuStates()
     emit canLoadScoreAlignment(scoreAlignmentOK);
 
     updateAlignButtonText();
+}
+
+void
+MainWindow::updateWindowTitle()
+{
+    QString title;
+    
+    if (m_scoreId != "") {
+        if (m_originalLocation == "") {
+            title = tr("%1: %2")
+                .arg(QApplication::applicationName())
+                .arg(m_scoreId);
+        } else {
+            title = tr("%1: %2: %3")
+                .arg(QApplication::applicationName())
+                .arg(m_scoreId)
+                .arg(QFileInfo(m_originalLocation).completeBaseName());
+        }            
+    }
+
+    if (title != "") {
+        setWindowTitle(title);
+    } else {
+        MainWindowBase::updateWindowTitle();
+    }
 }
 
 void

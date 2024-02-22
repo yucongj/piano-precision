@@ -19,8 +19,11 @@
 #include <QSvgRenderer>
 #include <QDomDocument>
 #include <QDomElement>
+#include <QToolButton>
+#include <QGridLayout>
 
 #include "base/Debug.h"
+#include "widgets/IconLoader.h"
 
 #include <vector>
 
@@ -42,9 +45,10 @@ using std::string;
 using std::shared_ptr;
 using std::make_shared;
 
-ScoreWidget::ScoreWidget(QWidget *parent) :
+ScoreWidget::ScoreWidget(bool withZoomControls, QWidget *parent) :
     QFrame(parent),
     m_page(-1),
+    m_scale(100),
     m_mode(InteractionMode::None),
     m_mouseActive(false)
 {
@@ -52,6 +56,29 @@ ScoreWidget::ScoreWidget(QWidget *parent) :
     setMinimumSize(QSize(100, 100));
     setMouseTracking(true);
     m_verovioResourcePath = ScoreParser::getResourcePath();
+
+    if (withZoomControls) {
+        sv::IconLoader il;
+        auto zoomOut = new QToolButton;
+        zoomOut->setText(QString(QChar(0x2212))); // mathematical minus
+        zoomOut->setToolTip(tr("Decrease Staff Size"));
+        connect(zoomOut, &QToolButton::clicked, this, &ScoreWidget::zoomOut);
+        auto zoomReset = new QToolButton;
+        zoomReset->setText(QString(QChar(0x2218))); // mathematical ring operator, I just quite liked it!
+        zoomReset->setToolTip(tr("Reset Staff Size to Default"));
+        connect(zoomReset, &QToolButton::clicked, this, &ScoreWidget::zoomReset);
+        auto zoomIn = new QToolButton;
+        zoomIn->setText(QString(QChar(0x002b))); // mathematical plus
+        zoomIn->setToolTip(tr("Increase Staff Size"));
+        connect(zoomIn, &QToolButton::clicked, this, &ScoreWidget::zoomIn);
+        auto layout = new QGridLayout;
+        layout->addWidget(zoomOut, 1, 0);
+        layout->addWidget(zoomReset, 1, 1);
+        layout->addWidget(zoomIn, 1, 2);
+        layout->setRowStretch(0, 10);
+        layout->setColumnStretch(3, 10);
+        setLayout(layout);
+    }
 }
 
 ScoreWidget::~ScoreWidget()
@@ -78,26 +105,39 @@ ScoreWidget::getPageCount() const
 }
 
 void
-ScoreWidget::loadAScore(QString scoreName)
+ScoreWidget::setScale(int scale)
 {
-    QString errorString;
-    if (!loadAScore(scoreName, errorString)) {
-        emit loadFailed(scoreName, tr("Failed to load score %1: %2")
-                        .arg(scoreName).arg(errorString));
+    if (m_scale == scale) {
         return;
     }
+    m_scale = scale;
+    auto scoreName = m_scoreName;
+    auto scoreFilename = m_scoreFilename;
+    auto musicalEvents = m_musicalEvents;
+    QString errorString;
+    if (!loadScoreFile(scoreName, scoreFilename, errorString)) {
+        SVCERR << "ScoreWidget::setScale: Failed to reload score "
+               << scoreName << ": " << errorString << endl;
+        return;
+    }
+    setMusicalEvents(musicalEvents);
+    update();
+}
 
-    clearSelection();
+int
+ScoreWidget::getScale() const
+{
+    return m_scale;
 }
 
 bool
-ScoreWidget::loadAScore(QString scoreName, QString &errorString)
+ScoreWidget::loadScoreFile(QString scoreName, QString scoreFile, QString &errorString)
 {
-    SVDEBUG << "ScoreWidget::loadAScore: Score \"" << scoreName
-            << "\" requested" << endl;
+    clearSelection();
 
     if (m_verovioResourcePath == "") {
-        SVDEBUG << "ScoreWidget::loadAScore: No Verovio resource path available" << endl;
+        SVDEBUG << "ScoreWidget::loadScoreFile: No Verovio resource path available" << endl;
+        errorString = "No Verovio resource path available: application was not packaged properly";
         return false;
     }
     
@@ -108,28 +148,32 @@ ScoreWidget::loadAScore(QString scoreName, QString &errorString)
     
     m_page = -1;
     
-    string scorePath =
-        ScoreFinder::getScoreFile(scoreName.toStdString(), "mei");
-    if (scorePath == "") {
-        errorString = "Score file (.mei) not found!";
-        SVDEBUG << "ScoreWidget::loadAScore: " << errorString << endl;
-        return false;
-    }
-    
-    SVDEBUG << "ScoreWidget::loadAScore: Asked to load MEI file \""
-            << scorePath << "\" for score \"" << scoreName << "\"" << endl;
+    SVDEBUG << "ScoreWidget::loadScoreFile: Asked to load MEI file \""
+            << scoreFile << "\" for score \"" << scoreName << "\"" << endl;
 
     vrv::Toolkit toolkit(false);
     if (!toolkit.SetResourcePath(m_verovioResourcePath)) {
-        SVDEBUG << "ScoreWidget::loadAScore: Failed to set Verovio resource path" << endl;
+        SVDEBUG << "ScoreWidget::loadScoreFile: Failed to set Verovio resource path" << endl;
         return false;
     }
-    if (!toolkit.LoadFile(scorePath)) {
-        SVDEBUG << "ScoreWidget::loadAScore: Load failed in Verovio toolkit" << endl;
+    if (m_scale != 100) {
+        toolkit.SetOptions("{\"scaleToPageSize\": true}");
+        if (!toolkit.SetScale(m_scale)) {
+            SVDEBUG << "ScoreWidget::loadScoreFile: Failed to set rendering scale" << endl;
+        } else {
+            SVDEBUG << "ScoreWidget::loadScoreFile: Set scale to " << m_scale << endl;
+        }
+        SVDEBUG << "options: " << toolkit.GetOptions() << endl;
+    }
+    if (!toolkit.LoadFile(scoreFile.toStdString())) {
+        SVDEBUG << "ScoreWidget::loadScoreFile: Load failed in Verovio toolkit" << endl;
         return false;
     }
 
     int pp = toolkit.GetPageCount();
+
+    SVDEBUG << "ScoreWidget::loadScoreFile: Have " << pp << " pages" << endl;
+    
     for (int p = 0; p < pp; ++p) {
 
         std::string svgText = toolkit.RenderToSVG(p + 1); // (verovio is 1-based)
@@ -152,9 +196,9 @@ ScoreWidget::loadAScore(QString scoreName, QString &errorString)
     }
     
     m_scoreName = scoreName;
-    m_scoreFilename = QString::fromStdString(scorePath);
+    m_scoreFilename = scoreFile;
 
-    SVDEBUG << "ScoreWidget::loadAScore: Load successful, showing first page"
+    SVDEBUG << "ScoreWidget::loadScoreFile: Load successful, showing first page"
             << endl;
     showPage(0);
     return true;
@@ -490,6 +534,28 @@ ScoreWidget::clearSelection()
                           getScoreEndEvent().label);
 
     update();
+}
+
+void
+ScoreWidget::zoomIn()
+{
+    if (m_scale < 240) {
+        setScale(m_scale + 20);
+    }
+}
+
+void
+ScoreWidget::zoomOut()
+{
+    if (m_scale > 20) {
+        setScale(m_scale - 20);
+    }
+}
+
+void
+ScoreWidget::zoomReset()
+{
+    setScale(100);
 }
 
 ScoreWidget::EventData
@@ -879,13 +945,6 @@ ScoreWidget::showPage(int page)
     m_page = page;
     emit pageChanged(m_page);
     update();
-}
-
-void
-ScoreWidget::setHighlightEventByLocation(Fraction location)
-{
-    //!!! do we need this?
-    throw std::runtime_error("Not yet implemented");
 }
 
 void

@@ -194,17 +194,13 @@ string
 ScoreFinder::getUserRecordingDirectory(string scoreName)
 {
     QString home = QDir::homePath();
-    std::filesystem::path dir = home.toStdString() + "/Documents/PianoPrecision/Recordings/" + scoreName;
+    std::filesystem::path dir = home.toStdString() +
+        "/Documents/PianoPrecision/Recordings/" + scoreName;
     if (!std::filesystem::exists(dir)) {
         SVDEBUG << "ScoreFinder::getUserRecordingDirectory: Recording directory "
-                << dir << " does not exist, attempting to create it"
+                << dir << " does not exist, reporting no score-specific directory"
                 << endl;
-        if (std::filesystem::create_directories(dir)) {
-            SVDEBUG << "ScoreFinder::getUserRecordingDirectory: Succeeded" << endl;
-        } else {
-            SVDEBUG << "ScoreFinder::getUserRecordingDirectory: Failed to create it" << endl;
-            return {};
-        }
+        return {};
     } else if (!std::filesystem::is_directory(dir)) {
         SVDEBUG << "ScoreFinder::getUserRecordingDirectory: Location " << dir
                 << " exists but is not a directory!"

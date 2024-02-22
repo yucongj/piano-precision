@@ -102,6 +102,7 @@ protected slots:
 
     void updateMenuStates() override;
     void updateDescriptionLabel() override;
+    void updateWindowTitle() override;
 
     virtual void setInstantsNumbering();
     virtual void setInstantsCounterCycle();
@@ -140,7 +141,11 @@ protected slots:
     virtual void setupRecentFilesMenu();
     virtual void setupRecentTransformsMenu();
     virtual void setupTemplatesMenu();
-    virtual void chooseScore(); // Added by Yucong Jiang, Oct 5, 2021
+
+    void openScoreFile(); // from arbitrary MEI file
+    void chooseScore(); // from a list of known scores
+
+    void openScoreFile(QString scoreName, QString scoreFile);
 
     void viewManagerPlaybackFrameChanged(sv::sv_frame_t);
     void scoreInteractionModeChanged(ScoreWidget::InteractionMode);
@@ -298,6 +303,9 @@ protected:
     QString                  m_scoreAlignmentFile;
     bool                     m_scoreAlignmentModified;
     bool                     m_followScore;
+
+    std::vector<std::string> m_scoreFilesToDelete;
+    void deleteTemporaryScoreFiles();
     
     struct LayerConfiguration {
         LayerConfiguration(sv::LayerFactory::LayerType _layer
