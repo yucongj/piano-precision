@@ -21,6 +21,7 @@
 #include <QDomElement>
 #include <QToolButton>
 #include <QGridLayout>
+#include <QSettings>
 
 #include "base/Debug.h"
 #include "widgets/IconLoader.h"
@@ -78,6 +79,11 @@ ScoreWidget::ScoreWidget(bool withZoomControls, QWidget *parent) :
         layout->setRowStretch(0, 10);
         layout->setColumnStretch(3, 10);
         setLayout(layout);
+
+        QSettings settings;
+        settings.beginGroup("ScoreWidget");
+        m_scale = settings.value("scale", m_scale).toInt();
+        settings.endGroup();
     }
 }
 
@@ -121,7 +127,15 @@ ScoreWidget::setScale(int scale)
         return;
     }
     setMusicalEvents(musicalEvents);
+    if (m_highlightEventLabel != "") {
+        setHighlightEventByLabel(m_highlightEventLabel);
+    }
     update();
+    
+    QSettings settings;
+    settings.beginGroup("ScoreWidget");
+    settings.setValue("scale", m_scale);
+    settings.endGroup();
 }
 
 int
@@ -954,9 +968,12 @@ ScoreWidget::setHighlightEventByLabel(EventLabel label)
     if (m_eventToHighlight.isNull()) {
         SVDEBUG << "ScoreWidget::setHighlightEventByLabel: Label \"" << label
                 << "\" not found" << endl;
+        m_highlightEventLabel = "";
         return;
     }
 
+    m_highlightEventLabel = label;
+    
     SVDEBUG << "ScoreWidget::setHighlightEventByLabel: Event with label \""
             << label << "\" found at " << m_eventToHighlight.location << endl;
     
