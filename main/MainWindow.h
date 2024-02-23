@@ -211,6 +211,7 @@ protected slots:
 
     virtual void website();
     virtual void help();
+    virtual void introduction();
     virtual void about();
     virtual void whatsNew();
     virtual void keyReference();

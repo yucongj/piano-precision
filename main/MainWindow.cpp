@@ -529,7 +529,7 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     connect(&m_session, SIGNAL(alignmentFrameIlluminated(sv_frame_t)),
             this, SLOT(alignmentFrameIlluminated(sv_frame_t)));
 
-    openScoreFile(); // Added by YJ, Oct 5, 2021
+    QTimer::singleShot(250, this, &MainWindow::introduction);
 
     SVDEBUG << "MainWindow: Constructor done" << endl;
 }
@@ -2245,6 +2245,11 @@ MainWindow::setupHelpMenu()
     QString name = QApplication::applicationName();
 
     QAction *action = nullptr;
+
+    action = new QAction(tr("&Instructions for %1").arg(name), this); 
+    action->setStatusTip(tr("Show instructions for using %1").arg(name)); 
+    connect(action, SIGNAL(triggered()), this, SLOT(introduction()));
+    menu->addAction(action);
 
 /*!!!    
     action = new QAction(il.load("help"), tr("&Help Reference"), this); 
@@ -6401,6 +6406,62 @@ MainWindow::getReleaseText() const
         .arg(debug ? tr("Debug") : tr("Release"))
         .arg(sizeof(void *) * 8)
         .arg(archtag);
+}
+
+void
+MainWindow::introduction()
+{
+    QString introText =
+        "<h3>How to use Piano Precision</h3>"
+        "<p><i>You can open this instruction page at any time from the Help menu.</i><p>"
+        "<p>This is a software tool that assists in analyzing recorded piano performances together with their scores.</p>"
+        "<p>The controls you'll need for loading a score and loading a recording are located at the top-left corner of the application.</p>"
+        "<ol><li>First, you'll need to load an MEI score using <img src=\":icons/scalable/chooseScore.svg\" width=%1 height=%1>.</li>"
+        "<li>Then, you can load a performance (audio) recording of that score using <img src=\":icons/scalable/fileopenaudio.svg\" width=%1 height=%1>.</li>"
+        "<li>Underneath the score area, you can find controls for synchronizing the score with the audio.</li></ol>"
+        "<p>If you don't have your own MEI scores or recordings yet, you can use our samples located in the folder called <code>PianoPrecision</code> within your Documents folder.<br></p>";
+
+    int iconSize = font().pixelSize();
+    if (iconSize < 0) iconSize = font().pointSize();
+    if (iconSize < 0) iconSize = 16;
+    else iconSize = (iconSize * 3) / 2;
+    introText = introText.arg(iconSize);
+
+//    std::cout << "text is: " << introText << std::endl;
+    
+    QDialog *d = new QDialog(this);
+    d->setWindowTitle(tr("Using %1").arg(QApplication::applicationName()));
+    QGridLayout *layout = new QGridLayout;
+    d->setLayout(layout);
+
+    int row = 0;
+
+    QLabel *iconLabel = new QLabel;
+    iconLabel->setPixmap(QApplication::windowIcon().pixmap(64, 64));
+    layout->addWidget(iconLabel, row, 0, Qt::AlignTop);
+
+    QLabel *mainText = new QLabel();
+    layout->addWidget(mainText, row, 1, 1, 2);
+
+    layout->setRowStretch(row, 10);
+    layout->setColumnStretch(1, 10);
+
+    ++row;
+
+    QDialogButtonBox *bb = new QDialogButtonBox(QDialogButtonBox::Ok);
+    layout->addWidget(bb, row++, 0, 1, 3);
+    connect(bb, SIGNAL(accepted()), d, SLOT(accept()));
+
+    mainText->setWordWrap(true);
+    mainText->setOpenExternalLinks(true);
+    mainText->setText(introText);
+
+    d->setMinimumSize(m_viewManager->scalePixelSize(420),
+                      m_viewManager->scalePixelSize(200));
+    
+    d->exec();
+
+    delete d;
 }
 
 void
