@@ -21,6 +21,7 @@
 #include <QDomElement>
 #include <QToolButton>
 #include <QGridLayout>
+#include <QSettings>
 
 #include "base/Debug.h"
 #include "widgets/IconLoader.h"
@@ -78,6 +79,11 @@ ScoreWidget::ScoreWidget(bool withZoomControls, QWidget *parent) :
         layout->setRowStretch(0, 10);
         layout->setColumnStretch(3, 10);
         setLayout(layout);
+
+        QSettings settings;
+        settings.beginGroup("ScoreWidget");
+        m_scale = settings.value("scale", m_scale).toInt();
+        settings.endGroup();
     }
 }
 
@@ -125,6 +131,11 @@ ScoreWidget::setScale(int scale)
         setHighlightEventByLabel(m_highlightEventLabel);
     }
     update();
+    
+    QSettings settings;
+    settings.beginGroup("ScoreWidget");
+    settings.setValue("scale", m_scale);
+    settings.endGroup();
 }
 
 int
