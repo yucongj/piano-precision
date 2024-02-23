@@ -217,6 +217,7 @@ private:
 
     InteractionMode m_mode;
     EventData m_eventUnderMouse;
+    EventLabel m_highlightEventLabel;
     EventData m_eventToHighlight;
     EventData m_selectStart;
     EventData m_selectEnd;

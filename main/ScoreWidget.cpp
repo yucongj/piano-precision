@@ -121,6 +121,9 @@ ScoreWidget::setScale(int scale)
         return;
     }
     setMusicalEvents(musicalEvents);
+    if (m_highlightEventLabel != "") {
+        setHighlightEventByLabel(m_highlightEventLabel);
+    }
     update();
 }
 
@@ -954,9 +957,12 @@ ScoreWidget::setHighlightEventByLabel(EventLabel label)
     if (m_eventToHighlight.isNull()) {
         SVDEBUG << "ScoreWidget::setHighlightEventByLabel: Label \"" << label
                 << "\" not found" << endl;
+        m_highlightEventLabel = "";
         return;
     }
 
+    m_highlightEventLabel = label;
+    
     SVDEBUG << "ScoreWidget::setHighlightEventByLabel: Event with label \""
             << label << "\" found at " << m_eventToHighlight.location << endl;
     
