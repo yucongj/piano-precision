@@ -159,6 +159,11 @@ ScoreWidget::loadScoreFile(QString scoreName, QString scoreFile, QString &errorS
 
     m_svgPages.clear();
     m_noteSystemExtentMap.clear();
+
+    m_highlightEventLabel = {};
+    m_eventToHighlight = {};
+    m_selectStart = {};
+    m_selectEnd = {};
     
     m_page = -1;
     
