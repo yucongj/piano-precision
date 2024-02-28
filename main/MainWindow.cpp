@@ -258,14 +258,12 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     m_subsetOfScoreSelected = false;
 
     m_alignAcceptButton = new QPushButton
-        (QApplication::style()->standardIcon(QStyle::SP_DialogOkButton),
-         tr("Accept Alignment"));
+        (IconLoader().load("dataaccept"), tr("Accept Alignment"));
     connect(m_alignAcceptButton, SIGNAL(clicked()),
             &m_session, SLOT(acceptAlignment()));
 
     m_alignRejectButton = new QPushButton
-        (QApplication::style()->standardIcon(QStyle::SP_DialogDiscardButton),
-         tr("Reject Alignment"));
+        (IconLoader().load("datadelete"), tr("Reject Alignment"));
     connect(m_alignRejectButton, SIGNAL(clicked()),
             &m_session, SLOT(rejectAlignment()));
 
