@@ -6413,23 +6413,24 @@ MainWindow::introduction()
         "<h3>How to use Piano Precision</h3>"
         "<p><i>You can open this instruction page at any time from the Help menu.</i><p>"
         "<p>This is a software tool that assists in analyzing recorded piano performances together with their scores.</p>"
-        "<p>The controls you'll need for loading a score and loading a recording are located at the top-left corner of the application.</p>"
-        "<ol><li>First, you'll need to load an MEI score using <img src=\":icons/scalable/chooseScore.svg\" width=%1 height=%1>.</li>"
-        "<li>Then, you can load a performance (audio) recording of that score using <img src=\":icons/scalable/fileopenaudio.svg\" width=%1 height=%1>.</li>"
-        "<li>Underneath the score area, you can find controls for synchronizing the score with the audio.</li></ol>"
-        "<p>If you don't have your own MEI scores or recordings yet, you can use our samples located in the folder called <code>PianoPrecision</code> within your Documents folder:</p>"
-        "<ul><li>Beethoven Sonata Op. 110 Movement I</li>"
-        "<li>J. S. Bach Fugue in C Major, BWV 846</li>"
-        "<li>Mozart Sonata No. 18 Movement II</li>"
-        "<li>Schubert Impromptu Op. 90 No. 1</li><br></ul>";
+        "<p>The controls you'll need for loading a score and loading a recording are located at the top-left corner of the application."
+        "<br><img src=\":icons/scalable/blank.svg\" width=%2 height=%1>1. First, you'll need to load an MEI score using <img src=\":icons/scalable/chooseScore.svg\" width=%1 height=%1>."
+        "<br><img src=\":icons/scalable/blank.svg\" width=%2 height=%1>2. Then, you can load a performance (audio) recording of that score using <img src=\":icons/scalable/fileopenaudio.svg\" width=%1 height=%1>."
+        "<br><img src=\":icons/scalable/blank.svg\" width=%2 height=%1>3. Underneath the score area, you can find controls for synchronizing the score with the audio.</p>"
+        "<p>If you don't have your own MEI scores or recordings yet, you can use our samples located in the folder called <code>PianoPrecision</code> within your Documents folder:"
+        "<br><img src=\":icons/scalable/blank.svg\" width=%2 height=%1>&bull; Beethoven Sonata Op. 110 Movement I"
+        "<br><img src=\":icons/scalable/blank.svg\" width=%2 height=%1>&bull; J. S. Bach Fugue in C Major, BWV 846"
+        "<br><img src=\":icons/scalable/blank.svg\" width=%2 height=%1>&bull; Mozart Sonata No. 18 Movement II"
+        "<br><img src=\":icons/scalable/blank.svg\" width=%2 height=%1>&bull; Schubert Impromptu Op. 90 No. 1<br></p>";
 
-    int iconSize = font().pixelSize();
-    if (iconSize < 0) iconSize = font().pointSize();
-    if (iconSize < 0) iconSize = 16;
-    else iconSize = (iconSize * 3) / 2;
-    introText = introText.arg(iconSize);
+    int fontSize = font().pixelSize();
+    if (fontSize < 0) fontSize = font().pointSize();
+    if (fontSize < 0) fontSize = 16;
+    int iconSize = (fontSize * 3) / 2;
+    int indent = fontSize * 2;
+    introText = introText.arg(iconSize).arg(indent);
 
-//    std::cout << "text is: " << introText << std::endl;
+   std::cout << "text is: " << introText << std::endl;
     
     QDialog *d = new QDialog(this);
     d->setWindowTitle(tr("Using %1").arg(QApplication::applicationName()));
