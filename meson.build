@@ -2,7 +2,7 @@
 project(
   'Piano Precision',
   'c', 'cpp',
-  version: '0.5',
+  version: '1.0.0',
   license: 'GPL-2.0-or-later',
   default_options: [
     'cpp_std=c++17',
