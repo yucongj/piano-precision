@@ -6417,7 +6417,11 @@ MainWindow::introduction()
         "<ol><li>First, you'll need to load an MEI score using <img src=\":icons/scalable/chooseScore.svg\" width=%1 height=%1>.</li>"
         "<li>Then, you can load a performance (audio) recording of that score using <img src=\":icons/scalable/fileopenaudio.svg\" width=%1 height=%1>.</li>"
         "<li>Underneath the score area, you can find controls for synchronizing the score with the audio.</li></ol>"
-        "<p>If you don't have your own MEI scores or recordings yet, you can use our samples located in the folder called <code>PianoPrecision</code> within your Documents folder.<br></p>";
+        "<p>If you don't have your own MEI scores or recordings yet, you can use our samples located in the folder called <code>PianoPrecision</code> within your Documents folder:</p>"
+        "<ul><li>Beethoven Sonata Op. 110 Movement I</li>"
+        "<li>J. S. Bach Fugue in C Major, BWV 846</li>"
+        "<li>Mozart Sonata No. 18 Movement II</li>"
+        "<li>Schubert Impromptu Op. 90 No. 1</li><br></ul>";
 
     int iconSize = font().pixelSize();
     if (iconSize < 0) iconSize = font().pointSize();
