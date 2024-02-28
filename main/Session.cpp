@@ -495,9 +495,9 @@ Session::importAlignmentFrom(QString path)
     // Our CSV format is LABEL,TIME,FRAME where LABEL is text, TIME is
     // a number in seconds (not an integer), and FRAME is an integer
     // audio sample frame number. We want to import to an onsets layer
-    // whose contents are time-value events indexed by audio sample
-    // frame, with a value corresponding to Time and a label
-    // corresponding to LABEL.
+    // whose contents are time instants indexed by audio sample frame,
+    // with a label taken from LABEL. The TIME column was derived from
+    // FRAME and should not be imported.
     
     CSVFormat format;
     
@@ -505,14 +505,14 @@ Session::importAlignmentFrom(QString path)
     format.setColumnCount(3);
     format.setHeaderStatus(CSVFormat::HeaderPresent);
 
-    format.setModelType(CSVFormat::TwoDimensionalModel);
+    format.setModelType(CSVFormat::OneDimensionalModel);
     format.setTimingType(CSVFormat::ExplicitTiming);
     format.setTimeUnits(CSVFormat::TimeAudioFrames);
 
     QList<CSVFormat::ColumnPurpose> purposes {
-        CSVFormat::ColumnLabel,
-        CSVFormat::ColumnValue,
-        CSVFormat::ColumnStartTime
+        CSVFormat::ColumnLabel,    // LABEL
+        CSVFormat::ColumnUnknown,  // TIME - Derived column, don't import
+        CSVFormat::ColumnStartTime // FRAME
     };
     format.setColumnPurposes(purposes);
     
