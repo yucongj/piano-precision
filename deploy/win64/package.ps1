@@ -14,7 +14,7 @@ if ($args[0] -eq "sign") {
 . deploy\metadata.ps1
 
 $kitdir = "C:\Program Files (x86)\Windows Kits\10\bin\x64"
-$wixdir = "C:\Program Files (x86)\WiX Toolset v3.11\bin"
+$wixdir = "C:\Program Files (x86)\WiX Toolset v3.14\bin"
 
 if (! (Test-Path -Path $kitdir -PathType Container)) {
    "ERROR: Windows Kit directory $kitdir not found"

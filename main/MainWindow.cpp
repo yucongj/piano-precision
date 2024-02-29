@@ -5460,11 +5460,11 @@ MainWindow::renameCurrentLayer()
     CommandHistory::getInstance()->addCommand
         (new GenericCommand
          (tr("Rename Layer"),
-          [=, this]() {
+          [=]() {
               layer->setPresentationName(newName);
               setupExistingLayersMenus();
           },
-          [=, this]() {
+          [=]() {
               layer->setPresentationName(existingNameSet ? existingName : "");
               setupExistingLayersMenus();
           }));
@@ -5551,7 +5551,7 @@ MainWindow::playSpeedChanged(int position)
     // Percentage is shown to 0dp if >100, to 1dp if <100; factor is
     // shown to 3sf
 
-    size_t buflen = 30;
+    constexpr size_t buflen = 30;
     char pcbuf[buflen];
     char facbuf[buflen];
     

@@ -355,7 +355,6 @@ elif system == 'windows'
     '-DUNICODE',
     '-D_USE_MATH_DEFINES',
     '-DCAPNP_LITE',
-    '-D_HAS_STD_BYTE=0',
   ]
   
   feature_defines = [
@@ -1385,6 +1384,7 @@ verovio_all_include_dirs = [
   'verovio/include/midi',
   'verovio/include/zip',
   'verovio/include/vrv',
+  'verovio/include/win32',
   'misc/fake-git-commit-header',
 ]
 

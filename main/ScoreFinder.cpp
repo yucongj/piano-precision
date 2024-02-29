@@ -272,7 +272,7 @@ ScoreFinder::populateUserDirectoriesFromBundled()
         populate(bundledScoreDir + "/" + score,
                  userScoreDir + "/" + score);
 
-        std::filesystem::path userRecordingDir = home.toStdString() +
+        string userRecordingDir = home.toStdString() +
             "/Documents/PianoPrecision/Recordings/" + score;
         
         populate(getBundledRecordingDirectory(score),

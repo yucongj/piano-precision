@@ -96,37 +96,41 @@
           </Component>
           
           <Component Win64="yes"
-              Id="Qt5"
-              Guid="58bfe617-46a5-4690-8704-a89e884473e2">
+              Id="Qt6"
+              Guid="f43cb50c-6024-4dba-ad41-9bcf3904c9b2">
             <File
                 Id="QtCore"
-                Name="Qt5Core.dll"
-                Source="build_win64\Qt5Core.dll"
+                Name="Qt6Core.dll"
+                Source="build_win64\Qt6Core.dll"
 		KeyPath="yes"/>
             <File
                 Id="QtGui"
-                Name="Qt5Gui.dll"
-                Source="build_win64\Qt5Gui.dll"/>
+                Name="Qt6Gui.dll"
+                Source="build_win64\Qt6Gui.dll"/>
             <File
                 Id="QtNetwork"
-                Name="Qt5Network.dll"
-                Source="build_win64\Qt5Network.dll"/>
+                Name="Qt6Network.dll"
+                Source="build_win64\Qt6Network.dll"/>
             <File
                 Id="QtWidgets"
-                Name="Qt5Widgets.dll"
-                Source="build_win64\Qt5Widgets.dll"/>
+                Name="Qt6Widgets.dll"
+                Source="build_win64\Qt6Widgets.dll"/>
             <File
                 Id="QtXml"
-                Name="Qt5Xml.dll"
-                Source="build_win64\Qt5Xml.dll"/>
+                Name="Qt6Xml.dll"
+                Source="build_win64\Qt6Xml.dll"/>
             <File
                 Id="QtSvg"
-                Name="Qt5Svg.dll"
-                Source="build_win64\Qt5Svg.dll"/>
+                Name="Qt6Svg.dll"
+                Source="build_win64\Qt6Svg.dll"/>
             <File
                 Id="QtPdf"
-                Name="Qt5Pdf.dll"
-                Source="build_win64\Qt5Pdf.dll"/>
+                Name="Qt6Pdf.dll"
+                Source="build_win64\Qt6Pdf.dll"/>
+            <File
+                Id="QtTest"
+                Name="Qt6Test.dll"
+                Source="build_win64\Qt6Test.dll"/>
           </Component>
 
           <Component Win64="yes"
@@ -138,7 +142,7 @@
                 Source="sv-dependency-builds\win64-msvc\lib\libsndfile-1.dll"
                 KeyPath="yes"/>
           </Component>
-
+<!--
           <Component Win64="yes"
                      Id="OpenSSL"
                      Guid="45beebd5-60bf-43a3-851d-65d08bef938d">
@@ -152,7 +156,7 @@
                 Name="libcrypto-1_1-x64.dll"
                 Source="c:\OpenSSL-v111-Win64\bin\libcrypto-1_1-x64.dll"/>
           </Component>
-
+-->
           <Component Win64="yes"
                      Id="OSWin10"
                      Transitive="yes"
@@ -215,27 +219,27 @@
 
 	  <Directory Id="Platforms" Name="platforms">
             <Component Win64="yes"
-                Id="Qt5PlatformPlugins"
-                Guid="46a4ecaf-1721-4935-9d70-81e0385e0451">
+                Id="Qt6PlatformPlugins"
+                Guid="6290dc87-1c39-4be4-8b43-351b89a6ac08">
 	      <File
                   Id="qminimal"
                   Name="qminimal.dll"
-                  Source="build_win64\qminimal.dll"/>
+                  Source="build_win64\plugins\platforms\qminimal.dll"/>
 	      <File
                   Id="qwindows"
                   Name="qwindows.dll"
-                  Source="build_win64\qwindows.dll"/>
+                  Source="build_win64\plugins\platforms\qwindows.dll"/>
             </Component>
 	  </Directory>
 
 	  <Directory Id="Styles" Name="styles">
             <Component Win64="yes"
-                Id="Qt5StylePlugins"
-                Guid="a8d30088-919f-4ad4-93f4-b11c5170b78d">
+                Id="Qt6StylePlugins"
+                Guid="f7c74e62-d0b6-4c47-a87f-6e3a0294ea4d">
 	      <File
                   Id="qwindowsvistastyle"
                   Name="qwindowsvistastyle.dll"
-                  Source="build_win64\qwindowsvistastyle.dll"/>
+                  Source="build_win64\plugins\styles\qwindowsvistastyle.dll"/>
             </Component>
 	  </Directory>
 
@@ -327,13 +331,15 @@
       <ComponentRef Id="VampPlugins"/>
       <ComponentRef Id="MainExecutable"/>
       <ComponentRef Id="Sndfile"/>
+      <!--
       <ComponentRef Id="OpenSSL"/>
+      -->
       <ComponentRef Id="OSWin10"/>
       <ComponentRef Id="OSOther"/>
-      <ComponentRef Id="Qt5"/>
+      <ComponentRef Id="Qt6"/>
       <ComponentRef Id="VCRuntime"/>
-      <ComponentRef Id="Qt5PlatformPlugins"/>
-      <ComponentRef Id="Qt5StylePlugins"/>
+      <ComponentRef Id="Qt6PlatformPlugins"/>
+      <ComponentRef Id="Qt6StylePlugins"/>
       <ComponentRef Id="Piper64"/>
       <ComponentRef Id="Checker64"/>
       <ComponentRef Id="Aligner64"/>

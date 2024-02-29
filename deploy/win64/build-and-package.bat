@@ -7,7 +7,7 @@ if not exist "C:\Program Files (x86)\SMLNJ\bin" (
 @   exit /b 2
 )
 
-if not exist "C:\Program Files (x86)\WiX Toolset v3.11\bin" (
+if not exist "C:\Program Files (x86)\WiX Toolset v3.14\bin" (
 @   echo Could not find WiX Toolset
 @   exit /b 2
 )
