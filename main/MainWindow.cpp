@@ -6438,7 +6438,7 @@ MainWindow::introduction()
     int indent = fontSize * 2;
     introText = introText.arg(iconSize).arg(indent);
 
-   std::cout << "text is: " << introText << std::endl;
+//   std::cout << "text is: " << introText << std::endl;
     
     QDialog *d = new QDialog(this);
     d->setWindowTitle(tr("Using %1").arg(QApplication::applicationName()));
