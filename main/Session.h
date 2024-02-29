@@ -75,6 +75,9 @@ public slots:
                                sv::sv_frame_t audioFrameEnd);
     void acceptAlignment();
     void rejectAlignment();
+
+    void signifyEditMode();
+    void signifyNavigateMode();
     
 signals:
     void alignmentReadyForReview();
@@ -103,18 +106,21 @@ private:
     sv::sv_frame_t m_partialAlignmentAudioStart;
     sv::sv_frame_t m_partialAlignmentAudioEnd;
     
-    sv::TimeInstantLayer *m_displayedOnsetsLayer;
+    sv::TimeInstantLayer *m_displayedOnsetsLayer; // An alias for one of:
     sv::TimeInstantLayer *m_acceptedOnsetsLayer;
     sv::TimeInstantLayer *m_pendingOnsetsLayer;
     bool m_awaitingOnsetsLayer;
     
     sv::TimeValueLayer *m_tempoLayer;
 
+    bool m_inEditMode;
+    
     void setOnsetsLayerProperties(sv::TimeInstantLayer *);
     void alignmentComplete();
     void mergeLayers(sv::TimeInstantLayer *from, sv::TimeInstantLayer *to,
                      sv::sv_frame_t overlapStart, sv::sv_frame_t overlapEnd);
     void recalculateTempoLayer();
+    void updateOnsetColours();
 
     bool exportAlignmentEntriesTo(QString path);
 

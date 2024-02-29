@@ -71,6 +71,7 @@ Session::setDocument(Document *doc,
     m_awaitingOnsetsLayer = false;
     
     m_tempoLayer = nullptr;
+    m_inEditMode = false;
 }
 
 void
@@ -346,6 +347,7 @@ Session::alignmentComplete()
     }
 
     recalculateTempoLayer();
+    updateOnsetColours();
     
     emit alignmentReadyForReview();
 }
@@ -372,6 +374,7 @@ Session::rejectAlignment()
     }
 
     recalculateTempoLayer();
+    updateOnsetColours();
     
     emit alignmentRejected();
 }
@@ -399,11 +402,26 @@ Session::acceptAlignment()
     m_pendingOnsetsLayer = nullptr;
     
     recalculateTempoLayer();
+    updateOnsetColours();
     
     emit alignmentAccepted();
 
     connect(ModelById::get(m_displayedOnsetsLayer->getModel()).get(),
             SIGNAL(modelChanged(ModelId)), this, SLOT(modelChanged(ModelId)));
+}
+
+void
+Session::signifyEditMode()
+{
+    m_inEditMode = true;
+    updateOnsetColours();
+}
+
+void
+Session::signifyNavigateMode()
+{
+    m_inEditMode = false;
+    updateOnsetColours();
 }
 
 void
@@ -536,14 +554,11 @@ Session::importAlignmentFrom(QString path)
         return false;
     }
 
-    bool existingModelIsNew = false;
-    
     if (!m_displayedOnsetsLayer) {
         m_displayedOnsetsLayer = dynamic_cast<TimeInstantLayer *>
             (m_document->createEmptyLayer(LayerFactory::TimeInstants));
         m_document->addLayerToView(m_topPane, m_displayedOnsetsLayer);
         setOnsetsLayerProperties(m_displayedOnsetsLayer);
-        existingModelIsNew = true;
     }
     
     auto existingModel = ModelById::getAs<SparseOneDimensionalModel>
@@ -570,6 +585,7 @@ Session::importAlignmentFrom(QString path)
     delete imported;
 
     recalculateTempoLayer();
+    updateOnsetColours();
     emit alignmentAccepted();    
 
     connect(existingModel.get(), SIGNAL(modelChanged(ModelId)),
@@ -684,6 +700,27 @@ Session::recalculateTempoLayer()
     }
     
     m_document->setModel(m_tempoLayer, newModelId);
+}
+
+void
+Session::updateOnsetColours()
+{
+    if (!m_displayedOnsetsLayer) {
+        return;
+    }
+    
+    QString colour;
+
+    if (m_pendingOnsetsLayer) {
+        colour = "Bright Red";
+    } else if (m_inEditMode) {
+        colour = "Orange";
+    } else {
+        colour = "Purple";
+    }
+    
+    ColourDatabase *cdb = ColourDatabase::getInstance();
+    m_displayedOnsetsLayer->setBaseColour(cdb->getColourIndex(colour));
 }
 
 

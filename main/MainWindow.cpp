@@ -2732,6 +2732,12 @@ MainWindow::scoreInteractionModeChanged(ScoreWidget::InteractionMode mode)
         }
     }
 
+    if (mode == ScoreWidget::InteractionMode::Edit) {
+        m_session.signifyEditMode();
+    } else {
+        m_session.signifyNavigateMode();
+    }
+
     m_selectFromButton->blockSignals(true);
     m_selectToButton->blockSignals(true);
     
