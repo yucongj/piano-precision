@@ -2,10 +2,10 @@
 
 set -eu
 
-#case $(git status --porcelain --untracked-files=no) in
-#    "") ;;
-#    *) echo "ERROR: Current working copy has been modified - not proceeding"; exit 2;;
-#esac
+case $(git status --porcelain --untracked-files=no) in
+    "") ;;
+    *) echo "ERROR: Current working copy has been modified - not proceeding"; exit 2;;
+esac
 
 mkdir -p packages
 echo
