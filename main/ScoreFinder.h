@@ -82,6 +82,11 @@ public:
      *  reason, return the empty string.
      */
     static std::string getBundledRecordingDirectory(std::string scoreName);
+
+    /** Populate the user score and recording directories from bundled
+     *  copies. Do not overwrite any existing files.
+     */
+    static void populateUserDirectoriesFromBundled();
 };
 
 
