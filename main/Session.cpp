@@ -389,7 +389,7 @@ Session::acceptAlignment()
         return;
     }        
         
-    if (m_acceptedOnsetsLayer) {
+    if (m_acceptedOnsetsLayer && m_partialAlignmentAudioEnd >= 0) {
         mergeLayers(m_acceptedOnsetsLayer, m_pendingOnsetsLayer,
                     m_partialAlignmentAudioStart, m_partialAlignmentAudioEnd);
     }
