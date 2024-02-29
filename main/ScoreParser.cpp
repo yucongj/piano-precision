@@ -69,7 +69,7 @@ ScoreParser::generateScoreFiles(string dir, string scoreName, string meiFile)
     generatedFiles.push_back(timemapFilePath);
     timemap.parse(toolkit.RenderToTimemap(option));
 
-    std::vector<string> meters; // starting from measure 1
+    std::vector<string> meters; // could start from measure 1 or 0 (pickup)
     for (int i = 0; i < int(timemap.size()); i++) {
         auto event = timemap.get<jsonxx::Object>(i);
         if (event.has<jsonxx::String>("meterSig")) {
@@ -79,12 +79,13 @@ ScoreParser::generateScoreFiles(string dir, string scoreName, string meiFile)
         }
     }
     // Writing to the .meter file
-    vector<std::pair<int, string>> meterChanges;
+    // vector<std::pair<int, string>> meterChanges;
     string outputString;
+    int offset = abs(1 - toolkit.HasPickupMeasure()); // start from measure 0 if there's pickup
     for (int m = 0; m + 1 < int(meters.size()); m++) {
         if ((m == 0) || (meters.at(m) != meters.at(m-1))) {
-            outputString += std::to_string(m+1) + "\t" + meters.at(m) + "\n";
-            meterChanges.push_back(std::pair<int, std::string>(m+1, meters.at(m)));
+            outputString += std::to_string(m+offset) + "\t" + meters.at(m) + "\n";
+            // meterChanges.push_back(std::pair<int, std::string>(m+offset, meters.at(m)));
         }
     }
     string outfile(dir + "/" + scoreName + ".meter");
@@ -100,7 +101,7 @@ ScoreParser::generateScoreFiles(string dir, string scoreName, string meiFile)
     }
 
     // Calculating cumulative fraction for the beginning of each measure
-    vector<vrv::Fraction> cumulativeMeasureFraction;
+    vector<vrv::Fraction> cumulativeMeasureFraction; // note that this is updated later if there is a pickup measure
     if (meters.size() > 0)  cumulativeMeasureFraction.push_back(vrv::Fraction(0, 1));
     for (int m = 1; m < int(meters.size()); m++) {
         cumulativeMeasureFraction.push_back(cumulativeMeasureFraction.back() + vrv::Fraction::fromString(meters.at(m-1)));
@@ -170,8 +171,36 @@ ScoreParser::generateScoreFiles(string dir, string scoreName, string meiFile)
         if (b.on < a.on)    return false;
         if (a.pitch < b.pitch)  return true;
         if (b.pitch < a.pitch)  return false;
-        return false; // not sure why "return trule" wouldn't also work here.
+        return false; // not sure why "return true" would not also work here.
     });
+
+    // Dealing with possible pickup measure by adjusting the initial measure and shifting other meaasures
+    // Note that cumulative fractions also need adjustments, but lines do not need to be resorted.
+    if (toolkit.HasPickupMeasure() && int(meters.size()) > 1) {
+        vrv::Fraction M = vrv::Fraction::fromString(meters.at(0));
+        vrv::Fraction L; // the actual length of the pickup measure. (TODO: not accurate if tied across the first measure)
+        for (const auto &line : lines) {
+            if (line.measureIndex == 1) {
+                L = line.cumulative;
+            }
+        }
+        for (int m = 1; m < int(meters.size()); m++) // adjusting cumulativeMeasureFraction
+            cumulativeMeasureFraction.at(m) = cumulativeMeasureFraction.at(m) - (M-L);
+
+        for (auto &line : lines) {
+            if (line.measureIndex > 1) {
+                line.measureIndex--;
+                line.cumulative = line.cumulative - (M-L);
+            } else { // line.measureIndex == 1
+                line.measureIndex = 0;
+                line.beat = (M-L) + line.cumulative;
+                if (line.cumulative == L) { // (TODO: might not be accurate if tied across the first measure)
+                    line.beat = vrv::Fraction(0, 1);
+                    line.measureIndex = 1;
+                }
+            }
+        }
+    }
 
     // Writing to the .solo file
     string content;

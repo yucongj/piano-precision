@@ -716,6 +716,8 @@ public:
     
     
     // Yucong Jiang
+
+    bool HasPickupMeasure();
     
     Fraction GetClosestFraction(float num);
     
