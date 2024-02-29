@@ -241,8 +241,9 @@ ScoreFinder::populateUserDirectoriesFromBundled()
 
     auto populate = [&](string fromDir, string toDir) {
         if (!std::filesystem::exists(fromDir)) return;
-        if (!std::filesystem::create_directories(toDir)) {
-            SVDEBUG << "ScoreFinder::populateUserDirectoriesFromBundled: Failed to create target path " << toDir << endl;
+        std::error_code errorCode;
+        if (!std::filesystem::create_directories(toDir, errorCode)) {
+            SVDEBUG << "ScoreFinder::populateUserDirectoriesFromBundled: Failed to create target path " << toDir << ": " << errorCode << endl;
             return;
         }
         for (const auto &entry : std::filesystem::directory_iterator(fromDir)) {
@@ -253,19 +254,32 @@ ScoreFinder::populateUserDirectoriesFromBundled()
                     continue;
                 }
                 SVDEBUG << "ScoreFinder::populateUserDirectoriesFromBundled: Copying from " << entry << " to " << target << endl;
-                std::filesystem::copy(entry, target);
+                std::filesystem::copy(entry, target, errorCode);
+                SVDEBUG << "(errorCode = " << errorCode << ")" << endl;
             }
         }
     };
+
+    SVDEBUG << "ScoreFinder::populateUserDirectoriesFromBundled: Have "
+            << scores.size() << " scores" << endl;
+    QString home = QDir::homePath();
     
     for (string score : scores) {
 
+        SVDEBUG << "ScoreFinder::populateUserDirectoriesFromBundled: Score "
+                << score << endl;
+        
         populate(bundledScoreDir + "/" + score,
                  userScoreDir + "/" + score);
 
+        std::filesystem::path userRecordingDir = home.toStdString() +
+            "/Documents/PianoPrecision/Recordings/" + score;
+        
         populate(getBundledRecordingDirectory(score),
-                 getUserRecordingDirectory(score));
+                 userRecordingDir);
     }
+
+    SVDEBUG << "ScoreFinder::populateUserDirectoriesFromBundled: Done" << endl;
 }
         
 

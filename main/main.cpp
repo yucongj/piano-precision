@@ -441,9 +441,10 @@ main(int argc, char **argv)
     ScoreFinder::initialiseAlignerEnvironmentVariables();
 
     settings.beginGroup("Bundled Scores");
-    if (!settings.value("unpacked", false).toBool()) {
+    QString unpackedKey = QString("unpacked-%1").arg(SV_VERSION);
+    if (!settings.value(unpackedKey, false).toBool()) {
         ScoreFinder::populateUserDirectoriesFromBundled();
-        settings.setValue("unpacked", true);
+        settings.setValue(unpackedKey, true);
     }
     settings.endGroup();
     
