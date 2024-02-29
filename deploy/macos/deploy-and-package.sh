@@ -92,7 +92,13 @@ for builddir in $builddirs; do
 	echo "App exists in target $target, merging..."
 	find "$source" -name "$full_name" -o -name \*.dylib -o -name Qt\* |
 	    while read f; do
-		lipo "$f" "$volume/$f" -create -output "$volume/$f"
+		this=$(lipo -archs "$f")
+		that=$(lipo -archs "$volume/$f")
+		if [ "$this" = "$that" ]; then
+		    echo "File $f already has desired arch(s) in target"
+		else
+		    lipo "$f" "$volume/$f" -create -output "$volume/$f"
+		fi
 	    done
 	for helper in vamp-plugin-load-checker piper-vamp-simple-server; do
 	    path="Contents/MacOS/$helper"
