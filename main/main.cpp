@@ -439,6 +439,13 @@ main(int argc, char **argv)
     PluginPathSetter::initialiseEnvironmentVariables();
 
     ScoreFinder::initialiseAlignerEnvironmentVariables();
+
+    settings.beginGroup("Bundled Scores");
+    if (!settings.value("unpacked", false).toBool()) {
+        ScoreFinder::populateUserDirectoriesFromBundled();
+        settings.setValue("unpacked", true);
+    }
+    settings.endGroup();
     
     QIcon icon;
     int sizes[] = { 16, 32, 64, 128, 256 };
