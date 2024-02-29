@@ -71,6 +71,7 @@ Session::setDocument(Document *doc,
     m_awaitingOnsetsLayer = false;
     
     m_tempoLayer = nullptr;
+    m_inEditMode = false;
 }
 
 void
@@ -346,6 +347,7 @@ Session::alignmentComplete()
     }
 
     recalculateTempoLayer();
+    updateOnsetColours();
     
     emit alignmentReadyForReview();
 }
@@ -372,6 +374,7 @@ Session::rejectAlignment()
     }
 
     recalculateTempoLayer();
+    updateOnsetColours();
     
     emit alignmentRejected();
 }
@@ -399,11 +402,26 @@ Session::acceptAlignment()
     m_pendingOnsetsLayer = nullptr;
     
     recalculateTempoLayer();
+    updateOnsetColours();
     
     emit alignmentAccepted();
 
     connect(ModelById::get(m_displayedOnsetsLayer->getModel()).get(),
             SIGNAL(modelChanged(ModelId)), this, SLOT(modelChanged(ModelId)));
+}
+
+void
+Session::signifyEditMode()
+{
+    m_inEditMode = true;
+    updateOnsetColours();
+}
+
+void
+Session::signifyNavigateMode()
+{
+    m_inEditMode = false;
+    updateOnsetColours();
 }
 
 void
@@ -491,30 +509,52 @@ Session::importAlignmentFrom(QString path)
         SVDEBUG << "Session::importAlignmentFrom: No main model, nothing for the alignment to be an alignment against" << endl;
         return false;
     }
-    
-    // Our CSV format is LABEL,TIME,FRAME where LABEL is text, TIME is
-    // a number in seconds (not an integer), and FRAME is an integer
-    // audio sample frame number. We want to import to an onsets layer
-    // whose contents are time instants indexed by audio sample frame,
-    // with a label taken from LABEL. The TIME column was derived from
-    // FRAME and should not be imported.
+
+    // We support two different CSV formats:
+    //
+    // * The one we export is is LABEL,TIME,FRAME where LABEL is text,
+    // TIME is a number in seconds (not an integer), and FRAME is an
+    // integer audio sample frame number. We use FRAME as the
+    // authoritative timestamp. The TIME column was derived from FRAME
+    // and should not be imported.
+    //
+    // * We also support a simpler two-column format LABEL,TIME where
+    // LABEL is text, TIME is a number in seconds. Here we use TIME as
+    // the timestamp and convert it back to frame ourselves.
+    //
+    // Either way we want to import to an onsets layer whose contents
+    // are time instants indexed by audio sample frame, with a label
+    // taken from LABEL.
+
+    bool haveFrame = (CSVFormat(path).getColumnCount() > 2);
     
     CSVFormat format;
     
     format.setSeparator(QChar(','));
-    format.setColumnCount(3);
     format.setHeaderStatus(CSVFormat::HeaderPresent);
-
     format.setModelType(CSVFormat::OneDimensionalModel);
     format.setTimingType(CSVFormat::ExplicitTiming);
-    format.setTimeUnits(CSVFormat::TimeAudioFrames);
 
-    QList<CSVFormat::ColumnPurpose> purposes {
-        CSVFormat::ColumnLabel,    // LABEL
-        CSVFormat::ColumnUnknown,  // TIME - Derived column, don't import
-        CSVFormat::ColumnStartTime // FRAME
-    };
-    format.setColumnPurposes(purposes);
+    if (haveFrame) {
+        SVDEBUG << "Session::importAlignmentFrom: Have [at least] 3 columns, assuming we have label, [derived] time, and [authoritative] frame" << endl;
+        format.setColumnCount(3);
+        format.setTimeUnits(CSVFormat::TimeAudioFrames);
+        QList<CSVFormat::ColumnPurpose> purposes {
+            CSVFormat::ColumnLabel,    // LABEL
+            CSVFormat::ColumnUnknown,  // TIME - Derived column, don't import
+            CSVFormat::ColumnStartTime // FRAME
+        };
+        format.setColumnPurposes(purposes);
+    } else {
+        SVDEBUG << "Session::importAlignmentFrom: Have fewer than 3 columns, assuming we have label and time" << endl;
+        format.setColumnCount(2);
+        format.setTimeUnits(CSVFormat::TimeSeconds);
+        QList<CSVFormat::ColumnPurpose> purposes {
+            CSVFormat::ColumnLabel,    // LABEL
+            CSVFormat::ColumnStartTime // TIME
+        };
+        format.setColumnPurposes(purposes);
+    }
     
     CSVFileReader reader(path, format, mainModel->getSampleRate(), nullptr);
 
@@ -536,14 +576,11 @@ Session::importAlignmentFrom(QString path)
         return false;
     }
 
-    bool existingModelIsNew = false;
-    
     if (!m_displayedOnsetsLayer) {
         m_displayedOnsetsLayer = dynamic_cast<TimeInstantLayer *>
             (m_document->createEmptyLayer(LayerFactory::TimeInstants));
         m_document->addLayerToView(m_topPane, m_displayedOnsetsLayer);
         setOnsetsLayerProperties(m_displayedOnsetsLayer);
-        existingModelIsNew = true;
     }
     
     auto existingModel = ModelById::getAs<SparseOneDimensionalModel>
@@ -570,6 +607,7 @@ Session::importAlignmentFrom(QString path)
     delete imported;
 
     recalculateTempoLayer();
+    updateOnsetColours();
     emit alignmentAccepted();    
 
     connect(existingModel.get(), SIGNAL(modelChanged(ModelId)),
@@ -684,6 +722,27 @@ Session::recalculateTempoLayer()
     }
     
     m_document->setModel(m_tempoLayer, newModelId);
+}
+
+void
+Session::updateOnsetColours()
+{
+    if (!m_displayedOnsetsLayer) {
+        return;
+    }
+    
+    QString colour;
+
+    if (m_pendingOnsetsLayer) {
+        colour = "Bright Red";
+    } else if (m_inEditMode) {
+        colour = "Orange";
+    } else {
+        colour = "Purple";
+    }
+    
+    ColourDatabase *cdb = ColourDatabase::getInstance();
+    m_displayedOnsetsLayer->setBaseColour(cdb->getColourIndex(colour));
 }
 
 

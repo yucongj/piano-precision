@@ -1,6 +1,7 @@
 <!DOCTYPE RCC><RCC version="1.0">
   <qresource>
     <file>icons/scalable/align.svg</file>
+    <file>icons/scalable/blank.svg</file>
     <file>icons/scalable/cancel.svg</file>
     <file>icons/scalable/chooseScore.svg</file>
     <file>icons/scalable/colour3d.svg</file>
