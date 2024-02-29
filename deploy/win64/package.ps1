@@ -13,7 +13,7 @@ if ($args[0] -eq "sign") {
 
 . deploy\metadata.ps1
 
-$kitdir = "C:\Program Files (x86)\Windows Kits\10\bin\x64"
+$kitdir = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64"
 $wixdir = "C:\Program Files (x86)\WiX Toolset v3.14\bin"
 
 if (! (Test-Path -Path $kitdir -PathType Container)) {
@@ -35,7 +35,7 @@ $name = "Christopher Cannam"
 
 if ($sign) {
    "Signing executables"
-   &"$kitdir\signtool" sign /v /n "$name" /t http://time.certum.pl /fd sha1 /a build_win64\*.exe
+   &"$kitdir\signtool" sign /v /debug /n "$name" /t http://time.certum.pl /fd sha256 /a build_win64\*.exe
 }
 
 "Packaging"
@@ -51,7 +51,7 @@ rm "$full_kebab.wixpdb"
 
 if ($sign) {
     "Signing packages"
-    &"$kitdir\signtool" sign /v /n "$name" /t http://time.certum.pl /fd sha1 /a *.msi
+    &"$kitdir\signtool" sign /v /n "$name" /t http://time.certum.pl /fd sha256 /a *.msi
     &"$kitdir\signtool" verify /pa "$full_kebab.msi"
 }
 
