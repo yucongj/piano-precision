@@ -3328,6 +3328,8 @@ MainWindow::setupToolbars()
         tr("Double-click left button on an item to edit it"));
 
     m_keyReference->setCategory(tr("Tool Selection"));
+
+    /*!!!
     action = toolbar->addAction(il.load("draw"), tr("Draw"));
     action->setCheckable(true);
     action->setShortcut(tr("4"));
@@ -3360,7 +3362,7 @@ MainWindow::setupToolbars()
     m_keyReference->registerShortcut
         (tr("Erase"), tr("Left"), 
         tr("Click left button on an item to remove it from the layer"));
-
+    */
     m_keyReference->setCategory(tr("Tool Selection"));
     action = toolbar->addAction(il.load("measure"), tr("Measure"));
     action->setCheckable(true);
