@@ -70,11 +70,13 @@ public:
 
     /** Return the full path of the directory in which recordings of
      *  the given score should be saved. If the directory does not
-     *  exist yet, create it before returning its path. If creation
-     *  fails or the path cannot be determined for any reason, return
-     *  the empty string.
+     *  exist and create is true, create it before returning its
+     *  path. If creation fails, or create is false and the directory
+     *  does not exist, or the path cannot be determined for any
+     *  reason, return the empty string.
      */
-    static std::string getUserRecordingDirectory(std::string scoreName);
+    static std::string getUserRecordingDirectory(std::string scoreName,
+                                                 bool create);
 
     /** Return the full path of the directory in which app-bundled
      *  recordings of the given score may be found. If the directory

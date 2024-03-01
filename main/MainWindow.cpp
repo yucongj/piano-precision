@@ -2521,7 +2521,7 @@ MainWindow::openScoreFile(QString scoreName, QString scoreFile)
     m_scoreWidget->setMusicalEvents(m_score.getMusicalEvents());
 
     auto recordingDirectory =
-        ScoreFinder::getUserRecordingDirectory(scoreName.toStdString());
+        ScoreFinder::getUserRecordingDirectory(scoreName.toStdString(), false);
     if (recordingDirectory != "") {
         RecordDirectory::setRecordContainerDirectory
             (QString::fromStdString(recordingDirectory));
