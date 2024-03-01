@@ -439,6 +439,7 @@ main(int argc, char **argv)
     PluginPathSetter::initialiseEnvironmentVariables();
 
     ScoreFinder::initialiseAlignerEnvironmentVariables();
+    ScoreFinder::populateUserDirectoriesFromBundled();
     
     QIcon icon;
     int sizes[] = { 16, 32, 64, 128, 256 };

@@ -2521,7 +2521,7 @@ MainWindow::openScoreFile(QString scoreName, QString scoreFile)
     m_scoreWidget->setMusicalEvents(m_score.getMusicalEvents());
 
     auto recordingDirectory =
-        ScoreFinder::getUserRecordingDirectory(scoreName.toStdString());
+        ScoreFinder::getUserRecordingDirectory(scoreName.toStdString(), false);
     if (recordingDirectory != "") {
         RecordDirectory::setRecordContainerDirectory
             (QString::fromStdString(recordingDirectory));
@@ -5460,11 +5460,11 @@ MainWindow::renameCurrentLayer()
     CommandHistory::getInstance()->addCommand
         (new GenericCommand
          (tr("Rename Layer"),
-          [=, this]() {
+          [=]() {
               layer->setPresentationName(newName);
               setupExistingLayersMenus();
           },
-          [=, this]() {
+          [=]() {
               layer->setPresentationName(existingNameSet ? existingName : "");
               setupExistingLayersMenus();
           }));
@@ -5551,7 +5551,7 @@ MainWindow::playSpeedChanged(int position)
     // Percentage is shown to 0dp if >100, to 1dp if <100; factor is
     // shown to 3sf
 
-    size_t buflen = 30;
+    constexpr size_t buflen = 30;
     char pcbuf[buflen];
     char facbuf[buflen];
     
@@ -6417,6 +6417,21 @@ MainWindow::getReleaseText() const
 void
 MainWindow::introduction()
 {
+#ifdef Q_OS_WIN32
+    QString introText =
+        "<h3>How to use Piano Precision</h3>"
+        "<p><i>You can open this instruction page at any time from the Help menu.</i><p>"
+        "<p>This is a software tool that assists in analyzing recorded piano performances together with their scores.</p>"
+        "<p>The controls you'll need for loading a score and loading a recording are located at the top-left corner of the application."
+        "<ol><li>First, you'll need to load an MEI score using the musical-note tool button.</li>"
+        "<li>Then, you can load a performance (audio) recording of that score using the tool button next to it.</li>"
+        "<li>Underneath the score area, you can find controls for synchronizing the score with the audio.</li></ol>"
+        "<p>If you don't have your own MEI scores or recordings yet, you can use our samples located in the folder called <code>PianoPrecision</code> within your Documents folder:"
+        "<ul><li>Beethoven Sonata Op. 110 Movement I</li>"
+        "<li>J. S. Bach Fugue in C Major, BWV 846</li>"
+        "<li>Mozart Sonata No. 18 Movement II</li>"
+        "<li>Schubert Impromptu Op. 90 No. 1</li><br></ul>";
+#else // !Q_OS_WIN32
     QString introText =
         "<h3>How to use Piano Precision</h3>"
         "<p><i>You can open this instruction page at any time from the Help menu.</i><p>"
@@ -6430,7 +6445,8 @@ MainWindow::introduction()
         "<br><img src=\":icons/scalable/blank.svg\" width=%2 height=%1>&bull; J. S. Bach Fugue in C Major, BWV 846"
         "<br><img src=\":icons/scalable/blank.svg\" width=%2 height=%1>&bull; Mozart Sonata No. 18 Movement II"
         "<br><img src=\":icons/scalable/blank.svg\" width=%2 height=%1>&bull; Schubert Impromptu Op. 90 No. 1<br></p>";
-
+#endif
+    
     int fontSize = font().pixelSize();
     if (fontSize < 0) fontSize = font().pointSize();
     if (fontSize < 0) fontSize = 16;
@@ -6438,7 +6454,7 @@ MainWindow::introduction()
     int indent = fontSize * 2;
     introText = introText.arg(iconSize).arg(indent);
 
-   std::cout << "text is: " << introText << std::endl;
+//   std::cout << "text is: " << introText << std::endl;
     
     QDialog *d = new QDialog(this);
     d->setWindowTitle(tr("Using %1").arg(QApplication::applicationName()));
