@@ -41,7 +41,7 @@ if ($sign) {
 "Packaging"
 
 if (Test-Path -Path "$full_kebab.msi") {
-    rm $full_kebab.msi
+    rm "$full_kebab.msi"
 }
 
 &"$wixdir\candle" -v deploy\win64\"$full_kebab.wxs"
