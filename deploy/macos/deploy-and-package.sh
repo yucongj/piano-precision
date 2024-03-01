@@ -36,6 +36,7 @@ echo "Version: $version"
 
 source="$full_name.app"
 volume="$full_versioned"
+volname="$full_name - $version"
 target="$volume"/"$full_name".app
 dmg="$volume".dmg
 
@@ -129,7 +130,7 @@ deploy/macos/sign.sh "$volume" || exit 1
 
     rm -f "$dmg"
 
-    hdiutil create -srcfolder "$volume" "$dmg" -volname "$volume" -fs HFS+ && 
+    hdiutil create -srcfolder "$volume" "$dmg" -volname "$volname" -fs HFS+ && 
 	rm -r "$volume"
 
     echo "Done"
