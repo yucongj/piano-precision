@@ -1950,6 +1950,26 @@ std::string Toolkit::GetMIDIValuesForElement(const std::string &xmlId)
 
 // Yucong Jiang
 
+bool Toolkit::HasPickupMeasure() {
+    jsonxx::Object elements;
+    elements.parse(GetElementsAtTime(0)); // beginning measure
+    if (elements.has<jsonxx::String>("measure")) {
+        std::string measureID = elements.get<jsonxx::String>("measure");
+        jsonxx::Object attributes;
+        attributes.parse(GetElementAttr(measureID));
+        if (attributes.has<jsonxx::String>("metcon")) {
+            if (attributes.get<jsonxx::String>("metcon") == "false") {
+                return true; // has pickup measure
+            }
+        } else {
+            return false; // no pickup measure
+        }
+    }
+
+    return false;
+}
+
+
 Fraction Toolkit::GetClosestFraction(float num) {
     int numerator, denominator;
     if ((num-0) < 1e-6) {
@@ -1966,7 +1986,7 @@ Fraction Toolkit::GetClosestFraction(float num) {
 Fraction Toolkit::GetCumulativeFraction(int measure, Fraction pos, const std::vector<std::pair<int, std::string>> meterChanges) {
     // meterChanges[stoppingIndex] is the largest meter that's not later than measure
     int i = 0, stoppingIndex = 0;
-    while (i < meterChanges.size()) {
+    while (i < int(meterChanges.size())) {
         if (meterChanges.at(i).first > measure) {
             stoppingIndex = i - 1;
             break;
@@ -1977,7 +1997,7 @@ Fraction Toolkit::GetCumulativeFraction(int measure, Fraction pos, const std::ve
             i++;
         }
     }
-    if (i == meterChanges.size()) {
+    if (i == int(meterChanges.size())) {
         stoppingIndex = i - 1;
     }
     
