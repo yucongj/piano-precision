@@ -248,8 +248,15 @@ ScoreFinder::populateUserDirectoriesFromBundled()
     string bundledScoreDir = getBundledScoreDirectory();
 
     auto populate = [&](string fromDir, string toDir) {
+        std::error_code errorCode;
         if (fromDir == "" || !std::filesystem::exists(fromDir)) return;
-        if (toDir == "" || !std::filesystem::exists(toDir)) return;
+        if (toDir == "") return;
+        if (!std::filesystem::exists(toDir)) {
+            if (!std::filesystem::create_directories(toDir, errorCode)) {
+                SVDEBUG << "ScoreFinder::populateUserDirectoriesFromBundled: Failed to create target path " << toDir << ": " << errorCode.value() << endl;
+                return;
+            }
+        }
         for (const auto &entry : std::filesystem::directory_iterator(fromDir)) {
             if (std::filesystem::is_regular_file(entry)) {
                 string target = toDir + "/" + entry.path().filename().string();
@@ -258,7 +265,6 @@ ScoreFinder::populateUserDirectoriesFromBundled()
                     continue;
                 }
                 SVDEBUG << "ScoreFinder::populateUserDirectoriesFromBundled: Copying from " << entry.path().string() << " to " << target << endl;
-                std::error_code errorCode;
                 std::filesystem::copy(entry, target, errorCode);
                 SVDEBUG << "(errorCode = " << errorCode.value() << ")" << endl;
             }
