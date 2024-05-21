@@ -4,19 +4,19 @@
       "pin": "63e0c3b37b6fb9ce6f074ea8222b4903e4f5568a"
     },
     "svcore": {
-      "pin": "20e7181744677635bea6957b864cd4920ac0aab6"
+      "pin": "65eeb62d0c966f4c15db78ba28eab8d4a8ea0274"
     },
     "svgui": {
-      "pin": "18da36ad18f90f28ded28ebc270e94b090e091dc"
+      "pin": "600cf795a7dfd39f9a42ec0bccee080acb476dd3"
     },
     "svapp": {
-      "pin": "d07286b92a4220ae47149ddec980640cb58d16de"
+      "pin": "f51a1690f3f92e2421916d39a3385d49214e60c6"
     },
     "checker": {
       "pin": "fae540cf4a79ac5ed5a4d4dc0df680b1acbe8628"
     },
     "sv-dependency-builds": {
-      "pin": "c0e0372de677d29048dfa1488afd8d1acb66fb8e"
+      "pin": "2d7667f145b5758eb277423e451bd5c2374dfb22"
     },
     "icons/scalable": {
       "pin": "fa47556361a34604e042c9a1820051424451a024"
@@ -46,13 +46,13 @@
       "pin": "88520ab5b8e5"
     },
     "bqaudiostream": {
-      "pin": "cb76f04384cf"
+      "pin": "73fd7555ad14"
     },
     "bqthingfactory": {
       "pin": "2e4bd170f57f"
     },
     "piano-precision-aligner": {
-      "pin": "ec6c712183d377f18855462eeab1b6ac9d174bb7"
+      "pin": "9dc37de1b91b0e87d93267f97c9364f4b137bb97"
     }
   }
 }
