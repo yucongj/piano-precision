@@ -53,7 +53,6 @@ public:
     bool importAlignmentFrom(QString filename);
 
     void setMusicalEvents(const Score::MusicalEventList &musicalEvents);
-    bool updateAlignmentEntries();
 
 public slots:
     void setDocument(sv::Document *,
@@ -122,6 +121,8 @@ private:
     void recalculateTempoLayer();
     void updateOnsetColours();
 
+    void resetAlignmentEntries();
+    bool updateAlignmentEntries();
     bool exportAlignmentEntriesTo(QString path);
 
     Score::MusicalEventList m_musicalEvents;
