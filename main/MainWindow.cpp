@@ -137,6 +137,7 @@
 #include <QButtonGroup>
 #include <QActionGroup>
 #include <QFileDialog>
+#include <QDockWidget>
 
 #include <iostream>
 #include <cstdio>
@@ -232,10 +233,18 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
 
     m_descriptionLabel = new QLabel;
 
-    QWidget *scoreWidgetContainer = new QWidget(this);
+    QDockWidget *scoreWidgetDock = new QDockWidget(this);
+    scoreWidgetDock->setAllowedAreas(Qt::LeftDockWidgetArea |
+                                     Qt::RightDockWidgetArea);
+    scoreWidgetDock->setFeatures(QDockWidget::DockWidgetMovable |
+                                 QDockWidget::DockWidgetFloatable);
+    scoreWidgetDock->setWindowTitle(tr("Score"));
+    
+    QWidget *scoreWidgetContainer = new QWidget(scoreWidgetDock);
+    
     QGridLayout *scoreWidgetLayout = new QGridLayout;
 
-    m_scoreWidget = new ScoreWidget(true, this);
+    m_scoreWidget = new ScoreWidget(true, scoreWidgetContainer);
     m_scoreWidget->setInteractionMode(ScoreWidget::InteractionMode::Navigate);
     connect(m_scoreWidget, &ScoreWidget::scoreLocationHighlighted,
             this, &MainWindow::scoreLocationHighlighted);
@@ -347,6 +356,8 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     scoreWidgetLayout->addWidget(selectionGroupBox, 3, 0, 1, 3);
 
     scoreWidgetContainer->setLayout(scoreWidgetLayout);
+    scoreWidgetDock->setWidget(scoreWidgetContainer);
+    addDockWidget(Qt::LeftDockWidgetArea, scoreWidgetDock);
 
     m_mainScroll = new QScrollArea(frame);
     m_mainScroll->setWidgetResizable(true);
@@ -401,43 +412,20 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     m_mainLevelPan->setImageSize((overviewHeight * 3) / 4);
     m_mainLevelPan->setBigImageSize(overviewHeight * 3);
 
-//!!!    m_playControlsSpacer = new QFrame;
-
     layout->setSpacing(m_viewManager->scalePixelSize(4));
-    // Commented out Oct 6, 2021
-    /*
-    layout->addWidget(m_mainScroll, 0, 0, 1, 4);
+
+    layout->addWidget(m_mainScroll, 0, 0, 1, 3);
     layout->addWidget(m_overview, 1, 0);
     layout->addWidget(m_playSpeed, 1, 1);
-    layout->addWidget(m_playControlsSpacer, 1, 2);
-    layout->addWidget(m_mainLevelPan, 1, 3);
-    */
-    // Commented end
-    // Added Oct 6, 2021
-    layout->addWidget(scoreWidgetContainer, 0, 0, 2, 1);
-    layout->addWidget(m_mainScroll, 0, 1, 1, 4);
-    layout->addWidget(m_overview, 1, 1);
-    layout->addWidget(m_playSpeed, 1, 2);
-//    layout->addWidget(m_playControlsSpacer, 1, 3);
-    layout->addWidget(m_mainLevelPan, 1, 4);
-    // Added end
+    layout->addWidget(m_mainLevelPan, 1, 2);
 
     m_playControlsWidth = 
         m_mainLevelPan->width() + m_playSpeed->width() + layout->spacing() * 2;
 
     m_paneStack->setPropertyStackMinWidth(m_playControlsWidth
                                           + 2 + layout->spacing());
-//    m_playControlsSpacer->setFixedSize(QSize(2, 2));
 
-    // Commented out Oct 6, 2021
-    /*
     layout->setColumnStretch(0, 10);
-    */
-    // Commented end
-    // Added Oct 6, 2021
-    layout->setColumnStretch(0, 4);
-    layout->setColumnStretch(1, 10);
-    // Added end
 
     connect(m_paneStack, SIGNAL(propertyStacksResized(int)),
             this, SLOT(propertyStacksResized(int)));
