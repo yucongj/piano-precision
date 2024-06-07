@@ -885,6 +885,7 @@ svgui_files = [
   'svgui/layer/ColourDatabase.cpp',
   'svgui/layer/ColourMapper.cpp',
   'svgui/layer/ColourScale.cpp',
+  'svgui/layer/CoordinateScale.cpp',
   'svgui/layer/FlexiNoteLayer.cpp',
   'svgui/layer/HorizontalFrequencyScale.cpp',
   'svgui/layer/ImageLayer.cpp',

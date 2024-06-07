@@ -5261,11 +5261,12 @@ MainWindow::addLayer()
 
         if (isNewEmptyLayer) {
 
-            double min, max;
-            bool log;
-            QString unit;
-            if (pane->getVisibleExtentsForAnyUnit(min, max, log, unit)) {
-                newLayer->adoptExtents(min, max, unit);
+            CoordinateScale scale = pane->getEffectiveVerticalExtents();
+            if (scale.getUnit() != "") {
+                // This is particularly relevant to new BoxLayers
+                newLayer->adoptExtents(scale.getDisplayMinimum(),
+                                       scale.getDisplayMaximum(),
+                                       scale.getUnit());
             }
             
             for (auto &a : m_toolActions) {
