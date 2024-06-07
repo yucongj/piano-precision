@@ -3479,7 +3479,7 @@ MainWindow::updateMenuStates()
                                m_scoreAlignmentModified);
     
     emit canSaveScoreAlignmentAs(scoreAlignmentOK);
-    emit canLoadScoreAlignment(scoreAlignmentOK);
+    emit canLoadScoreAlignment(true);
 
     updateAlignButtonText();
 }
