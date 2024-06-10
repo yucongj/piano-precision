@@ -72,6 +72,8 @@ Session::setDocument(Document *doc,
     
     m_tempoLayer = nullptr;
     m_inEditMode = false;
+
+    resetAlignmentEntries();
 }
 
 void
@@ -113,7 +115,11 @@ Session::setMainModel(ModelId modelId, QString scoreId)
     m_scoreId = scoreId;
 
     if (!m_document) {
-        SVDEBUG << "Session::setMainModel: WARNING: No document; one should have been set first" << endl;
+        if (m_mainModel.isNone()) {
+            SVDEBUG << "Session::setMainModel: Cleared main model and no document set" << endl;
+        } else {
+            SVDEBUG << "Session::setMainModel: WARNING: No document; one should have been set first" << endl;
+        }
         return;
     }
 
@@ -620,6 +626,12 @@ void
 Session::setMusicalEvents(const Score::MusicalEventList &musicalEvents)
 {
     m_musicalEvents = musicalEvents;
+    resetAlignmentEntries();
+}
+
+void
+Session::resetAlignmentEntries()
+{
     m_alignmentEntries.clear();
     // Calculating the mapping from score musical events to m_alignmentEntries
     for (auto &event : m_musicalEvents) {

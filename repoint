@@ -40,8 +40,11 @@ cleanup_lockfile() {
 
 hasher=
 local_install=
+inhibit_local="$mydir/.repoint-inhibit-local-install"
 if [ -w "$mydir" ]; then
-    if echo | sha256sum >/dev/null 2>&1 ; then
+    if [ -f "$inhibit_local" ]; then
+        :
+    elif echo | sha256sum >/dev/null 2>&1 ; then
 	hasher=sha256sum
         local_install=true
     elif echo | shasum >/dev/null 2>&1 ; then
@@ -147,12 +150,19 @@ done
 
 case "$sml" in
     polyml)
+        interpret=true
         if [ -n "$local_install" ] && polyc --help >/dev/null 2>&1 ; then
-            if [ ! -x "$gen_out_exec" ]; then
-                polyc -o "$gen_out_exec" "$program"
+            if [ -x "$gen_out_exec" ]; then
+	        "$gen_out_exec" "$@"
+                interpret=""
+            elif polyc -o "$gen_out_exec" "$program"; then
+	        "$gen_out_exec" "$@"
+                interpret=""
+            else
+                touch "$inhibit_local"
             fi
-	    "$gen_out_exec" "$@"
-        else
+        fi
+        if [ -n "$interpret" ]; then
             echo 'use "'"$program"'"; repoint ['"$arglist"'];' |
                 poly -q --error-exit
         fi ;;
