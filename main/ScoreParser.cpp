@@ -132,6 +132,10 @@ ScoreParser::generateScoreFiles(string dir, string scoreName, string meiFile)
                 jsonxx::Object note;
                 note.parse(toolkit.GetMIDIValuesForElement(id));
                 newNote.pitch = note.get<jsonxx::Number>("pitch");
+                if (newNote.pitch > 108 || newNote.pitch < 21) {
+                    SVDEBUG << "Pitch/midi = " << newNote.pitch << " out of range. Ignored." << endl;
+                    continue;
+                }
 
                 newNote.noteId = id;
 
