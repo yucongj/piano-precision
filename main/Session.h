@@ -125,6 +125,8 @@ private:
     bool updateAlignmentEntries();
     bool exportAlignmentEntriesTo(QString path);
 
+    sv::TransformId findAlignmentTransform();
+    
     Score::MusicalEventList m_musicalEvents;
     std::vector<AlignmentEntry> m_alignmentEntries;
 };

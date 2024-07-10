@@ -162,6 +162,31 @@ Session::beginAlignment()
     beginPartialAlignment(-1, -1, -1, -1, -1, -1);
 }
 
+TransformId
+Session::findAlignmentTransform()
+{
+    auto allTransforms =
+        TransformFactory::getInstance()->getInstalledTransformDescriptions();
+
+    //!!! We could return a Transform here, going direct to
+    //!!! getDefaultTransformFor
+    
+    for (const auto &desc : allTransforms) {
+        TransformId identifier = desc.identifier;
+        Transform transform;
+        transform.setIdentifier(identifier);
+        SVDEBUG << "Session::findAlignmentTransform: looking at transform "
+                << identifier << " with output \"" << transform.getOutput()
+                << "\"" << endl;
+        if (transform.getOutput() == "chordonsets") {
+            SVDEBUG << "Session::findAlignmentTransform: Using this one" << endl;
+            return identifier;
+        }
+    }
+    
+    return {};
+}
+
 void
 Session::beginPartialAlignment(int scorePositionStartNumerator,
                                int scorePositionStartDenominator,
@@ -177,8 +202,16 @@ Session::beginPartialAlignment(int scorePositionStartNumerator,
 
     ModelTransformer::Input input(m_mainModel);
 
+    TransformId alignmentTransformId = findAlignmentTransform();
+
+    if (alignmentTransformId == "") {
+        SVDEBUG << "Session::beginPartialAlignment: ERROR: No alignment transform found" << endl;
+        //!!! And notify the user
+        return;
+    }
+    
     vector<pair<QString, pair<Pane *, TimeInstantLayer **>>> layerDefinitions {
-        { "vamp:score-aligner:pianoaligner:chordonsets",
+        { alignmentTransformId,
           { m_topPane, &m_pendingOnsetsLayer }
         }
     };
