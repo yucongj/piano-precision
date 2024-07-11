@@ -20,6 +20,7 @@
 #include "ScoreWidget.h"
 #include "ScoreFinder.h"
 #include "ScoreParser.h"
+#include "ScoreAlignmentTransform.h"
 #include "Session.h"
 #include "piano-precision-aligner/Score.h"
 
@@ -266,6 +267,16 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     m_alignButton->setEnabled(false);
     m_subsetOfScoreSelected = false;
 
+    m_alignerChoice = new QToolButton();
+    m_alignerChoice->setPopupMode(QToolButton::InstantPopup);
+    m_alignerChoice->setArrowType(Qt::DownArrow);
+        
+    m_alignCommands = new QWidget;
+    QHBoxLayout *aclayout = new QHBoxLayout;
+    aclayout->addWidget(m_alignButton);
+    aclayout->addWidget(m_alignerChoice);
+    m_alignCommands->setLayout(aclayout);
+    
     m_alignAcceptButton = new QPushButton
         (IconLoader().load("dataaccept"), tr("Accept Alignment"));
     connect(m_alignAcceptButton, SIGNAL(clicked()),
@@ -294,7 +305,7 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     scoreWidgetLayout->addWidget(m_scoreWidget, 0, 0, 1, 3);
     scoreWidgetLayout->setRowStretch(0, 10);
     
-    scoreWidgetLayout->addWidget(m_alignButton, 1, 0, 1, 3, Qt::AlignHCenter);
+    scoreWidgetLayout->addWidget(m_alignCommands, 1, 0, 1, 3, Qt::AlignHCenter);
     scoreWidgetLayout->addWidget(m_alignAcceptReject, 1, 0, 1, 3, Qt::AlignHCenter);
     m_alignAcceptReject->hide();
     scoreWidgetLayout->addWidget(m_scorePageDownButton, 2, 0);
@@ -1926,6 +1937,7 @@ void
 MainWindow::installedTransformsPopulated()
 {
     populateTransformsMenu();
+    populateScoreAlignerChoiceMenu();
 
     if (m_shouldStartOSCQueue) {
         SVDEBUG << "MainWindow: Creating OSC queue with network port"
@@ -2850,6 +2862,32 @@ MainWindow::alignmentFailedToRun(QString message)
 }
 
 void
+MainWindow::populateScoreAlignerChoiceMenu()
+{
+    delete m_alignerChoice->menu();
+    m_alignerChoice->setMenu(nullptr);
+    
+    auto transforms =
+        ScoreAlignmentTransform::getAvailableAlignmentTransforms();
+
+    if (transforms.empty()) {
+        QMessageBox::warning
+            (this,
+             tr("No suitable alignment plugins found"),
+             tr("<b>No alignment plugins found</b><p>Failed to find any suitable plugins for audio to score alignment. Alignment will not be available"),
+             QMessageBox::Ok);
+        return;
+    }
+
+    QMenu *menu = new QMenu(this);
+    for (const auto &t : transforms) {
+        auto action =
+            menu->addAction(tr("%1 by %2").arg(t.pluginName).arg(t.maker));
+    }
+    m_alignerChoice->setMenu(menu);
+}
+
+void
 MainWindow::layerAdded(Layer *layer)
 {
     SVDEBUG << "MainWindow::layerAdded" << endl;
@@ -2869,7 +2907,7 @@ MainWindow::alignmentReadyForReview()
 
     m_paneStack->setCurrentLayer(onsetsPane, onsetsLayer);
 
-    m_alignButton->hide();
+    m_alignCommands->hide();
     m_alignAcceptReject->show();
 
     updateMenuStates();
@@ -2890,7 +2928,7 @@ MainWindow::alignmentAccepted()
     SVDEBUG << "MainWindow::alignmentAccepted" << endl;
 
     m_alignAcceptReject->hide();
-    m_alignButton->show();
+    m_alignCommands->show();
     m_alignButton->setEnabled(true);
 
     TimeInstantLayer *onsetsLayer = m_session.getOnsetsLayer();
@@ -2913,7 +2951,7 @@ MainWindow::alignmentRejected()
     SVDEBUG << "MainWindow::alignmentRejected" << endl;
 
     m_alignAcceptReject->hide();
-    m_alignButton->show();
+    m_alignCommands->show();
     m_alignButton->setEnabled(true);
 
     TimeInstantLayer *onsetsLayer = m_session.getOnsetsLayer();

@@ -45,11 +45,11 @@ ScoreAlignmentTransform::getAvailableAlignmentTransforms()
         TransformId identifier = desc.identifier;
         Transform transform;
         transform.setIdentifier(identifier);
-        SVDEBUG << "Session::findAlignmentTransform: looking at transform "
+        SVDEBUG << "ScoreAlignmentTransform: looking at transform "
                 << identifier << " with output \"" << transform.getOutput()
                 << "\"" << endl;
         if (transform.getOutput() == "chordonsets") {
-            SVDEBUG << "Session::findAlignmentTransform: it's a candidate" << endl;
+            SVDEBUG << "ScoreAlignmentTransform: it's a candidate" << endl;
             m_transforms.push_back(desc);
         }
     }

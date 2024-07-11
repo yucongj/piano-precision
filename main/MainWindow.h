@@ -28,6 +28,7 @@
 
 class QFileSystemWatcher;
 class QScrollArea;
+class QToolButton;
 
 namespace sv {
 class VersionTester;
@@ -159,6 +160,7 @@ protected slots:
     void alignmentRejected();
     void alignmentFrameIlluminated(sv::sv_frame_t);
     void alignmentFailedToRun(QString);
+    void populateScoreAlignerChoiceMenu();
     void highlightFrameInScore(sv::sv_frame_t);
     void scoreSelectionChanged(Fraction, bool, ScoreWidget::EventLabel, Fraction, bool, ScoreWidget::EventLabel);
     void scorePageChanged(int page);
@@ -227,6 +229,8 @@ protected:
     QScrollArea             *m_mainScroll;
     ScoreWidget             *m_scoreWidget;
     QPushButton             *m_alignButton;
+    QToolButton             *m_alignerChoice;
+    QWidget                 *m_alignCommands;
     QPushButton             *m_alignAcceptButton;
     QPushButton             *m_alignRejectButton;
     QWidget                 *m_alignAcceptReject;

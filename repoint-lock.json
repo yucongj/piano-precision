@@ -4,10 +4,10 @@
       "pin": "63e0c3b37b6fb9ce6f074ea8222b4903e4f5568a"
     },
     "svcore": {
-      "pin": "65eeb62d0c966f4c15db78ba28eab8d4a8ea0274"
+      "pin": "e423b267d1f8be85f03e4335b95e39b0f68dd3d2"
     },
     "svgui": {
-      "pin": "1202482d186f8282becfc8030199784153bd29df"
+      "pin": "2796d24d9e1918d3ed12057f801ca07c9c1032a3"
     },
     "svapp": {
       "pin": "f51a1690f3f92e2421916d39a3385d49214e60c6"
@@ -46,13 +46,13 @@
       "pin": "88520ab5b8e5"
     },
     "bqaudiostream": {
-      "pin": "73fd7555ad14"
+      "pin": "5d5950bc4d93"
     },
     "bqthingfactory": {
       "pin": "2e4bd170f57f"
     },
     "piano-precision-aligner": {
-      "pin": "9dc37de1b91b0e87d93267f97c9364f4b137bb97"
+      "pin": "5e30b8c5b998ce03d46352a84f5b9c8c0734371c"
     }
   }
 }

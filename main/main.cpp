@@ -410,24 +410,24 @@ main(int argc, char **argv)
     settings.setValue("rdf-indices", list);
     settings.endGroup();
 
-    PluginPathSetter::Paths paths = PluginPathSetter::getPaths();
+    PluginPathSetter::Paths paths = PluginPathSetter::getDefaultPaths();
     
     PluginPathSetter::TypeKey vampPluginTypeKey
         { KnownPlugins::VampPlugin, KnownPlugins::FormatNative };
 
     auto defaultVampConfig = paths.at(vampPluginTypeKey);
-    
-    QStringList pluginDirPaths =
-        HelperExecPath(HelperExecPath::NativeArchitectureOnly)
-        .getBundledPluginPaths();
 
     for (auto &config : paths) {
         config.second.directories = {};
         config.second.useEnvVariable = false;
     };
+    
+    QStringList bundledPluginPaths =
+        HelperExecPath(HelperExecPath::NativeArchitectureOnly)
+        .getBundledPluginPaths();
 
     paths[vampPluginTypeKey] = {
-        pluginDirPaths << defaultVampConfig.directories,
+        bundledPluginPaths << defaultVampConfig.directories,
         defaultVampConfig.envVariable,
         true // allow environment variable to override this one
     };
