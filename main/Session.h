@@ -84,6 +84,10 @@ signals:
     void alignmentRejected();
     void alignmentModified();
     void alignmentFrameIlluminated(sv::sv_frame_t);
+
+    // This indicates a technical problem starting alignment, e.g. no
+    // plugin available, not that the aligner failed to align
+    void alignmentFailedToRun(QString message);
                                        
 protected slots:
     void modelChanged(sv::ModelId);
@@ -125,8 +129,6 @@ private:
     bool updateAlignmentEntries();
     bool exportAlignmentEntriesTo(QString path);
 
-    sv::TransformId findAlignmentTransform();
-    
     Score::MusicalEventList m_musicalEvents;
     std::vector<AlignmentEntry> m_alignmentEntries;
 };

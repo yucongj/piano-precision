@@ -514,6 +514,8 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
             this, SLOT(alignmentRejected()));
     connect(&m_session, SIGNAL(alignmentFrameIlluminated(sv_frame_t)),
             this, SLOT(alignmentFrameIlluminated(sv_frame_t)));
+    connect(&m_session, SIGNAL(alignmentFailedToRun(QString)),
+            this, SLOT(alignmentFailedToRun(QString)));
 
     QTimer::singleShot(250, this, &MainWindow::introduction);
 
@@ -2830,6 +2832,21 @@ MainWindow::alignmentFrameIlluminated(sv_frame_t frame)
         ScoreWidget::InteractionMode::Edit) {
         highlightFrameInScore(frame);
     }
+}
+
+void
+MainWindow::alignmentFailedToRun(QString message)
+{
+    // NB we also have alignmentFailed which is received when the
+    // "classic SV" audio-to-audio alignment fails. This is for
+    // audio-to-score
+
+    QMessageBox::warning
+        (this,
+         tr("Unable to calculate alignment"),
+         tr("<b>Alignment calculation failed</b><p>Failed to align audio with score:<p>%1")
+         .arg(message),
+         QMessageBox::Ok);
 }
 
 void

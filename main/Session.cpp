@@ -12,6 +12,8 @@
 
 #include "Session.h"
 
+#include "ScoreAlignmentTransform.h"
+
 #include "transform/TransformFactory.h"
 #include "transform/ModelTransformer.h"
 #include "layer/ColourDatabase.h"
@@ -162,31 +164,6 @@ Session::beginAlignment()
     beginPartialAlignment(-1, -1, -1, -1, -1, -1);
 }
 
-TransformId
-Session::findAlignmentTransform()
-{
-    auto allTransforms =
-        TransformFactory::getInstance()->getInstalledTransformDescriptions();
-
-    //!!! We could return a Transform here, going direct to
-    //!!! getDefaultTransformFor
-    
-    for (const auto &desc : allTransforms) {
-        TransformId identifier = desc.identifier;
-        Transform transform;
-        transform.setIdentifier(identifier);
-        SVDEBUG << "Session::findAlignmentTransform: looking at transform "
-                << identifier << " with output \"" << transform.getOutput()
-                << "\"" << endl;
-        if (transform.getOutput() == "chordonsets") {
-            SVDEBUG << "Session::findAlignmentTransform: Using this one" << endl;
-            return identifier;
-        }
-    }
-    
-    return {};
-}
-
 void
 Session::beginPartialAlignment(int scorePositionStartNumerator,
                                int scorePositionStartDenominator,
@@ -202,11 +179,12 @@ Session::beginPartialAlignment(int scorePositionStartNumerator,
 
     ModelTransformer::Input input(m_mainModel);
 
-    TransformId alignmentTransformId = findAlignmentTransform();
+    TransformId alignmentTransformId =
+        ScoreAlignmentTransform::getDefaultAlignmentTransform();
 
     if (alignmentTransformId == "") {
         SVDEBUG << "Session::beginPartialAlignment: ERROR: No alignment transform found" << endl;
-        //!!! And notify the user
+        emit alignmentFailedToRun("No suitable score alignment plugin found");
         return;
     }
     
@@ -278,21 +256,22 @@ Session::beginPartialAlignment(int scorePositionStartNumerator,
         t.setProgram(m_scoreId);
         t.setParameters(params);
 
-        //!!! return error codes
-    
         Layer *layer = m_document->createDerivedLayer(t, input);
         if (!layer) {
             SVDEBUG << "Session::beginPartialAlignment: Transform failed to initialise" << endl;
+            emit alignmentFailedToRun(QString("Unable to initialise score alignment plugin \"%1\"").arg(transformId));
             return;
         }
         if (layer->getModel().isNone()) {
             SVDEBUG << "Session::beginPartialAlignment: Transform failed to create a model" << endl;
+            emit alignmentFailedToRun(QString("Score alignment plugin \"%1\" did not produce the expected output").arg(transformId));
             return;
         }
 
         TimeInstantLayer *tl = qobject_cast<TimeInstantLayer *>(layer);
         if (!tl) {
             SVDEBUG << "Session::beginPartialAlignment: Transform resulted in wrong layer type" << endl;
+            emit alignmentFailedToRun(QString("Score alignment plugin \"%1\" did not produce the expected output format").arg(transformId));
             return;
         }
 

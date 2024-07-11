@@ -115,7 +115,7 @@ protected slots:
     void modelGenerationWarning(QString, QString) override;
     void modelRegenerationFailed(QString, QString, QString) override;
     void modelRegenerationWarning(QString, QString, QString) override;
-    void alignmentFailed(sv::ModelId, QString) override;
+    void alignmentFailed(sv::ModelId, QString) override; // For audio-to-audio
 
     void paneRightButtonMenuRequested(sv::Pane *, QPoint point) override;
     void panePropertiesRightButtonMenuRequested(sv::Pane *, QPoint point) override;
@@ -158,6 +158,7 @@ protected slots:
     void alignmentAccepted();
     void alignmentRejected();
     void alignmentFrameIlluminated(sv::sv_frame_t);
+    void alignmentFailedToRun(QString);
     void highlightFrameInScore(sv::sv_frame_t);
     void scoreSelectionChanged(Fraction, bool, ScoreWidget::EventLabel, Fraction, bool, ScoreWidget::EventLabel);
     void scorePageChanged(int page);
