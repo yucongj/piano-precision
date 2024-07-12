@@ -426,8 +426,15 @@ main(int argc, char **argv)
         HelperExecPath(HelperExecPath::NativeArchitectureOnly)
         .getBundledPluginPaths();
 
+    QStringList vampDirectories =
+        defaultVampConfig.directories;
+
+    for (auto &s : vampDirectories) {
+        s += "/AudioToScoreAlignment";
+    }
+    
     paths[vampPluginTypeKey] = {
-        bundledPluginPaths << defaultVampConfig.directories,
+        bundledPluginPaths << vampDirectories,
         defaultVampConfig.envVariable,
         true // allow environment variable to override this one
     };
