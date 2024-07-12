@@ -1086,6 +1086,7 @@ pp_main_files = [
   'main/SVSplash.cpp',
   'main/PreferencesDialog.cpp',
   'main/Session.cpp',
+  'main/ScoreAlignmentTransform.cpp',
   'main/ScoreFinder.cpp',
   'main/ScoreParser.cpp',
   'main/ScoreWidget.cpp',

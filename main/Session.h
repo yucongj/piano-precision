@@ -64,6 +64,8 @@ public slots:
     
     void setMainModel(sv::ModelId modelId, QString scoreId);
 
+    void setAlignmentTransformId(sv::TransformId transformId);
+    
     void beginAlignment();
 
     void beginPartialAlignment(int scorePositionStartNumerator,
@@ -84,6 +86,10 @@ signals:
     void alignmentRejected();
     void alignmentModified();
     void alignmentFrameIlluminated(sv::sv_frame_t);
+
+    // This indicates a technical problem starting alignment, e.g. no
+    // plugin available, not that the aligner failed to align
+    void alignmentFailedToRun(QString message);
                                        
 protected slots:
     void modelChanged(sv::ModelId);
@@ -95,6 +101,7 @@ private:
     sv::Document *m_document;
     QString m_scoreId;
     sv::ModelId m_mainModel;
+    sv::TransformId m_alignmentTransformId;
 
     sv::Pane *m_topPane;
     sv::Pane *m_bottomPane;

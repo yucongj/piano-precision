@@ -20,6 +20,7 @@
 #include "ScoreWidget.h"
 #include "ScoreFinder.h"
 #include "ScoreParser.h"
+#include "ScoreAlignmentTransform.h"
 #include "Session.h"
 #include "piano-precision-aligner/Score.h"
 
@@ -266,6 +267,16 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     m_alignButton->setEnabled(false);
     m_subsetOfScoreSelected = false;
 
+    m_alignerChoice = new QToolButton();
+    m_alignerChoice->setPopupMode(QToolButton::InstantPopup);
+    m_alignerChoice->setArrowType(Qt::DownArrow);
+        
+    m_alignCommands = new QWidget;
+    QHBoxLayout *aclayout = new QHBoxLayout;
+    aclayout->addWidget(m_alignButton);
+    aclayout->addWidget(m_alignerChoice);
+    m_alignCommands->setLayout(aclayout);
+    
     m_alignAcceptButton = new QPushButton
         (IconLoader().load("dataaccept"), tr("Accept Alignment"));
     connect(m_alignAcceptButton, SIGNAL(clicked()),
@@ -294,7 +305,7 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     scoreWidgetLayout->addWidget(m_scoreWidget, 0, 0, 1, 3);
     scoreWidgetLayout->setRowStretch(0, 10);
     
-    scoreWidgetLayout->addWidget(m_alignButton, 1, 0, 1, 3, Qt::AlignHCenter);
+    scoreWidgetLayout->addWidget(m_alignCommands, 1, 0, 1, 3, Qt::AlignHCenter);
     scoreWidgetLayout->addWidget(m_alignAcceptReject, 1, 0, 1, 3, Qt::AlignHCenter);
     m_alignAcceptReject->hide();
     scoreWidgetLayout->addWidget(m_scorePageDownButton, 2, 0);
@@ -514,6 +525,8 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
             this, SLOT(alignmentRejected()));
     connect(&m_session, SIGNAL(alignmentFrameIlluminated(sv_frame_t)),
             this, SLOT(alignmentFrameIlluminated(sv_frame_t)));
+    connect(&m_session, SIGNAL(alignmentFailedToRun(QString)),
+            this, SLOT(alignmentFailedToRun(QString)));
 
     QTimer::singleShot(250, this, &MainWindow::introduction);
 
@@ -1924,6 +1937,7 @@ void
 MainWindow::installedTransformsPopulated()
 {
     populateTransformsMenu();
+    populateScoreAlignerChoiceMenu();
 
     if (m_shouldStartOSCQueue) {
         SVDEBUG << "MainWindow: Creating OSC queue with network port"
@@ -2833,6 +2847,103 @@ MainWindow::alignmentFrameIlluminated(sv_frame_t frame)
 }
 
 void
+MainWindow::alignmentFailedToRun(QString message)
+{
+    // NB we also have alignmentFailed which is received when the
+    // "classic SV" audio-to-audio alignment fails. This is for
+    // audio-to-score
+
+    QMessageBox::warning
+        (this,
+         tr("Unable to calculate alignment"),
+         tr("<b>Alignment calculation failed</b><p>Failed to align audio with score:<p>%1")
+         .arg(message),
+         QMessageBox::Ok);
+}
+
+void
+MainWindow::populateScoreAlignerChoiceMenu()
+{
+    delete m_alignerChoice->menu();
+    m_alignerChoice->setMenu(nullptr);
+    
+    auto transforms =
+        ScoreAlignmentTransform::getAvailableAlignmentTransforms();
+
+    SVDEBUG << "MainWindow::populateScoreAlignerChoiceMenu: Found "
+            << transforms.size() << " transforms" << endl;
+
+    if (transforms.empty()) {
+        QMessageBox::warning
+            (this,
+             tr("No suitable alignment plugins found"),
+             tr("<b>No alignment plugins found</b><p>Failed to find any suitable plugins for audio to score alignment. Alignment will not be available"),
+             QMessageBox::Ok);
+        return;
+    }
+
+    QSettings settings;
+    settings.beginGroup("ScoreAlignment");
+    QString preferredTransformKey = "transformId";
+    TransformId defaultId =
+        ScoreAlignmentTransform::getDefaultAlignmentTransform();
+
+    SVDEBUG << "MainWindow::populateScoreAlignerChoiceMenu: Default transform is \"" << defaultId << "\"" << endl;
+    
+    if (settings.contains(preferredTransformKey)) {
+        TransformId id = settings.value
+            (preferredTransformKey, defaultId).toString();
+        bool found = false;
+        for (const auto &t : transforms) {
+            if (t.identifier == id) {
+                found = true;
+                break;
+            }
+        }
+        if (found) {
+            SVDEBUG << "MainWindow::populateScoreAlignerChoiceMenu: Saved transform is \"" << id << "\"" << endl;
+            defaultId = id;
+            m_session.setAlignmentTransformId(id);
+        } else {
+            QMessageBox::warning
+                (this,
+                 tr("Previous alignment plugin not found"),
+                 tr("<b>The previously-selected alignment plugin was not found</b><p>The previously-selected alignment plugin transform \"%1\" was not found on the system, using the default setting \"%2\"").arg(id).arg(defaultId),
+                 QMessageBox::Ok);
+        }
+    }
+    settings.endGroup();
+    
+    QMenu *menu = new QMenu(this);
+    QActionGroup *alignerGroup = new QActionGroup(menu);
+    for (const auto &t : transforms) {
+        QString label = tr("%1 by %2").arg(t.pluginName).arg(t.maker);
+        auto action = menu->addAction(label, [=]() {
+            scoreAlignerChosen(t.identifier);
+        });
+        action->setData(t.identifier);
+        action->setCheckable(true);
+        action->setChecked(t.identifier == defaultId);
+        alignerGroup->addAction(action);
+    }
+    m_alignerChoice->setMenu(menu);
+}
+
+void
+MainWindow::scoreAlignerChosen(TransformId id)
+{
+    SVDEBUG << "MainWindow::scoreAlignerChosen: Chosen transform is \"" << id << "\"" << endl;
+
+    m_session.setAlignmentTransformId(id);
+
+    QSettings settings;
+    settings.beginGroup("ScoreAlignment");
+    QString preferredTransformKey = "transformId";
+    settings.setValue(preferredTransformKey, id);
+    settings.endGroup();
+}
+
+void
 MainWindow::layerAdded(Layer *layer)
 {
     SVDEBUG << "MainWindow::layerAdded" << endl;
@@ -2852,7 +2963,7 @@ MainWindow::alignmentReadyForReview()
 
     m_paneStack->setCurrentLayer(onsetsPane, onsetsLayer);
 
-    m_alignButton->hide();
+    m_alignCommands->hide();
     m_alignAcceptReject->show();
 
     updateMenuStates();
@@ -2873,7 +2984,7 @@ MainWindow::alignmentAccepted()
     SVDEBUG << "MainWindow::alignmentAccepted" << endl;
 
     m_alignAcceptReject->hide();
-    m_alignButton->show();
+    m_alignCommands->show();
     m_alignButton->setEnabled(true);
 
     TimeInstantLayer *onsetsLayer = m_session.getOnsetsLayer();
@@ -2896,7 +3007,7 @@ MainWindow::alignmentRejected()
     SVDEBUG << "MainWindow::alignmentRejected" << endl;
 
     m_alignAcceptReject->hide();
-    m_alignButton->show();
+    m_alignCommands->show();
     m_alignButton->setEnabled(true);
 
     TimeInstantLayer *onsetsLayer = m_session.getOnsetsLayer();

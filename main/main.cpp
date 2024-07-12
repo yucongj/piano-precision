@@ -410,34 +410,34 @@ main(int argc, char **argv)
     settings.setValue("rdf-indices", list);
     settings.endGroup();
 
+    PluginPathSetter::Paths paths = PluginPathSetter::getDefaultPaths();
+    
     PluginPathSetter::TypeKey vampPluginTypeKey
         { KnownPlugins::VampPlugin, KnownPlugins::FormatNative };
 
-    PluginPathSetter::TypeKey ladspaPluginTypeKey
-        { KnownPlugins::LADSPAPlugin, KnownPlugins::FormatNative };
+    auto defaultVampConfig = paths.at(vampPluginTypeKey);
 
-    QStringList pluginDirPaths =
+    for (auto &config : paths) {
+        config.second.directories = {};
+        config.second.useEnvVariable = false;
+    };
+    
+    QStringList bundledPluginPaths =
         HelperExecPath(HelperExecPath::NativeArchitectureOnly)
         .getBundledPluginPaths();
-    
-    PluginPathSetter::Paths bundlePaths
-        { { vampPluginTypeKey,
-            { pluginDirPaths,
-              QString("VAMP_PATH"),
-              true              // allow environment variable to override
-            }
-            },
-          { ladspaPluginTypeKey,
-            { {},
-              QString("LADSPA_PATH"),
-              false             // do not load from system paths
-            }
-          }
-        };
 
-    PluginPathSetter::savePathSettings(bundlePaths);
+    paths[vampPluginTypeKey] = {
+        bundledPluginPaths << defaultVampConfig.directories,
+        defaultVampConfig.envVariable,
+        true // allow environment variable to override this one
+    };
+    
+    PluginPathSetter::savePathSettings(paths);
     PluginPathSetter::initialiseEnvironmentVariables();
 
+    TransformFactory::getInstance()->restrictTransformTypes
+        ({ Transform::FeatureExtraction });
+    
     ScoreFinder::initialiseAlignerEnvironmentVariables();
     ScoreFinder::populateUserDirectoriesFromBundled();
     

@@ -12,6 +12,8 @@
 
 #include "Session.h"
 
+#include "ScoreAlignmentTransform.h"
+
 #include "transform/TransformFactory.h"
 #include "transform/ModelTransformer.h"
 #include "layer/ColourDatabase.h"
@@ -152,6 +154,14 @@ Session::setMainModel(ModelId modelId, QString scoreId)
 }
 
 void
+Session::setAlignmentTransformId(TransformId alignmentTransformId)
+{
+    SVDEBUG << "Session::setAlignmentTransformId: Setting to \""
+            << alignmentTransformId << "\"" << endl;
+    m_alignmentTransformId = alignmentTransformId;
+}
+
+void
 Session::beginAlignment()
 {
     if (m_mainModel.isNone()) {
@@ -177,8 +187,20 @@ Session::beginPartialAlignment(int scorePositionStartNumerator,
 
     ModelTransformer::Input input(m_mainModel);
 
+    TransformId alignmentTransformId = m_alignmentTransformId;
+    if (alignmentTransformId == "") {
+        alignmentTransformId =
+            ScoreAlignmentTransform::getDefaultAlignmentTransform();
+    }
+
+    if (alignmentTransformId == "") {
+        SVDEBUG << "Session::beginPartialAlignment: ERROR: No alignment transform found" << endl;
+        emit alignmentFailedToRun("No suitable score alignment plugin found");
+        return;
+    }
+    
     vector<pair<QString, pair<Pane *, TimeInstantLayer **>>> layerDefinitions {
-        { "vamp:score-aligner:pianoaligner:chordonsets",
+        { alignmentTransformId,
           { m_topPane, &m_pendingOnsetsLayer }
         }
     };
@@ -245,21 +267,22 @@ Session::beginPartialAlignment(int scorePositionStartNumerator,
         t.setProgram(m_scoreId);
         t.setParameters(params);
 
-        //!!! return error codes
-    
         Layer *layer = m_document->createDerivedLayer(t, input);
         if (!layer) {
             SVDEBUG << "Session::beginPartialAlignment: Transform failed to initialise" << endl;
+            emit alignmentFailedToRun(QString("Unable to initialise score alignment plugin \"%1\"").arg(transformId));
             return;
         }
         if (layer->getModel().isNone()) {
             SVDEBUG << "Session::beginPartialAlignment: Transform failed to create a model" << endl;
+            emit alignmentFailedToRun(QString("Score alignment plugin \"%1\" did not produce the expected output").arg(transformId));
             return;
         }
 
         TimeInstantLayer *tl = qobject_cast<TimeInstantLayer *>(layer);
         if (!tl) {
             SVDEBUG << "Session::beginPartialAlignment: Transform resulted in wrong layer type" << endl;
+            emit alignmentFailedToRun(QString("Score alignment plugin \"%1\" did not produce the expected output format").arg(transformId));
             return;
         }
 
