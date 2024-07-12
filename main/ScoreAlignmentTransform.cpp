@@ -18,6 +18,8 @@
 
 using namespace sv;
 
+const QString ALIGNMENT_OUTPUT_NAME = "audio-to-score-alignment";
+
 bool
 ScoreAlignmentTransform::m_queried = false;
 
@@ -40,7 +42,7 @@ ScoreAlignmentTransform::getAvailableAlignmentTransforms()
 
     auto allTransforms =
         TransformFactory::getInstance()->getInstalledTransformDescriptions();
-    
+
     for (const auto &desc : allTransforms) {
         TransformId identifier = desc.identifier;
         Transform transform;
@@ -48,7 +50,7 @@ ScoreAlignmentTransform::getAvailableAlignmentTransforms()
         SVDEBUG << "ScoreAlignmentTransform: looking at transform "
                 << identifier << " with output \"" << transform.getOutput()
                 << "\"" << endl;
-        if (transform.getOutput() == "chordonsets") {
+        if (transform.getOutput() == ALIGNMENT_OUTPUT_NAME) {
             SVDEBUG << "ScoreAlignmentTransform: it's a candidate" << endl;
             m_transforms.push_back(desc);
         }
