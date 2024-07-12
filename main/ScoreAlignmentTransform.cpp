@@ -19,6 +19,7 @@
 using namespace sv;
 
 const QString ALIGNMENT_OUTPUT_NAME = "audio-to-score-alignment";
+const QString DEFAULT_PREFIX = "vamp:score-aligner:pianoaligner:";
 
 bool
 ScoreAlignmentTransform::m_queried = false;
@@ -71,10 +72,9 @@ ScoreAlignmentTransform::getDefaultAlignmentTransform()
     if (transforms.empty()) {
         return {};
     } else {
-        TransformId hardcodedDefaultPrefix("vamp:score-aligner:pianoaligner:");
         for (const auto &t : transforms) {
-            if (t.identifier.startsWith(hardcodedDefaultPrefix)) {
-                SVDEBUG << "ScoreAlignmentTransform::getDefaultAlignmentTransform: Found \"" << t.identifier << "\" which starts with hardcoded default \"" << hardcodedDefaultPrefix << "\", using this" << endl;
+            if (t.identifier.startsWith(DEFAULT_PREFIX)) {
+                SVDEBUG << "ScoreAlignmentTransform::getDefaultAlignmentTransform: Found \"" << t.identifier << "\" which starts with hardcoded default \"" << DEFAULT_PREFIX << "\", using this" << endl;
                 return t.identifier;
             }
         }
