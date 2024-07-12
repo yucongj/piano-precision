@@ -64,6 +64,8 @@ public slots:
     
     void setMainModel(sv::ModelId modelId, QString scoreId);
 
+    void setAlignmentTransformId(sv::TransformId transformId);
+    
     void beginAlignment();
 
     void beginPartialAlignment(int scorePositionStartNumerator,
@@ -99,6 +101,7 @@ private:
     sv::Document *m_document;
     QString m_scoreId;
     sv::ModelId m_mainModel;
+    sv::TransformId m_alignmentTransformId;
 
     sv::Pane *m_topPane;
     sv::Pane *m_bottomPane;

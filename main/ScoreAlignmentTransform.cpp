@@ -54,6 +54,7 @@ ScoreAlignmentTransform::getAvailableAlignmentTransforms()
         }
     }
 
+    m_queried = true;
     return m_transforms;
 }
 

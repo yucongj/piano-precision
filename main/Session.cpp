@@ -154,6 +154,14 @@ Session::setMainModel(ModelId modelId, QString scoreId)
 }
 
 void
+Session::setAlignmentTransformId(TransformId alignmentTransformId)
+{
+    SVDEBUG << "Session::setAlignmentTransformId: Setting to \""
+            << alignmentTransformId << "\"" << endl;
+    m_alignmentTransformId = alignmentTransformId;
+}
+
+void
 Session::beginAlignment()
 {
     if (m_mainModel.isNone()) {
@@ -179,8 +187,11 @@ Session::beginPartialAlignment(int scorePositionStartNumerator,
 
     ModelTransformer::Input input(m_mainModel);
 
-    TransformId alignmentTransformId =
-        ScoreAlignmentTransform::getDefaultAlignmentTransform();
+    TransformId alignmentTransformId = m_alignmentTransformId;
+    if (alignmentTransformId == "") {
+        alignmentTransformId =
+            ScoreAlignmentTransform::getDefaultAlignmentTransform();
+    }
 
     if (alignmentTransformId == "") {
         SVDEBUG << "Session::beginPartialAlignment: ERROR: No alignment transform found" << endl;

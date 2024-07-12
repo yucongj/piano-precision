@@ -2870,6 +2870,9 @@ MainWindow::populateScoreAlignerChoiceMenu()
     auto transforms =
         ScoreAlignmentTransform::getAvailableAlignmentTransforms();
 
+    SVDEBUG << "MainWindow::populateScoreAlignerChoiceMenu: Found "
+            << transforms.size() << " transforms" << endl;
+
     if (transforms.empty()) {
         QMessageBox::warning
             (this,
@@ -2879,12 +2882,65 @@ MainWindow::populateScoreAlignerChoiceMenu()
         return;
     }
 
+    QSettings settings;
+    settings.beginGroup("ScoreAlignment");
+    QString preferredTransformKey = "transformId";
+    TransformId defaultId =
+        ScoreAlignmentTransform::getDefaultAlignmentTransform();
+
+    SVDEBUG << "MainWindow::populateScoreAlignerChoiceMenu: Default transform is \"" << defaultId << "\"" << endl;
+    
+    if (settings.contains(preferredTransformKey)) {
+        TransformId id = settings.value
+            (preferredTransformKey, defaultId).toString();
+        bool found = false;
+        for (const auto &t : transforms) {
+            if (t.identifier == id) {
+                found = true;
+                break;
+            }
+        }
+        if (found) {
+            SVDEBUG << "MainWindow::populateScoreAlignerChoiceMenu: Saved transform is \"" << id << "\"" << endl;
+            defaultId = id;
+            m_session.setAlignmentTransformId(id);
+        } else {
+            QMessageBox::warning
+                (this,
+                 tr("Previous alignment plugin not found"),
+                 tr("<b>The previously-selected alignment plugin was not found</b><p>The previously-selected alignment plugin transform \"%1\" was not found on the system, using the default setting \"%2\"").arg(id).arg(defaultId),
+                 QMessageBox::Ok);
+        }
+    }
+    settings.endGroup();
+    
     QMenu *menu = new QMenu(this);
+    QActionGroup *alignerGroup = new QActionGroup(menu);
     for (const auto &t : transforms) {
-        auto action =
-            menu->addAction(tr("%1 by %2").arg(t.pluginName).arg(t.maker));
+        QString label = tr("%1 by %2").arg(t.pluginName).arg(t.maker);
+        auto action = menu->addAction(label, [=]() {
+            scoreAlignerChosen(t.identifier);
+        });
+        action->setData(t.identifier);
+        action->setCheckable(true);
+        action->setChecked(t.identifier == defaultId);
+        alignerGroup->addAction(action);
     }
     m_alignerChoice->setMenu(menu);
+}
+
+void
+MainWindow::scoreAlignerChosen(TransformId id)
+{
+    SVDEBUG << "MainWindow::scoreAlignerChosen: Chosen transform is \"" << id << "\"" << endl;
+
+    m_session.setAlignmentTransformId(id);
+
+    QSettings settings;
+    settings.beginGroup("ScoreAlignment");
+    QString preferredTransformKey = "transformId";
+    settings.setValue(preferredTransformKey, id);
+    settings.endGroup();
 }
 
 void

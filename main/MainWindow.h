@@ -161,6 +161,7 @@ protected slots:
     void alignmentFrameIlluminated(sv::sv_frame_t);
     void alignmentFailedToRun(QString);
     void populateScoreAlignerChoiceMenu();
+    void scoreAlignerChosen(sv::TransformId);
     void highlightFrameInScore(sv::sv_frame_t);
     void scoreSelectionChanged(Fraction, bool, ScoreWidget::EventLabel, Fraction, bool, ScoreWidget::EventLabel);
     void scorePageChanged(int page);
