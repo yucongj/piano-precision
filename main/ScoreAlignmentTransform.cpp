@@ -69,6 +69,14 @@ ScoreAlignmentTransform::getDefaultAlignmentTransform()
     if (transforms.empty()) {
         return {};
     } else {
+        TransformId hardcodedDefaultPrefix("vamp:score-aligner:pianoaligner:");
+        for (const auto &t : transforms) {
+            if (t.identifier.startsWith(hardcodedDefaultPrefix)) {
+                SVDEBUG << "ScoreAlignmentTransform::getDefaultAlignmentTransform: Found \"" << t.identifier << "\" which starts with hardcoded default \"" << hardcodedDefaultPrefix << "\", using this" << endl;
+                return t.identifier;
+            }
+        }
+        SVDEBUG << "ScoreAlignmentTransform::getDefaultAlignmentTransform: Found nothing to match hardcoded default prefix, returning first aligner in list which is \"" << transforms.begin()->identifier << "\"" << endl;
         return transforms.begin()->identifier;
     }
 }
