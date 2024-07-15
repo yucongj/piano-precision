@@ -269,12 +269,20 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
 
     m_alignerChoice = new QToolButton();
     m_alignerChoice->setPopupMode(QToolButton::InstantPopup);
+
+#ifdef Q_OS_MAC
+    QChar dot(0x00b7);
+    m_alignerChoice->setText(QString("%1%2%3").arg(dot).arg(dot).arg(dot));
+    m_alignerChoice->setFixedSize(22, 22);
+#else
     m_alignerChoice->setArrowType(Qt::DownArrow);
-        
+#endif
+    
     m_alignCommands = new QWidget;
     QHBoxLayout *aclayout = new QHBoxLayout;
     aclayout->addWidget(m_alignButton);
     aclayout->addWidget(m_alignerChoice);
+    aclayout->setContentsMargins(0, 0, 0, 0);
     m_alignCommands->setLayout(aclayout);
     
     m_alignAcceptButton = new QPushButton
@@ -291,6 +299,7 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     QHBoxLayout *aalayout = new QHBoxLayout;
     aalayout->addWidget(m_alignAcceptButton);
     aalayout->addWidget(m_alignRejectButton);
+    aalayout->setContentsMargins(0, 0, 0, 0);
     m_alignAcceptReject->setLayout(aalayout);
     
     m_scorePageDownButton = new QPushButton("<<");
