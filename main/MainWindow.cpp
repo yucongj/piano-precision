@@ -268,7 +268,8 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     m_subsetOfScoreSelected = false;
 
     m_alignerChoice = new QPushButton();
-    m_alignerChoice->setMaximumWidth(24);
+    QChar dot(0x00b7);
+    m_alignerChoice->setText(QString("%1%2%3").arg(dot).arg(dot).arg(dot));
     
     m_alignCommands = new QWidget;
     QHBoxLayout *aclayout = new QHBoxLayout;
