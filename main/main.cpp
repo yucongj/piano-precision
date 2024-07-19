@@ -426,15 +426,34 @@ main(int argc, char **argv)
         HelperExecPath(HelperExecPath::NativeArchitectureOnly)
         .getBundledPluginPaths();
 
-    QStringList vampDirectories =
+    QString alignmentSuffix = "/AudioToScoreAlignment";
+    
+    QStringList vampDirs =
         defaultVampConfig.directories;
 
-    for (auto &s : vampDirectories) {
-        s += "/AudioToScoreAlignment";
+    std::set<QString> vampDirSet;
+    for (auto s : vampDirs) {
+        vampDirSet.insert(s);
+    }
+    
+    QStringList adjustedVampDirs;
+    std::set<QString> alreadySeen;
+
+    for (auto s : vampDirs) {
+        if (alreadySeen.find(s) == alreadySeen.end()) {
+            adjustedVampDirs << s;
+            alreadySeen.insert(s);
+        }
+        if (!s.endsWith(alignmentSuffix)) {
+            QString withSuffix = s + alignmentSuffix;
+            if (vampDirSet.find(withSuffix) == vampDirSet.end()) {
+                adjustedVampDirs << withSuffix;
+            }
+        }
     }
     
     paths[vampPluginTypeKey] = {
-        bundledPluginPaths << vampDirectories,
+        bundledPluginPaths << adjustedVampDirs,
         defaultVampConfig.envVariable,
         true // allow environment variable to override this one
     };
