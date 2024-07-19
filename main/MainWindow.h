@@ -230,7 +230,7 @@ protected:
     QScrollArea             *m_mainScroll;
     ScoreWidget             *m_scoreWidget;
     QPushButton             *m_alignButton;
-    QToolButton             *m_alignerChoice;
+    QPushButton             *m_alignerChoice;
     QWidget                 *m_alignCommands;
     QPushButton             *m_alignAcceptButton;
     QPushButton             *m_alignRejectButton;
