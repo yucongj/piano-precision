@@ -246,6 +246,64 @@ protected:
     bool event(QEvent *) override;
 };
 
+static void
+setupPluginPaths()
+{
+    PluginPathSetter::Paths paths = PluginPathSetter::getDefaultPaths();
+    
+    PluginPathSetter::TypeKey vampPluginTypeKey
+        { KnownPlugins::VampPlugin, KnownPlugins::FormatNative };
+
+    auto defaultVampConfig = paths.at(vampPluginTypeKey);
+
+    for (auto &config : paths) {
+        config.second.directories = {};
+        config.second.useEnvVariable = false;
+    };
+    
+    QStringList bundledPluginPaths =
+        HelperExecPath(HelperExecPath::NativeArchitectureOnly)
+        .getBundledPluginPaths();
+
+    QString alignmentSuffix = "/AudioToScoreAlignment";
+    
+    QStringList vampDirs =
+        defaultVampConfig.directories;
+
+    std::set<QString> vampDirSet;
+    for (auto s : vampDirs) {
+        vampDirSet.insert(s);
+    }
+    
+    QStringList adjustedVampDirs;
+    std::set<QString> alreadySeen;
+
+    for (auto s : vampDirs) {
+        if (alreadySeen.find(s) == alreadySeen.end()) {
+            adjustedVampDirs << s;
+            alreadySeen.insert(s);
+        }
+        if (!s.endsWith(alignmentSuffix)) {
+            QString withSuffix = s + alignmentSuffix;
+            if (vampDirSet.find(withSuffix) == vampDirSet.end()) {
+                adjustedVampDirs << withSuffix;
+            }
+        }
+    }
+    
+    paths[vampPluginTypeKey] = {
+        bundledPluginPaths << adjustedVampDirs,
+        defaultVampConfig.envVariable,
+        true // allow environment variable to override this one
+    };
+    
+    PluginPathSetter::savePathSettings(paths);
+    PluginPathSetter::initialiseEnvironmentVariables();
+
+    TransformFactory::getInstance()->restrictTransformTypes
+        ({ Transform::FeatureExtraction });
+}
+
 int
 main(int argc, char **argv)
 {
@@ -410,40 +468,7 @@ main(int argc, char **argv)
     settings.setValue("rdf-indices", list);
     settings.endGroup();
 
-    PluginPathSetter::Paths paths = PluginPathSetter::getDefaultPaths();
-    
-    PluginPathSetter::TypeKey vampPluginTypeKey
-        { KnownPlugins::VampPlugin, KnownPlugins::FormatNative };
-
-    auto defaultVampConfig = paths.at(vampPluginTypeKey);
-
-    for (auto &config : paths) {
-        config.second.directories = {};
-        config.second.useEnvVariable = false;
-    };
-    
-    QStringList bundledPluginPaths =
-        HelperExecPath(HelperExecPath::NativeArchitectureOnly)
-        .getBundledPluginPaths();
-
-    QStringList vampDirectories =
-        defaultVampConfig.directories;
-
-    for (auto &s : vampDirectories) {
-        s += "/AudioToScoreAlignment";
-    }
-    
-    paths[vampPluginTypeKey] = {
-        bundledPluginPaths << vampDirectories,
-        defaultVampConfig.envVariable,
-        true // allow environment variable to override this one
-    };
-    
-    PluginPathSetter::savePathSettings(paths);
-    PluginPathSetter::initialiseEnvironmentVariables();
-
-    TransformFactory::getInstance()->restrictTransformTypes
-        ({ Transform::FeatureExtraction });
+    setupPluginPaths();
     
     ScoreFinder::initialiseAlignerEnvironmentVariables();
     ScoreFinder::populateUserDirectoriesFromBundled();
