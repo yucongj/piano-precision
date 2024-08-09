@@ -16,8 +16,8 @@ if [ -d /Applications ]; then
 
     archs="x86_64 arm64"
     
-    qtdir_x86_64="/Users/cannam/Qt/6.6.1/macos"
-    qtdir_arm64="/Users/cannam/Qt/6.6.1/macos"
+    qtdir_x86_64="/Users/cannam/Qt/6.6.3/macos"
+    qtdir_arm64="/Users/cannam/Qt/6.6.3/macos"
 
     echo "Proceed to rebuild, package, and sign version $version of $full_name using:"
     for arch in $archs; do
