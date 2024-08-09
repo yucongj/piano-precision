@@ -4,7 +4,7 @@
       "pin": "63e0c3b37b6fb9ce6f074ea8222b4903e4f5568a"
     },
     "svcore": {
-      "pin": "a173a54cd5e7c61bf71332ebb6ab1417b4319e27"
+      "pin": "9a6763ad2867f9f72ed0a86a3458b3cb1bc10a87"
     },
     "svgui": {
       "pin": "2796d24d9e1918d3ed12057f801ca07c9c1032a3"
@@ -16,7 +16,7 @@
       "pin": "fae540cf4a79ac5ed5a4d4dc0df680b1acbe8628"
     },
     "sv-dependency-builds": {
-      "pin": "2d7667f145b5758eb277423e451bd5c2374dfb22"
+      "pin": "01bb14514cdbed5f7741ddad8d0a0e1021fbbcbc"
     },
     "icons/scalable": {
       "pin": "fa47556361a34604e042c9a1820051424451a024"
@@ -53,6 +53,9 @@
     },
     "piano-precision-aligner": {
       "pin": "ea967162dcc582a8354d4b8a6ae3b3a2a914589d"
+    },
+    "dummy-score-aligner": {
+      "pin": "0d39744a7a7e63471e0219e8287d5c1a564de7f5"
     }
   }
 }

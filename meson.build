@@ -1457,9 +1457,39 @@ ppa_files = [
   'piano-precision-aligner/plugins.cpp',
 ]
 
+dummy_files = [
+  'dummy-score-aligner/DummyAligner.cpp',
+  'dummy-score-aligner/DummyAudioToScoreAligner.cpp',
+  'dummy-score-aligner/Score.cpp',
+  'dummy-score-aligner/Templates.cpp',
+  'dummy-score-aligner/Paths.cpp',
+  'dummy-score-aligner/plugins.cpp',
+]
+
 ppa_plugin = shared_library(
   'score-aligner',
   ppa_files,
+  vampsdk_files,
+  include_directories: [
+    'vamp-plugin-sdk',
+  ],
+  cpp_args: [
+    general_defines,
+  ],
+  dependencies: [
+    vampsdk_dep,
+  ],
+  link_args: [
+    general_link_args,
+    vamp_symbol_args,
+  ],
+  name_prefix: '',
+  install: true,
+)  
+
+dummy_plugin = shared_library(
+  'dummy-aligner',
+  dummy_files,
   vampsdk_files,
   include_directories: [
     'vamp-plugin-sdk',
