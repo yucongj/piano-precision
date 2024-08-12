@@ -5,7 +5,7 @@ echo on
 
 set STARTPWD=%CD%
 
-set QTDIR=C:\QtOpenSource\6.6.2\msvc2019_64
+set QTDIR=C:\QtOpenSource\6.7.2\msvc2019_64
 if not exist %QTDIR% (
 @   echo Could not find 64-bit Qt in %QTDIR%
 @   exit /b 2

@@ -237,9 +237,9 @@
                 Id="Qt6StylePlugins"
                 Guid="f7c74e62-d0b6-4c47-a87f-6e3a0294ea4d">
 	      <File
-                  Id="qwindowsvistastyle"
-                  Name="qwindowsvistastyle.dll"
-                  Source="build_win64\plugins\styles\qwindowsvistastyle.dll"/>
+                  Id="qmodernwindowsstyle"
+                  Name="qmodernwindowsstyle.dll"
+                  Source="build_win64\plugins\styles\qmodernwindowsstyle.dll"/>
             </Component>
 	  </Directory>
 
