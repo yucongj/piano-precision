@@ -55,7 +55,7 @@ copy %QTDIR%\plugins\platforms\qdirect2d.dll .\%BUILDDIR%\plugins\platforms
 copy %QTDIR%\plugins\platforms\qminimal.dll .\%BUILDDIR%\plugins\platforms
 copy %QTDIR%\plugins\platforms\qoffscreen.dll .\%BUILDDIR%\plugins\platforms
 copy %QTDIR%\plugins\platforms\qwindows.dll .\%BUILDDIR%\plugins\platforms
-copy %QTDIR%\plugins\styles\qwindowsvistastyle.dll .\%BUILDDIR%\plugins\styles
+copy %QTDIR%\plugins\styles\qmodernwindowsstyle.dll .\%BUILDDIR%\plugins\styles
 
 copy sv-dependency-builds\win64-msvc\lib\libsndfile-1.dll .\%BUILDDIR%
 
