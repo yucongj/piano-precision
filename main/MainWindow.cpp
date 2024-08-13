@@ -259,9 +259,12 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
             this, &MainWindow::scoreSelectionChanged);
     connect(m_scoreWidget, &ScoreWidget::pageChanged,
             this, &MainWindow::scorePageChanged);
-    
-    m_alignButton = new QPushButton(tr("Align"));
+
+    int alignButtonWidth = 50 + QFontMetrics(font()).horizontalAdvance
+        (tr("Align Selection of Score with All of Audio"));
+    m_alignButton = new QPushButton();
     m_alignButton->setIcon(IconLoader().load("align"));
+    m_alignButton->setMinimumWidth(alignButtonWidth);
     connect(m_alignButton, SIGNAL(clicked()),
             this, SLOT(alignButtonClicked()));
     m_alignButton->setEnabled(false);
@@ -276,6 +279,7 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     aclayout->addWidget(m_alignButton);
     aclayout->addWidget(m_alignerChoice);
     aclayout->setContentsMargins(0, 2, 0, 0);
+    aclayout->setSpacing(3);
     m_alignCommands->setLayout(aclayout);
     
     m_alignAcceptButton = new QPushButton
@@ -293,6 +297,7 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     aalayout->addWidget(m_alignAcceptButton);
     aalayout->addWidget(m_alignRejectButton);
     aalayout->setContentsMargins(0, 0, 0, 0);
+    aalayout->setSpacing(3);
     m_alignAcceptReject->setLayout(aalayout);
     
     m_scorePageDownButton = new QPushButton("<<");
@@ -311,7 +316,7 @@ MainWindow::MainWindow(AudioMode audioMode, MIDIMode midiMode, bool withOSCSuppo
     scoreWidgetLayout->addWidget(m_alignAcceptReject, 1, 0, 1, 3, Qt::AlignHCenter);
     m_alignAcceptReject->hide();
     scoreWidgetLayout->addWidget(m_scorePageDownButton, 2, 0);
-    scoreWidgetLayout->addWidget(m_scorePageLabel, 2, 1);
+    scoreWidgetLayout->addWidget(m_scorePageLabel, 2, 1, Qt::AlignCenter);
     scoreWidgetLayout->addWidget(m_scorePageUpButton, 2, 2);
 
     QGroupBox *selectionGroupBox = new QGroupBox(tr("Selection within Score"));
