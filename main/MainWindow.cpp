@@ -689,7 +689,7 @@ MainWindow::setupFileMenu()
     // Added by YJ: Ocs 5, 2021
     icon = il.load("chooseScore");
     action = new QAction(icon, tr("&Choose Score..."), this);
-    // action->setShortcut(tr("Ctrl+N"));
+    action->setShortcut(tr("Ctrl+E"));
     action->setStatusTip(tr("Choose a new score"));
     connect(action, SIGNAL(triggered()), this, SLOT(openScoreFile()));
     // m_keyReference->registerShortcut(action);
