@@ -2970,6 +2970,8 @@ MainWindow::alignmentReadyForReview()
 
     m_paneStack->setCurrentLayer(onsetsPane, onsetsLayer);
 
+    m_alignAcceptReject->setFixedSize(m_alignCommands->size());
+    
     m_alignCommands->hide();
     m_alignAcceptReject->show();
 
