@@ -13,8 +13,6 @@ if not exist "C:\Program Files (x86)\WiX Toolset v3.14\bin" (
 )
 
 set ORIGINALPATH=%PATH%
-set PATH=C:\Program Files (x86)\Windows Kits\10\bin\x64;%PATH%
-set NAME=Christopher Cannam
 
 set ARG=%1
 shift

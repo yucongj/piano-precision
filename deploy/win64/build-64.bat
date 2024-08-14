@@ -5,7 +5,7 @@ echo on
 
 set STARTPWD=%CD%
 
-set QTDIR=C:\QtOpenSource\6.6.2\msvc2019_64
+set QTDIR=C:\QtOpenSource\6.7.2\msvc2019_64
 if not exist %QTDIR% (
 @   echo Could not find 64-bit Qt in %QTDIR%
 @   exit /b 2
@@ -55,7 +55,7 @@ copy %QTDIR%\plugins\platforms\qdirect2d.dll .\%BUILDDIR%\plugins\platforms
 copy %QTDIR%\plugins\platforms\qminimal.dll .\%BUILDDIR%\plugins\platforms
 copy %QTDIR%\plugins\platforms\qoffscreen.dll .\%BUILDDIR%\plugins\platforms
 copy %QTDIR%\plugins\platforms\qwindows.dll .\%BUILDDIR%\plugins\platforms
-copy %QTDIR%\plugins\styles\qwindowsvistastyle.dll .\%BUILDDIR%\plugins\styles
+copy %QTDIR%\plugins\styles\qmodernwindowsstyle.dll .\%BUILDDIR%\plugins\styles
 
 copy sv-dependency-builds\win64-msvc\lib\libsndfile-1.dll .\%BUILDDIR%
 

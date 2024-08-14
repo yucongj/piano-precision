@@ -237,9 +237,9 @@
                 Id="Qt6StylePlugins"
                 Guid="f7c74e62-d0b6-4c47-a87f-6e3a0294ea4d">
 	      <File
-                  Id="qwindowsvistastyle"
-                  Name="qwindowsvistastyle.dll"
-                  Source="build_win64\plugins\styles\qwindowsvistastyle.dll"/>
+                  Id="qmodernwindowsstyle"
+                  Name="qmodernwindowsstyle.dll"
+                  Source="build_win64\plugins\styles\qmodernwindowsstyle.dll"/>
             </Component>
 	  </Directory>
 
@@ -303,6 +303,14 @@
 		  Name="score-aligner.dll"
 		  Source="build_win64\score-aligner.dll"/>
 	    </Component>
+            <Component Win64="yes"
+                Id="DummyAligner64"
+                Guid="c7a895ca-42c0-43c2-bfc8-282c2610ef7a">
+	      <File
+		  Id="dummyaligner64"
+		  Name="dummy-aligner.dll"
+		  Source="build_win64\dummy-aligner.dll"/>
+	    </Component>
           </Directory> <!-- plugins -->
 	</Directory> <!-- sv -->
       </Directory> <!-- pfiles64 -->
@@ -343,6 +351,7 @@
       <ComponentRef Id="Piper64"/>
       <ComponentRef Id="Checker64"/>
       <ComponentRef Id="Aligner64"/>
+      <ComponentRef Id="DummyAligner64"/>
       <ComponentRef Id="ProgramMenuDir"/>
       @COMPONENT_REFS@
     </Feature>
