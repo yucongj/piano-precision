@@ -14,13 +14,13 @@ This software is adapted from [Sonic Visualiser](https://github.com/sonic-visual
 ## How to use *Piano Precision*
 
 ### Loading a score
-Go to the File menu and select Choose Score (or select the musical note icon at the upper left corner). The score file format must be [MEI] (https://music-encoding.org).
+Go to the File menu and select Choose Score (or select the musical note icon at the upper left corner). The score file format must be [MEI](https://music-encoding.org).
 
 ### Loading a recording
 Go to the File menu and select Open Recording (or select the second icon from the upper left corner).
 
 ### Aligning score with audio
-Click on the "Align Score with Audio" button underneath the rendered score. This will trigger the selected aligner plugin to conduct audio-to-score alignment. The estimated onsets will be displayed in the same pane as the spectrogram. Choose "Accept Alignment" if you think the result is an acceptable starting point for further manual refinements (see [Correcting alignments] (#correcting-alignments)); otherwise, choose "Reject Alignment" and consider conducting alignments section by section via [partial alignments] (#partial-alignments).
+Click on the "Align Score with Audio" button underneath the rendered score. This will trigger the selected aligner plugin to conduct audio-to-score alignment. The estimated onsets will be displayed in the same pane as the spectrogram. Choose "Accept Alignment" if you think the result is an acceptable starting point for further manual refinements (see [Correcting alignments](#correcting-alignments)); otherwise, choose "Reject Alignment" and consider conducting alignments section by section via [partial alignments](#partial-alignments).
 
 ### Correcting alignments
 
@@ -56,3 +56,10 @@ The partial alignment feature is especially useful when the whole recording of a
 
 ## Developing Vamp aligner plugins
 
+Start by cloning the [dummy score aligner](https://github.com/yucongj/dummy-score-aligner) repository. Make sure you can run the build script before implementing your audio-to-score alignment algorithm in the function `DummyAudioToScoreAligner::align()`. It may be helpful to look at the implementation of the default aligner plugin in Piano Precision, [piano aligner](https://github.com/yucongj/piano-precision-aligner), which adopts the classic hidden Markov model from [Raphael] (https://ieeexplore.ieee.org/document/761266).
+
+If you're not yet familiar with developing Vamp plugins, please refer to the [Vamp website](https://vamp-plugins.org/develop.html) which contains detailed documentations.
+
+Your plugin should provide the alignment result to the host (Piano Precision) via an output with the identifier "audio-to-score-alignment" (already specified in `DummyAligner.cpp`).
+
+Your plugin needs to parse and represent scores in the same way as the host. The code is already provided in `Score.h` and `Score.cpp`. A score is represented as a sequence of `MusicalEvent`s, containing each event's score time information and note information, etc. When an MEI score is loaded to the host, the host processes the score (using `verovio`) and writes out some intermediate files for both the host and the plugin to further parse the score. These intermediate files have the file extensions such as `.solo` and `.meter`, and they will be automatically deleted when the score is unloaded. Both the host and the plugin then parse these files to represent the score.
