@@ -36,7 +36,7 @@ Some helpful features:
 
 ### Exporting and importing alignments
 To export alignments, go to the File menu and choose Save Score Alignment As (or select the fifth icon from the left). The first column in the saved CSV file contains score times and the second column contains onset timestamps in seconds. A score time is represented by a text label specifying the measure number and the position within the measure. For
-example, the label “1+0/1” stands for the beginning of the first measure, and the label “1+3/4” stands for after three quarter notes worth of time in the first measure.
+example, the label “1+0/1” stands for the beginning of the first measure, and the label “1+3/4” stands for after three quarter notes worth of time in the first measure; the latter score position is highlighted in the image at the top.
 
 To import alignments, go to the File menu and choose Load Score Alignment (or select the third icon from the left). The imported CSV file needs to have two columns containing score times and onset times.
 
@@ -56,7 +56,7 @@ The partial alignment feature is especially useful when the whole recording of a
 
 ## Developing Vamp aligner plugins
 
-Start by cloning the [dummy score aligner](https://github.com/yucongj/dummy-score-aligner) repository. Make sure you can run the build script before implementing your audio-to-score alignment algorithm in the function `DummyAudioToScoreAligner::align()`. It may be helpful to look at the implementation of the default aligner plugin in Piano Precision, [piano aligner](https://github.com/yucongj/piano-precision-aligner), which adopts the classic hidden Markov model from [Raphael] (https://ieeexplore.ieee.org/document/761266).
+Start by cloning the [dummy score aligner](https://github.com/yucongj/dummy-score-aligner) repository. Make sure you can run the build script before implementing your audio-to-score alignment algorithm in the function `DummyAudioToScoreAligner::align()`. It may be helpful to look at the implementation of the default aligner plugin in Piano Precision, [piano aligner](https://github.com/yucongj/piano-precision-aligner), which adopts the classic hidden Markov model from [Raphael](https://ieeexplore.ieee.org/document/761266).
 
 If you're not yet familiar with developing Vamp plugins, please refer to the [Vamp website](https://vamp-plugins.org/develop.html) which contains detailed documentations.
 
