@@ -8,7 +8,7 @@
 
 This software is adapted from [Sonic Visualiser](https://github.com/sonic-visualiser/sonic-visualiser), but with an added panel displaying musical scores, and additional features such as audio-to-score alignment. Its interface is designed to help streamline the processes of loading a digital score and a performance recording, editing and visualizing annotations, and exporting score-aware annotations.
 
-*Piano Precision* needs to be used together with Vamp aligner plugins that can conduct audio-to-score alignment. Existing releases already include a default plugin, [piano aligner](https://github.com/yucongj/SV_PianoAligner). For anyone who would like to develop new aligner plugins for *Piano Precision*, please refer to the later section [Developing Vamp aligner plugins](#developing-vamp-aligner-plugins).
+*Piano Precision* needs to be used together with Vamp aligner plugins that can conduct audio-to-score alignment. Existing releases already include a default plugin, [piano aligner](https://github.com/yucongj/piano-aligner). For anyone who would like to develop new aligner plugins for *Piano Precision*, please refer to the later section [Developing Vamp aligner plugins](#developing-vamp-aligner-plugins).
 
 
 ## How to use *Piano Precision*
@@ -56,10 +56,28 @@ The partial alignment feature is especially useful when the whole recording of a
 
 ## Developing Vamp aligner plugins
 
-Start by cloning the [dummy score aligner](https://github.com/yucongj/dummy-score-aligner) repository. Make sure you can run the build script before implementing your audio-to-score alignment algorithm in the function `DummyAudioToScoreAligner::align()`. It may be helpful to look at the implementation of the default aligner plugin in Piano Precision, [piano aligner](https://github.com/yucongj/piano-precision-aligner), which adopts the classic hidden Markov model from [Raphael](https://ieeexplore.ieee.org/document/761266).
+Start by cloning the [dummy score aligner](https://github.com/yucongj/dummy-score-aligner) repository. Make sure you can run the build script before implementing your audio-to-score alignment algorithm in the function `DummyAudioToScoreAligner::align()`. It may be helpful to look at the implementation of the default aligner plugin in Piano Precision, [piano aligner](https://github.com/yucongj/piano-aligner), which adopts the classic hidden Markov model from [Raphael](https://ieeexplore.ieee.org/document/761266).
 
 If you're not yet familiar with developing Vamp plugins, please refer to the [Vamp website](https://vamp-plugins.org/develop.html) which contains detailed documentations.
 
 Your plugin should provide the alignment result to the host (Piano Precision) via an output with the identifier "audio-to-score-alignment" (already specified in `DummyAligner.cpp`).
 
 Your plugin needs to parse and represent scores in the same way as the host. The code is already provided in `Score.h` and `Score.cpp`. A score is represented as a sequence of `MusicalEvent`s, containing each event's score time information and note information, etc. When an MEI score is loaded to the host, the host processes the score (using `verovio`) and writes out some intermediate files for both the host and the plugin to further parse the score. These intermediate files have the file extensions such as `.solo` and `.meter`, and they will be automatically deleted when the score is unloaded. Both the host and the plugin then parse these files to represent the score.
+
+
+## Funding
+<p>
+  This project has received funding from the University of Richmond, EU's MSCA program, and the National Endowment for the Humanities.
+</p>
+
+<div style="display: flex; align-items: center; gap: 30px;">
+  <a href="https://www.richmond.edu/" title="University of Richmond">
+    <img src="logo_ur.svg" style="height: 35px; margin-top: 15px;" />
+  </a>
+  <a href="https://commission.europa.eu/" title="European Commission">
+    <img src="logo-ce-horizontal-en-quadri-lr.jpg" height="50" />
+  </a>
+  <a href="https://www.neh.gov/" title="National Endowment for the Humanities">
+    <img src="logo_neh.jpg" height="50" />
+  </a>
+</div>
