@@ -71,15 +71,15 @@ Your plugin needs to parse and represent scores in the same way as the host. The
 </p>
 
 <p align="left">
-  <a href="https://www.richmond.edu/" title="University of Richmond">
+  <a href="https://www.richmond.edu/" title="University of Richmond" style="text-decoration: none;">
     <img src="logo_ur.svg" height="35">
   </a>
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <a href="https://commission.europa.eu/" title="European Commission">
+  <a href="https://commission.europa.eu/" title="European Commission" style="text-decoration: none;">
     <img src="logo-ce-horizontal-en-quadri-lr.jpg" height="50">
   </a>
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <a href="https://www.neh.gov/" title="National Endowment for the Humanities">
+  <a href="https://www.neh.gov/" title="National Endowment for the Humanities" style="text-decoration: none;">
     <img src="logo_neh.jpg" height="50">
   </a>
 </p>
