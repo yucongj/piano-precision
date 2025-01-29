@@ -70,14 +70,17 @@ Your plugin needs to parse and represent scores in the same way as the host. The
   This project has received funding from the University of Richmond, EU's MSCA program, and the National Endowment for the Humanities.
 </p>
 
-<div style="display: flex; align-items: center; gap: 30px;">
+<p align="left">
   <a href="https://www.richmond.edu/" title="University of Richmond">
-    <img src="logo_ur.svg" style="height: 35px; margin-top: 15px;" />
+    <img src="logo_ur.svg" height="35">
   </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://commission.europa.eu/" title="European Commission">
-    <img src="logo-ce-horizontal-en-quadri-lr.jpg" height="50" />
+    <img src="logo-ce-horizontal-en-quadri-lr.jpg" height="50">
   </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://www.neh.gov/" title="National Endowment for the Humanities">
-    <img src="logo_neh.jpg" height="50" />
+    <img src="logo_neh.jpg" height="50">
   </a>
-</div>
+</p>
+
