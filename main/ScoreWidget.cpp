@@ -240,7 +240,7 @@ ScoreWidget::findSystemExtents(QByteArray svgData, shared_ptr<QSvgRenderer> rend
     // still don't think it's a significant overhead
     
     QDomDocument doc;
-    doc.setContent(svgData, false);
+    doc.setContent(svgData);
 
     Extent currentExtent;
     vector<double> staffLines;
