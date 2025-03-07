@@ -83,6 +83,9 @@ dl_dep = meson.get_compiler('c').find_library('dl', required: false)
 vampsdk_dep = dependency('vamp-sdk', version: '>= 2.10', required: false)
 vamphostsdk_dep = dependency('vamp-hostsdk', version: '>= 2.10', required: false)
 
+unwind_dep = []
+with_unwind = false
+
 if system == 'linux'
 
   capnp = find_program('capnp')
@@ -117,6 +120,8 @@ if system == 'linux'
   alsa_dep = dependency('alsa')
   
   portaudio_dep = dependency('portaudio-2.0', version: '>= 19', required: false)
+
+  unwind_dep = dependency('libunwind', required: false)
 
   feature_dependencies = [
     vamphostsdk_dep,
@@ -172,6 +177,15 @@ if system == 'linux'
     '-D__LINUX_ALSASEQ__',
     '-D__LINUX_ALSA__' # for RtMidi
   ]
+
+  if unwind_dep.found() and buildtype.startswith('debug')
+    with_unwind = true
+    feature_defines += [
+      '-DHAVE_UNWIND',
+    ]
+  else
+    unwind_dep = []
+  endif
 
   if portaudio_dep.found()
     feature_defines += [
@@ -1094,6 +1108,12 @@ pp_main_files = [
   'piano-precision-aligner/Score.cpp',
 ]
 
+  if with_unwind
+    pp_main_files += [
+      'main/segfault.c',
+    ]
+  endif
+
 verovio_files = [
   'verovio/src/abbr.cpp',
   'verovio/src/accid.cpp',
@@ -1577,7 +1597,8 @@ executable(
     qt_dep,
     feature_dependencies,
     os_dep,
-    dl_dep
+    dl_dep,
+    unwind_dep,
   ],
   cpp_args: [
     feature_defines,
