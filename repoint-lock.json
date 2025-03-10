@@ -4,31 +4,31 @@
       "pin": "63e0c3b37b6fb9ce6f074ea8222b4903e4f5568a"
     },
     "svcore": {
-      "pin": "9a6763ad2867f9f72ed0a86a3458b3cb1bc10a87"
+      "pin": "83195a39dfe87b603424f38646033222d46e8362"
     },
     "svgui": {
-      "pin": "2796d24d9e1918d3ed12057f801ca07c9c1032a3"
+      "pin": "843bb82108563044627d5af24b83778e82faebc1"
     },
     "svapp": {
-      "pin": "f51a1690f3f92e2421916d39a3385d49214e60c6"
+      "pin": "a26bcdad73f61168a832867ed58cb0037ec29280"
     },
     "checker": {
-      "pin": "fae540cf4a79ac5ed5a4d4dc0df680b1acbe8628"
+      "pin": "5ba274674cf9cbe1eafa2243e1356b2076c3dbd7"
     },
     "sv-dependency-builds": {
       "pin": "01bb14514cdbed5f7741ddad8d0a0e1021fbbcbc"
     },
     "icons/scalable": {
-      "pin": "fa47556361a34604e042c9a1820051424451a024"
+      "pin": "40ecb261e124cad07bf7adc85b48088bf366d9fa"
     },
     "piper": {
       "pin": "3a742c556ac1f2bf9823f30b937c71c690e1f6ae"
     },
     "piper-vamp-cpp": {
-      "pin": "c6519fcb8c926c8331f5e6deb351d738da48600a"
+      "pin": "6f16a09b78b995b3cf2844f00033bde90e5e0936"
     },
     "dataquay": {
-      "pin": "79623fb778da"
+      "pin": "3dbf25604e7a"
     },
     "verovio": {
       "pin": "c482e357cfbe42c76f41a37485740f66bcb39637"
@@ -43,19 +43,19 @@
       "pin": "38c3e524416a"
     },
     "bqaudioio": {
-      "pin": "88520ab5b8e5"
+      "pin": "017ab3ed3a33"
     },
     "bqaudiostream": {
-      "pin": "5d5950bc4d93"
+      "pin": "495b3242c489"
     },
     "bqthingfactory": {
       "pin": "2e4bd170f57f"
     },
     "piano-precision-aligner": {
-      "pin": "ea967162dcc582a8354d4b8a6ae3b3a2a914589d"
+      "pin": "3b1500314e36aa73bc37587bcfee056c799794cb"
     },
     "dummy-score-aligner": {
-      "pin": "0d39744a7a7e63471e0219e8287d5c1a564de7f5"
+      "pin": "489aba2ef9411dea17eb407aa7332ddc8152f960"
     }
   }
 }
