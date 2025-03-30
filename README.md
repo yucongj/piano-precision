@@ -4,7 +4,7 @@
 
 ### A software tool that assists analyzing recorded piano performances together with their scores.
 
-<img src="PianoPrecisionUI.png" alt="drawing" width="600"/>
+<video src="https://github.com/user-attachments/assets/1193ffab-9325-4d4b-bd91-55780cccadf8" width="600"></video>
 
 This software is adapted from [Sonic Visualiser](https://github.com/sonic-visualiser/sonic-visualiser), but with an added panel displaying musical scores, and additional features such as audio-to-score alignment. Its interface is designed to help streamline the processes of loading a digital score and a performance recording, editing and visualizing annotations, and exporting score-aware annotations.
 
