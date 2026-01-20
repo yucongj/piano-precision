@@ -10,7 +10,6 @@ This software is adapted from [Sonic Visualiser](https://github.com/sonic-visual
 
 *Piano Precision* needs to be used together with Vamp aligner plugins that can conduct audio-to-score alignment. Existing releases already include a default plugin, [piano aligner](https://github.com/yucongj/piano-aligner). For anyone who would like to develop new aligner plugins for *Piano Precision*, please refer to the later section [Developing Vamp aligner plugins](#developing-vamp-aligner-plugins).
 
-
 ## How to use *Piano Precision*
 
 ### Loading a score
@@ -64,6 +63,22 @@ Your plugin should provide the alignment result to the host (Piano Precision) vi
 
 Your plugin needs to parse and represent scores in the same way as the host. The code is already provided in `Score.h` and `Score.cpp`. A score is represented as a sequence of `MusicalEvent`s, containing each event's score time information and note information, etc. When an MEI score is loaded to the host, the host processes the score (using `verovio`) and writes out some intermediate files for both the host and the plugin to further parse the score. These intermediate files have the file extensions such as `.solo` and `.meter`, and they will be automatically deleted when the score is unloaded. Both the host and the plugin then parse these files to represent the score.
 
+## Citing *Piano Precision*
+This paper describes the software as well a user study in detail:
+
+```
+@InProceedings{PianoPrecision,
+  author =    {Jiang, Yucong and Weigl, David M. and Goebl, Werner},
+  title =     {Piano Precision: Advancing Music Performance Analysis by Integrating User-correctable Audio-to-score Alignment},
+  booktitle = {Proceedings of the 22nd Sound and Music Computing Conference (SMC)},
+  pages = {160--167},
+  month =     {July},
+  year =      {2025},
+  address =   {Graz, Austria},
+  doi = {10.5281/zenodo.15838699},
+  url = {https://doi.org/10.5281/zenodo.15838699}
+}
+```
 
 ## Funding
 <p>

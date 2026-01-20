@@ -1,4 +1,13 @@
-If you are using Piano Precision in research work for publication,
-please cite:
+If you are using Piano Precision in research work for publication, please cite:
 
-tba.
+@InProceedings{PianoPrecision,
+  author =    {Jiang, Yucong and Weigl, David M. and Goebl, Werner},
+  title =     {Piano Precision: Advancing Music Performance Analysis by Integrating User-correctable Audio-to-score Alignment},
+  booktitle = {Proceedings of the 22nd Sound and Music Computing Conference (SMC)},
+  pages = {160--167},
+  month =     {July},
+  year =      {2025},
+  address =   {Graz, Austria},
+  doi = {10.5281/zenodo.15838699},
+  url = {https://doi.org/10.5281/zenodo.15838699}
+}
